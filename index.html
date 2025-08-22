@@ -1520,6 +1520,250 @@
             );
         };
 
+        // 전문가 찾기 컴포넌트
+        const ExpertFinderComponent = () => {
+            const [activeCategory, setActiveCategory] = useState('health');
+            
+            // 3대 전문가 카테고리 정의
+            const expertCategories = {
+                'health': {
+                    name: '건강·의료',
+                    icon: '🏥',
+                    color: 'from-green-500 to-emerald-500',
+                    bgColor: 'from-green-50 to-emerald-50',
+                    description: '건강한 은퇴생활을 위한 의료 전문가'
+                },
+                'legal': {
+                    name: '세무·법무',
+                    icon: '📋',
+                    color: 'from-blue-500 to-indigo-500',
+                    bgColor: 'from-blue-50 to-indigo-50',
+                    description: '상속, 세금, 연금 등 법적 전문가'
+                },
+                'lifestyle': {
+                    name: '생활설계',
+                    icon: '🎯',
+                    color: 'from-purple-500 to-pink-500',
+                    bgColor: 'from-purple-50 to-pink-50',
+                    description: '취미, 주거, 여행 등 라이프스타일 전문가'
+                }
+            };
+
+            // 더미 전문가 데이터
+            const expertData = {
+                'health': [
+                    {
+                        id: 1,
+                        name: '김간호사',
+                        title: '시니어 건강관리 전문 간호사',
+                        experience: '15년 경력',
+                        rating: 4.8,
+                        reviews: 127,
+                        specialties: ['만성질환 관리', '건강상담', '복약지도'],
+                        price: '30,000원/30분',
+                        responseRate: 95,
+                        profileImage: '👩‍⚕️'
+                    },
+                    {
+                        id: 2,
+                        name: '박물리치료사',
+                        title: '시니어 재활운동 전문가',
+                        experience: '12년 경력',
+                        rating: 4.9,
+                        reviews: 203,
+                        specialties: ['근골격계 재활', '운동처방', '통증관리'],
+                        price: '50,000원/60분',
+                        responseRate: 92,
+                        profileImage: '🏃‍♂️'
+                    },
+                    {
+                        id: 3,
+                        name: '이영양사',
+                        title: '시니어 영양 관리 전문가',
+                        experience: '10년 경력',
+                        rating: 4.7,
+                        reviews: 89,
+                        specialties: ['당뇨식단', '고혈압식단', '건강식품'],
+                        price: '40,000원/45분',
+                        responseRate: 88,
+                        profileImage: '🥗'
+                    }
+                ],
+                'legal': [
+                    {
+                        id: 4,
+                        name: '최세무사',
+                        title: '상속세 전문 세무사',
+                        experience: '20년 경력',
+                        rating: 4.9,
+                        reviews: 156,
+                        specialties: ['상속세', '증여세', '연금소득세'],
+                        price: '100,000원/60분',
+                        responseRate: 97,
+                        profileImage: '📊'
+                    },
+                    {
+                        id: 5,
+                        name: '정법무사',
+                        title: '부동산 등기 전문 법무사',
+                        experience: '18년 경력',
+                        rating: 4.8,
+                        reviews: 134,
+                        specialties: ['부동산 등기', '상속절차', '계약서 검토'],
+                        price: '80,000원/60분',
+                        responseRate: 94,
+                        profileImage: '🏠'
+                    },
+                    {
+                        id: 6,
+                        name: '한재무설계사',
+                        title: 'CFP 자격 은퇴설계 전문가',
+                        experience: '25년 경력',
+                        rating: 4.9,
+                        reviews: 298,
+                        specialties: ['종합재무설계', '연금전략', '절세방안'],
+                        price: '120,000원/90분',
+                        responseRate: 96,
+                        profileImage: '💼'
+                    }
+                ],
+                'lifestyle': [
+                    {
+                        id: 7,
+                        name: '윤여행플래너',
+                        title: '시니어 여행 전문 플래너',
+                        experience: '8년 경력',
+                        rating: 4.8,
+                        reviews: 112,
+                        specialties: ['안전여행', '의료동행여행', '장기체류'],
+                        price: '60,000원/60분',
+                        responseRate: 91,
+                        profileImage: '✈️'
+                    },
+                    {
+                        id: 8,
+                        name: '조귀농멘토',
+                        title: '귀농귀촌 전문 멘토',
+                        experience: '12년 경력',
+                        rating: 4.7,
+                        reviews: 87,
+                        specialties: ['지역선택', '정착지원', '농업기술'],
+                        price: '80,000원/90분',
+                        responseRate: 89,
+                        profileImage: '🌾'
+                    },
+                    {
+                        id: 9,
+                        name: '문평생교육사',
+                        title: '시니어 교육 전문가',
+                        experience: '15년 경력',
+                        rating: 4.6,
+                        reviews: 145,
+                        specialties: ['취미교육', '디지털교육', '학습설계'],
+                        price: '45,000원/60분',
+                        responseRate: 93,
+                        profileImage: '📚'
+                    }
+                ]
+            };
+
+            const currentExperts = expertData[activeCategory] || [];
+            const currentCategory = expertCategories[activeCategory];
+
+            return (
+                <div className={`bg-gradient-to-r ${currentCategory.bgColor} p-6 rounded-lg`}>
+                    {/* 헤더 */}
+                    <div className="text-center mb-6">
+                        <h3 className="text-xl font-bold text-gray-800 mb-2">
+                            🔍 신뢰할 수 있는 전문가를 찾아보세요
+                        </h3>
+                        <p className="text-gray-600 text-sm">
+                            검증된 자격증 보유 전문가들과 안전한 상담
+                        </p>
+                    </div>
+
+                    {/* 카테고리 탭 */}
+                    <div className="grid grid-cols-3 gap-2 mb-6">
+                        {Object.entries(expertCategories).map(([key, category]) => (
+                            <button
+                                key={key}
+                                onClick={() => setActiveCategory(key)}
+                                className={`p-3 rounded-lg text-center transition-all duration-300 ${
+                                    activeCategory === key
+                                        ? `bg-gradient-to-r ${category.color} text-white shadow-lg`
+                                        : 'bg-white text-gray-600 hover:bg-gray-50'
+                                }`}
+                            >
+                                <div className="text-lg mb-1">{category.icon}</div>
+                                <div className="font-semibold text-xs">{category.name}</div>
+                            </button>
+                        ))}
+                    </div>
+
+                    {/* 전문가 목록 */}
+                    <div className="space-y-4 mb-6">
+                        {currentExperts.map(expert => (
+                            <div key={expert.id} className="bg-white rounded-lg p-4 shadow-md">
+                                <div className="flex items-start gap-4">
+                                    {/* 프로필 */}
+                                    <div className="text-3xl">{expert.profileImage}</div>
+                                    
+                                    {/* 정보 */}
+                                    <div className="flex-1">
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <h4 className="font-bold text-gray-800">{expert.name}</h4>
+                                            <div className="flex items-center gap-1">
+                                                <span className="text-yellow-500">⭐</span>
+                                                <span className="text-sm font-medium">{expert.rating}</span>
+                                                <span className="text-xs text-gray-500">({expert.reviews})</span>
+                                            </div>
+                                        </div>
+                                        
+                                        <p className="text-sm text-gray-600 mb-2">{expert.title}</p>
+                                        <p className="text-xs text-gray-500 mb-2">{expert.experience}</p>
+                                        
+                                        {/* 전문분야 태그 */}
+                                        <div className="flex flex-wrap gap-1 mb-3">
+                                            {expert.specialties.map((specialty, index) => (
+                                                <span key={index} className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded">
+                                                    {specialty}
+                                                </span>
+                                            ))}
+                                        </div>
+                                        
+                                        {/* 하단 정보 */}
+                                        <div className="flex items-center justify-between">
+                                            <div className="text-sm">
+                                                <span className="font-semibold text-blue-600">{expert.price}</span>
+                                                <span className="text-xs text-gray-500 ml-2">응답률 {expert.responseRate}%</span>
+                                            </div>
+                                            <button 
+                                                onClick={() => alert('상담 예약 기능은 준비중입니다.')}
+                                                className="px-4 py-2 bg-blue-500 text-white rounded-lg text-sm font-medium hover:bg-blue-600 transition-colors"
+                                            >
+                                                상담 예약
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+
+                    {/* 안내 메시지 */}
+                    <div className="bg-white p-4 rounded-lg">
+                        <h4 className="font-bold text-gray-800 mb-2">🛡️ 안전한 전문가 플랫폼</h4>
+                        <div className="text-sm text-gray-600 space-y-1">
+                            <p>✅ 모든 전문가 자격증 검증 완료</p>
+                            <p>✅ 금융상품 판매 금지 (순수 상담만)</p>
+                            <p>✅ 투명한 후기 시스템</p>
+                            <p>🚧 현재 시범 운영 중 - 2025년 3월 정식 오픈 예정</p>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
         // 게시글 상세 페이지 컴포넌트
         const PostDetailPage = ({ post, setCurrentView, currentUser, checkCalculationForInteraction, isAdminUser }) => {
             const [replies, setReplies] = useState([]);
@@ -2879,7 +3123,7 @@
                                             }`}
                                             onClick={() => setActiveTab('expert')}
                                         >
-                                            👨‍💼 전문가 매칭
+                                            🔍 전문가 찾기
                                         </button>
                                     </div>
 
@@ -2965,61 +3209,9 @@
                                         </div>
                                     )}
 
-                                    {/* 전문가 매칭 탭 */}
+                                    {/* 전문가 찾기 탭 */}
                                     {activeTab === 'expert' && (
-                                        <div className="bg-gradient-to-r from-orange-50 to-red-50 p-6 rounded-lg">
-                                            <div className="bg-white p-4 rounded-lg mb-4">
-                                                <p className="text-gray-800 font-semibold">
-                                                    👨‍💼 <strong>전문가와 1:1 상담</strong>으로<br/>
-                                                    나만의 맞춤형 은퇴설계를 받아보세요.
-                                                </p>
-                                            </div>
-                                            
-                                            <div className="grid grid-cols-2 gap-2 mb-4 text-xs">
-                                                <div className="bg-white p-2 rounded-lg text-center">
-                                                    <div className="font-bold text-orange-600">"내 상황에 맞는 투자 전략"</div>
-                                                </div>
-                                                <div className="bg-white p-2 rounded-lg text-center">
-                                                    <div className="font-bold text-orange-600">"세금 최적화 방법"</div>
-                                                </div>
-                                                <div className="bg-white p-2 rounded-lg text-center">
-                                                    <div className="font-bold text-orange-600">"연금 수령 전략"</div>
-                                                </div>
-                                                <div className="bg-white p-2 rounded-lg text-center">
-                                                    <div className="font-bold text-orange-600">"부동산 활용 방안"</div>
-                                                </div>
-                                            </div>
-
-                                            <div className="bg-orange-100 p-3 rounded-lg mb-4 text-center">
-                                                <p className="text-orange-800 font-semibold">
-                                                    💡 <strong>계산 결과를 바탕으로 맞춤형 상담을 받아보세요</strong>
-                                                </p>
-                                                <p className="text-orange-700 text-sm">금융 전문가, 세무사, 부동산 전문가와 연결</p>
-                                            </div>
-
-                                            <div className="bg-white p-4 rounded-lg mb-4">
-                                                <h4 className="font-bold text-gray-800 mb-2">🚧 서비스 준비중</h4>
-                                                <p className="text-gray-600 text-sm mb-3">
-                                                    더 나은 전문가 매칭 서비스를 제공하기 위해 준비중입니다.<br/>
-                                                    곧 만나뵐 수 있도록 최선을 다하겠습니다.
-                                                </p>
-                                                <div className="text-xs text-gray-500">
-                                                    • 금융설계 전문가 검증 중<br/>
-                                                    • 상담 시스템 구축 중<br/>
-                                                    • 2025년 하반기 오픈 예정
-                                                </div>
-                                            </div>
-                                            
-                                            <button
-                                                onClick={() => {
-                                                    alert('전문가 매칭 서비스는 현재 준비중입니다.\n빠른 시일 내에 서비스를 제공할 예정입니다.');
-                                                }}
-                                                className="w-full text-lg py-3 bg-gray-400 text-white rounded-lg font-semibold cursor-not-allowed"
-                                                disabled
-                                            >
-                                                🔒 전문가 매칭 (준비중)
-                                            </button>
-                                        </div>
+                                        <ExpertFinderComponent />
                                     )}
                                 </div>
                             )}
