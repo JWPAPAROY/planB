@@ -1820,7 +1820,7 @@
         };
 
         // 원본 계산기 완전 통합 (planb-calculator.html에서 추출)
-        const OriginalCalculator = ({ savedCalculations = [], onCalculationComplete }) => {
+        const OriginalCalculator = ({ savedCalculations = [], onCalculationComplete, setCurrentView }) => {
             const [calculatorStep, setCalculatorStep] = useState(1);
             const [formData, setFormData] = useState({
                 age: '', health: '보통', mode: '균형',
@@ -3935,7 +3935,7 @@
                             </div>
                         )}
                         
-                        {currentView === 'calculator' && <OriginalCalculator savedCalculations={savedCalculations} onCalculationComplete={handleCalculationComplete} />}
+                        {currentView === 'calculator' && <OriginalCalculator savedCalculations={savedCalculations} onCalculationComplete={handleCalculationComplete} setCurrentView={setCurrentView} />}
                         
                         
                         {currentView === 'community' && <CommunityApp setCurrentView={setCurrentView} currentUser={currentUser} checkCalculationForInteraction={checkCalculationForInteraction} handlePostClick={handlePostClick} isAdminUser={isAdminUser} />}
