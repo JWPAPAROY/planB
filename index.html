@@ -1163,6 +1163,7 @@
                         const { data, error } = await supabase
                             .from('community_posts')
                             .select('*')
+                            .eq('category', activeTopic)
                             .order('created_at', { ascending: false });
                         
                         if (error) throw error;
@@ -1581,6 +1582,31 @@
             const [replies, setReplies] = useState([]);
             const [newReply, setNewReply] = useState('');
             const [loading, setLoading] = useState(false);
+            const [likes, setLikes] = useState(post.likes || 0);
+            const [isLiked, setIsLiked] = useState(false);
+
+            // 댓글 로드
+            useEffect(() => {
+                const loadReplies = async () => {
+                    try {
+                        if (supabase) {
+                            const { data, error } = await supabase
+                                .from('community_replies')
+                                .select('*')
+                                .eq('post_id', post.id)
+                                .order('created_at', { ascending: true });
+                            
+                            if (error) throw error;
+                            setReplies(data || []);
+                        }
+                    } catch (error) {
+                        console.error('댓글 로딩 오류:', error);
+                        setReplies([]);
+                    }
+                };
+
+                loadReplies();
+            }, [post.id]);
 
             return (
                 <div className="max-w-4xl mx-auto">
@@ -1618,15 +1644,67 @@
                             
                             {/* 액션 버튼들 */}
                             <div className="flex items-center space-x-6 py-4 border-t border-gray-200">
-                                <button className="flex items-center text-blue-600 hover:text-blue-800 transition-colors">
-                                    <span className="mr-1">👍</span>
-                                    <span>공감 {post.likes || 0}</span>
+                                <button 
+                                    onClick={async () => {
+                                        if (!checkCalculationForInteraction('like_post')) return;
+                                        
+                                        try {
+                                            const newLikesCount = isLiked ? likes - 1 : likes + 1;
+                                            
+                                            if (supabase) {
+                                                const { error } = await supabase
+                                                    .from('community_posts')
+                                                    .update({ likes: newLikesCount })
+                                                    .eq('id', post.id);
+                                                
+                                                if (error) throw error;
+                                            }
+                                            
+                                            setLikes(newLikesCount);
+                                            setIsLiked(!isLiked);
+                                        } catch (error) {
+                                            console.error('좋아요 오류:', error);
+                                        }
+                                    }}
+                                    className={`flex items-center transition-colors ${
+                                        isLiked 
+                                            ? 'text-blue-600 hover:text-blue-800' 
+                                            : 'text-gray-600 hover:text-blue-600'
+                                    }`}
+                                >
+                                    <span className="mr-1">{isLiked ? '👍' : '👍'}</span>
+                                    <span>공감 {likes}</span>
                                 </button>
                                 <button className="flex items-center text-gray-600 hover:text-gray-800 transition-colors">
                                     <span className="mr-1">💬</span>
                                     <span>댓글 {replies.length}</span>
                                 </button>
-                                <button className="flex items-center text-gray-600 hover:text-gray-800 transition-colors">
+                                <button 
+                                    onClick={() => {
+                                        if (navigator.share) {
+                                            navigator.share({
+                                                title: post.title,
+                                                text: post.content.substring(0, 100) + '...',
+                                                url: window.location.href
+                                            });
+                                        } else {
+                                            // 클립보드에 복사
+                                            navigator.clipboard.writeText(window.location.href)
+                                                .then(() => alert('링크가 클립보드에 복사되었습니다!'))
+                                                .catch(() => {
+                                                    // 폴백: 텍스트 선택
+                                                    const textArea = document.createElement('textarea');
+                                                    textArea.value = window.location.href;
+                                                    document.body.appendChild(textArea);
+                                                    textArea.select();
+                                                    document.execCommand('copy');
+                                                    document.body.removeChild(textArea);
+                                                    alert('링크가 클립보드에 복사되었습니다!');
+                                                });
+                                        }
+                                    }}
+                                    className="flex items-center text-gray-600 hover:text-gray-800 transition-colors"
+                                >
                                     <span className="mr-1">📤</span>
                                     <span>공유</span>
                                 </button>
@@ -1649,12 +1727,41 @@
                             />
                             <div className="flex justify-end mt-2">
                                 <button
-                                    onClick={() => {
+                                    onClick={async () => {
                                         if (!checkCalculationForInteraction('write_reply')) return;
-                                        // 댓글 작성 로직
+                                        
                                         if (newReply.trim()) {
-                                            setNewReply('');
-                                            // TODO: 댓글 저장
+                                            setLoading(true);
+                                            try {
+                                                const replyData = {
+                                                    post_id: post.id,
+                                                    content: newReply.trim(),
+                                                    author_nickname: currentUser?.nickname || currentUser?.email || '익명',
+                                                    user_hash: currentUser?.user_hash || null,
+                                                    is_anonymous: true,
+                                                    created_at: new Date().toISOString()
+                                                };
+
+                                                if (supabase) {
+                                                    const { data, error } = await supabase
+                                                        .from('community_replies')
+                                                        .insert([replyData])
+                                                        .select();
+                                                    
+                                                    if (error) throw error;
+                                                    setReplies([...replies, data[0]]);
+                                                } else {
+                                                    // 로컬 상태에만 추가
+                                                    setReplies([...replies, { ...replyData, id: Date.now() }]);
+                                                }
+                                                
+                                                setNewReply('');
+                                            } catch (error) {
+                                                console.error('댓글 저장 오류:', error);
+                                                alert('댓글 저장에 실패했습니다.');
+                                            } finally {
+                                                setLoading(false);
+                                            }
                                         }
                                     }}
                                     className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm"
@@ -1673,12 +1780,16 @@
                                 </div>
                             ) : (
                                 replies.map((reply, index) => (
-                                    <div key={index} className="border-b border-gray-100 pb-4">
-                                        <div className="flex items-center text-sm text-gray-500 mb-2">
-                                            <span className="bg-gray-100 px-2 py-1 rounded mr-2">익명</span>
-                                            <span>{new Date(reply.created_at).toLocaleDateString()}</span>
+                                    <div key={reply.id || index} className="border-b border-gray-100 pb-4">
+                                        <div className="flex items-center justify-between text-sm text-gray-500 mb-2">
+                                            <div className="flex items-center">
+                                                <span className="bg-blue-100 text-blue-600 px-2 py-1 rounded mr-2">
+                                                    {reply.author_nickname || '익명'}
+                                                </span>
+                                                <span>{new Date(reply.created_at).toLocaleDateString('ko-KR')} {new Date(reply.created_at).toLocaleTimeString('ko-KR', {hour: '2-digit', minute: '2-digit'})}</span>
+                                            </div>
                                         </div>
-                                        <p className="text-gray-800">{reply.content}</p>
+                                        <p className="text-gray-800 leading-relaxed">{reply.content}</p>
                                     </div>
                                 ))
                             )}
