@@ -647,8 +647,8 @@
         };
 
         // 회원가입/로그인 컴포넌트
-        const AuthComponent = ({ onAuthSuccess }) => {
-            const [isLogin, setIsLogin] = useState(true);
+        const AuthComponent = ({ onAuthSuccess, initialMode = 'login' }) => {
+            const [isLogin, setIsLogin] = useState(initialMode === 'login');
             const [email, setEmail] = useState('');
             const [password, setPassword] = useState('');
             const [confirmPassword, setConfirmPassword] = useState('');
@@ -3419,6 +3419,7 @@
             const [isAuthenticated, setIsAuthenticated] = useState(false);
             const [isGuest, setIsGuest] = useState(false);
             const [authLoading, setAuthLoading] = useState(true);
+            const [authMode, setAuthMode] = useState('login'); // 'login' 또는 'signup'
             const [showGuestConfirmModal, setShowGuestConfirmModal] = useState(false);
             const [showCommunityAccessModal, setShowCommunityAccessModal] = useState(false);
             const [showCalculationRequiredModal, setShowCalculationRequiredModal] = useState(false);
@@ -3596,6 +3597,7 @@
                 // 인증되지 않은 사용자만 로그인 유도
                 if (!isAuthenticated && !isGuest) {
                     console.log('로그인 페이지로 이동');
+                    setAuthMode('login');
                     setCurrentView('auth');
                     return;
                 }
@@ -3729,14 +3731,28 @@
                                     </div>
                                 </div>
                                 
-                                {/* 회원가입하고 시작하기 */}
-                                <div className="space-y-3">
-                                    <button
-                                        onClick={() => setCurrentView('auth')}
-                                        className="group relative w-full flex justify-center py-4 px-4 border-2 border-blue-600 text-lg font-medium rounded-lg text-blue-600 bg-white hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-300"
-                                    >
-                                        📝 회원가입하고 시작하기
-                                    </button>
+                                {/* 회원 로그인/가입 */}
+                                <div className="space-y-4">
+                                    <div className="grid grid-cols-1 gap-3">
+                                        <button
+                                            onClick={() => {
+                                                setAuthMode('login');
+                                                setCurrentView('auth');
+                                            }}
+                                            className="group relative w-full flex justify-center py-4 px-4 border-2 border-blue-600 text-lg font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-300"
+                                        >
+                                            🔑 로그인
+                                        </button>
+                                        <button
+                                            onClick={() => {
+                                                setAuthMode('signup');
+                                                setCurrentView('auth');
+                                            }}
+                                            className="group relative w-full flex justify-center py-3 px-4 border-2 border-blue-600 text-base font-medium rounded-lg text-blue-600 bg-white hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-300"
+                                        >
+                                            📝 회원가입
+                                        </button>
+                                    </div>
                                     <p className="text-center text-sm text-gray-600">
                                         은퇴생활비 계산, 커뮤니티를 포함한 모든 서비스를 즐겨보세요!
                                     </p>
@@ -3767,6 +3783,7 @@
                                                 <button
                                                     onClick={() => {
                                                         setShowGuestConfirmModal(false);
+                                                        setAuthMode('signup');
                                                         setCurrentView('auth');
                                                     }}
                                                     className="w-full px-4 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors text-sm"
@@ -3792,7 +3809,7 @@
             
             // 회원가입/로그인 화면
             if (currentView === 'auth') {
-                return <AuthComponent onAuthSuccess={handleAuthSuccess} />;
+                return <AuthComponent onAuthSuccess={handleAuthSuccess} initialMode={authMode} />;
             }
 
             return (
@@ -3834,7 +3851,10 @@
                                                     🌟 <span className="hidden md:inline">{currentUser?.nickname}</span><span className="md:hidden">{currentUser?.nickname?.slice(0, 10)}</span> <span className="hidden sm:inline">(게스트)</span>
                                                 </span>
                                                 <button
-                                                    onClick={() => setCurrentView('auth')}
+                                                    onClick={() => {
+                                                        setAuthMode('signup');
+                                                        setCurrentView('auth');
+                                                    }}
                                                     className="bg-blue-600 text-white px-2 sm:px-3 py-1 rounded-lg text-xs sm:text-sm hover:bg-blue-700 transition-colors whitespace-nowrap"
                                                 >
                                                     회원가입
@@ -3946,6 +3966,7 @@
                                         <button
                                             onClick={() => {
                                                 setShowCommunityAccessModal(false);
+                                                setAuthMode('signup');
                                                 setCurrentView('auth');
                                             }}
                                             className="w-full px-4 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors text-sm"
