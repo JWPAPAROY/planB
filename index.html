@@ -1522,123 +1522,123 @@
 
         // 전문가 찾기 컴포넌트
         const ExpertFinderComponent = () => {
-            const [activeCategory, setActiveCategory] = useState('health');
+            const [activeCategory, setActiveCategory] = useState('travel');
             
             // 3대 전문가 카테고리 정의
             const expertCategories = {
-                'health': {
-                    name: '건강·의료',
-                    icon: '🏥',
-                    color: 'from-green-500 to-emerald-500',
-                    bgColor: 'from-green-50 to-emerald-50',
-                    description: '건강한 은퇴생활을 위한 의료 전문가'
+                'travel': {
+                    name: '여행/취미',
+                    icon: '✈️',
+                    color: 'from-orange-500 to-red-500',
+                    bgColor: 'from-orange-50 to-red-50',
+                    description: '은퇴 후 여행과 취미생활 전문가'
                 },
                 'legal': {
-                    name: '세무·법무',
+                    name: '세무/법무/자산관리',
                     icon: '📋',
                     color: 'from-blue-500 to-indigo-500',
                     bgColor: 'from-blue-50 to-indigo-50',
-                    description: '상속, 세금, 연금 등 법적 전문가'
+                    description: '상속, 세금, 자산관리 전문가 (상담만, 판매 금지)'
                 },
-                'lifestyle': {
-                    name: '생활설계',
-                    icon: '🎯',
-                    color: 'from-purple-500 to-pink-500',
-                    bgColor: 'from-purple-50 to-pink-50',
-                    description: '취미, 주거, 여행 등 라이프스타일 전문가'
+                'living': {
+                    name: '주거/생활',
+                    icon: '🏠',
+                    color: 'from-green-500 to-emerald-500',
+                    bgColor: 'from-green-50 to-emerald-50',
+                    description: '은퇴 후 주거와 생활환경 설계 전문가'
                 }
             };
 
             // 더미 전문가 데이터
             const expertData = {
-                'health': [
+                'travel': [
                     {
                         id: 1,
-                        name: '김간호사',
-                        title: '시니어 건강관리 전문 간호사',
-                        experience: '15년 경력',
+                        name: '김여행플래너',
+                        title: '시니어 여행 전문 플래너',
+                        experience: '12년 경력',
                         rating: 4.8,
-                        reviews: 127,
-                        specialties: ['만성질환 관리', '건강상담', '복약지도'],
-                        price: '30,000원/30분',
+                        reviews: 156,
+                        specialties: ['안전여행', '의료동행여행', '장기체류', '해외거주'],
+                        price: '60,000원/60분',
                         responseRate: 95,
-                        profileImage: '👩‍⚕️'
+                        profileImage: '✈️'
                     },
                     {
                         id: 2,
-                        name: '박물리치료사',
-                        title: '시니어 재활운동 전문가',
-                        experience: '12년 경력',
+                        name: '박취미코치',
+                        title: '시니어 라이프 취미 코치',
+                        experience: '15년 경력',
                         rating: 4.9,
                         reviews: 203,
-                        specialties: ['근골격계 재활', '운동처방', '통증관리'],
-                        price: '50,000원/60분',
+                        specialties: ['원예', '사진', '요리', '독서모임'],
+                        price: '45,000원/60분',
                         responseRate: 92,
-                        profileImage: '🏃‍♂️'
+                        profileImage: '🎨'
                     },
                     {
                         id: 3,
-                        name: '이영양사',
-                        title: '시니어 영양 관리 전문가',
+                        name: '이평생교육사',
+                        title: '시니어 교육 전문가',
                         experience: '10년 경력',
                         rating: 4.7,
-                        reviews: 89,
-                        specialties: ['당뇨식단', '고혈압식단', '건강식품'],
+                        reviews: 134,
+                        specialties: ['디지털교육', '온라인학습', '자격증취득'],
                         price: '40,000원/45분',
                         responseRate: 88,
-                        profileImage: '🥗'
+                        profileImage: '📚'
                     }
                 ],
                 'legal': [
                     {
                         id: 4,
                         name: '최세무사',
-                        title: '상속세 전문 세무사',
+                        title: '상속세 절세 전문 세무사',
                         experience: '20년 경력',
                         rating: 4.9,
                         reviews: 156,
-                        specialties: ['상속세', '증여세', '연금소득세'],
+                        specialties: ['상속세 절세', '증여세 최적화', '연금소득세'],
                         price: '100,000원/60분',
                         responseRate: 97,
                         profileImage: '📊'
                     },
                     {
                         id: 5,
-                        name: '정법무사',
-                        title: '부동산 등기 전문 법무사',
+                        name: '정변호사',
+                        title: '상속전문 변호사',
                         experience: '18년 경력',
                         rating: 4.8,
                         reviews: 134,
-                        specialties: ['부동산 등기', '상속절차', '계약서 검토'],
-                        price: '80,000원/60분',
+                        specialties: ['상속법률', '유언작성', '가족신탁'],
+                        price: '150,000원/60분',
                         responseRate: 94,
-                        profileImage: '🏠'
+                        profileImage: '⚖️'
                     },
                     {
                         id: 6,
-                        name: '한재무설계사',
-                        title: 'CFP 자격 은퇴설계 전문가',
+                        name: '한자산관리사',
+                        title: 'CFP 자산관리 상담사',
                         experience: '25년 경력',
                         rating: 4.9,
                         reviews: 298,
-                        specialties: ['종합재무설계', '연금전략', '절세방안'],
+                        specialties: ['자산배분상담', '연금전략설계', '리스크관리'],
                         price: '120,000원/90분',
                         responseRate: 96,
                         profileImage: '💼'
                     }
                 ],
-                'lifestyle': [
+                'living': [
                     {
                         id: 7,
-                        name: '윤여행플래너',
-                        title: '시니어 여행 전문 플래너',
-                        experience: '8년 경력',
+                        name: '윤부동산컨설턴트',
+                        title: '시니어 주거 전문 컨설턴트',
+                        experience: '15년 경력',
                         rating: 4.8,
-                        reviews: 112,
-                        specialties: ['안전여행', '의료동행여행', '장기체류'],
-                        price: '60,000원/60분',
+                        reviews: 142,
+                        specialties: ['다운사이징', '시설선택', '주거비절약', '지역비교'],
+                        price: '80,000원/60분',
                         responseRate: 91,
-                        profileImage: '✈️'
+                        profileImage: '🏡'
                     },
                     {
                         id: 8,
@@ -1646,23 +1646,23 @@
                         title: '귀농귀촌 전문 멘토',
                         experience: '12년 경력',
                         rating: 4.7,
-                        reviews: 87,
-                        specialties: ['지역선택', '정착지원', '농업기술'],
-                        price: '80,000원/90분',
+                        reviews: 98,
+                        specialties: ['지역선택', '정착지원', '농업시작', '시골생활'],
+                        price: '70,000원/90분',
                         responseRate: 89,
                         profileImage: '🌾'
                     },
                     {
                         id: 9,
-                        name: '문평생교육사',
-                        title: '시니어 교육 전문가',
-                        experience: '15년 경력',
+                        name: '문생활설계사',
+                        title: '시니어 라이프 플래너',
+                        experience: '18년 경력',
                         rating: 4.6,
-                        reviews: 145,
-                        specialties: ['취미교육', '디지털교육', '학습설계'],
-                        price: '45,000원/60분',
+                        reviews: 165,
+                        specialties: ['생활비관리', '건강관리', '인간관계', '일상설계'],
+                        price: '60,000원/60분',
                         responseRate: 93,
-                        profileImage: '📚'
+                        profileImage: '🏠'
                     }
                 ]
             };
@@ -1755,8 +1755,9 @@
                         <h4 className="font-bold text-gray-800 mb-2">🛡️ 안전한 전문가 플랫폼</h4>
                         <div className="text-sm text-gray-600 space-y-1">
                             <p>✅ 모든 전문가 자격증 검증 완료</p>
-                            <p>✅ 금융상품 판매 금지 (순수 상담만)</p>
+                            <p>✅ 금융상품 판매 완전 금지 (순수 상담만)</p>
                             <p>✅ 투명한 후기 시스템</p>
+                            <p>✅ 비대면 상담으로 안전하고 편리하게</p>
                             <p>🚧 현재 시범 운영 중 - 2025년 3월 정식 오픈 예정</p>
                         </div>
                     </div>
