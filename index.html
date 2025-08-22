@@ -655,7 +655,6 @@
             const [email, setEmail] = useState('');
             const [password, setPassword] = useState('');
             const [confirmPassword, setConfirmPassword] = useState('');
-            const [loading, setLoading] = useState(false);
             const [error, setError] = useState('');
             const [generatedNickname, setGeneratedNickname] = useState('');
             const [customNickname, setCustomNickname] = useState('');
@@ -672,7 +671,6 @@
 
             const handleSubmit = async (e) => {
                 e.preventDefault();
-                setLoading(true);
                 setError('');
 
                 try {
@@ -729,8 +727,6 @@
                     }
                 } catch (err) {
                     setError('처리 중 오류가 발생했습니다');
-                } finally {
-                    setLoading(false);
                 }
             };
 
@@ -953,17 +949,9 @@
                             <div>
                                 <button
                                     type="submit"
-                                    disabled={loading}
-                                    className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-lg font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-lg font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                                 >
-                                    {loading ? (
-                                        <div className="flex items-center">
-                                            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                                            처리중...
-                                        </div>
-                                    ) : (
-                                        isLogin ? '로그인' : '회원가입'
-                                    )}
+                                    {isLogin ? '로그인' : '회원가입'}
                                 </button>
                             </div>
 
@@ -1018,7 +1006,6 @@
         const CommunityApp = ({ setCurrentView, currentUser, checkCalculationForInteraction, handlePostClick, isAdminUser }) => {
             const [activeTopic, setActiveTopic] = useState('retirement');
             const [posts, setPosts] = useState([]);
-            const [loading, setLoading] = useState(true);
             const [newPost, setNewPost] = useState({ title: '', content: '', topic: 'retirement', is_anonymous: true });
             const [showWriteForm, setShowWriteForm] = useState(false);
             const [newReply, setNewReply] = useState('');
@@ -1183,15 +1170,11 @@
                     console.error('커뮤니티 초기화 오류:', error);
                     // 오류가 있어도 게시글 UI는 표시
                     await loadPosts();
-                } finally {
-                    setLoading(false);
                 }
             };
 
             const loadPosts = async () => {
                 if (!currentUser) return;
-                
-                setLoading(true);
                 try {
                     if (supabase) {
                         const { data, error } = await supabase
@@ -1216,8 +1199,6 @@
                         post.topic === activeTopic
                     );
                     setPosts(filteredPosts);
-                } finally {
-                    setLoading(false);
                 }
             };
 
@@ -1299,17 +1280,6 @@
                 }
             };
 
-            // 로딩 중일 때
-            if (loading) {
-                return (
-                    <div className="max-w-2xl mx-auto">
-                        <div className="bg-white rounded-lg shadow-md p-8 text-center">
-                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                            <p className="text-gray-600">커뮤니티 정보를 로딩 중...</p>
-                        </div>
-                    </div>
-                );
-            }
 
             // 프로그레시브 접근: 먼저 커뮤니티를 보여주고, 상호작용 시에만 계산 체크
 
@@ -1479,13 +1449,6 @@
 
                     {/* 게시글 목록 - 블라인드식 */}
                     <div className="space-y-2">
-                        {loading ? (
-                            <div className="bg-white rounded-lg p-8 text-center">
-                                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-                                <p className="mt-2 text-gray-600">게시글을 불러오는 중...</p>
-                            </div>
-                        ) : (
-                            <>
                                 {posts.map(post => (
                                     <div key={post.id} className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow">
                                         <div className="p-4">
@@ -1552,8 +1515,6 @@
                                         </button>
                                     </div>
                                 )}
-                            </>
-                        )}
                     </div>
                 </div>
             );
@@ -1563,7 +1524,6 @@
         const PostDetailPage = ({ post, setCurrentView, currentUser, checkCalculationForInteraction, isAdminUser }) => {
             const [replies, setReplies] = useState([]);
             const [newReply, setNewReply] = useState('');
-            const [loading, setLoading] = useState(false);
             const [likes, setLikes] = useState(post.likes || 0);
             const [isLiked, setIsLiked] = useState(false);
 
@@ -1713,7 +1673,6 @@
                                         if (!checkCalculationForInteraction('write_reply')) return;
                                         
                                         if (newReply.trim()) {
-                                            setLoading(true);
                                             try {
                                                 const replyData = {
                                                     post_id: post.id,
@@ -1741,8 +1700,6 @@
                                             } catch (error) {
                                                 console.error('댓글 저장 오류:', error);
                                                 alert('댓글 저장에 실패했습니다.');
-                                            } finally {
-                                                setLoading(false);
                                             }
                                         }
                                     }}
@@ -3418,7 +3375,6 @@
             const [currentUser, setCurrentUser] = useState(null);
             const [isAuthenticated, setIsAuthenticated] = useState(false);
             const [isGuest, setIsGuest] = useState(false);
-            const [authLoading, setAuthLoading] = useState(true);
             const [authMode, setAuthMode] = useState('login'); // 'login' 또는 'signup'
             const [showAuthForm, setShowAuthForm] = useState(false); // 웰컴 페이지에서 폼 표시 여부
             const [showGuestConfirmModal, setShowGuestConfirmModal] = useState(false);
@@ -3459,9 +3415,6 @@
                     // 게스트는 항상 welcome 화면부터 시작
                 } catch (error) {
                     console.error('앱 초기화 오류:', error);
-                } finally {
-                    setAuthLoading(false);
-                }
             };
             
             // 인증 성공 핸들러
@@ -3633,17 +3586,6 @@
                 setCurrentView('post-detail');
             };
 
-            // 로딩 중일 때
-            if (authLoading) {
-                return (
-                    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-                        <div className="text-center">
-                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                            <p className="text-gray-600">플랜비 로딩 중...</p>
-                        </div>
-                    </div>
-                );
-            }
 
             // 로그인 화면 (기본 화면)
             if (currentView === 'login') {
