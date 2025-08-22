@@ -1333,14 +1333,14 @@
                         <div className="flex-1"></div>
                     </div>
                     
-                    {/* 헤더 - 세션 기반 */}
+                    {/* 헤더 - 간소화 */}
                     <div className="bg-white rounded-lg shadow-md p-4">
                         <div className="flex items-center justify-between mb-4">
-                            <div className="flex items-center space-x-3">
+                            <div className="flex items-center space-x-3 flex-1 min-w-0">
                                 <span className="text-2xl">{currentGroup.emoji}</span>
-                                <div>
-                                    <h1 className="text-2xl font-bold text-gray-800">{currentGroup.name} 커뮤니티</h1>
-                                    <p className="text-sm text-gray-600">
+                                <div className="flex-1 min-w-0">
+                                    <h1 className="text-xl md:text-2xl font-bold text-gray-800">커뮤니티</h1>
+                                    <p className="text-sm text-gray-600 truncate">
                                         어서오세요, <strong>{userProfile?.nickname || currentUser?.email}</strong>님!
                                         {isAdminUser(currentUser) && (
                                             <span className="ml-2 px-2 py-1 bg-red-100 text-red-600 text-xs font-medium rounded-full">
@@ -1350,26 +1350,18 @@
                                     </p>
                                 </div>
                             </div>
-                            <div className="flex items-center">
+                            <div className="flex items-center ml-2">
                                 <button
                                     onClick={() => {
                                         if (checkCalculationForInteraction()) {
                                             setShowWriteForm(true);
                                         }
                                     }}
-                                    className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg font-medium"
+                                    className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-2 md:px-4 md:py-2 rounded-lg font-medium text-sm md:text-base whitespace-nowrap"
                                 >
                                     ✍️ 글쓰기
                                 </button>
                             </div>
-                        </div>
-                        
-                        {/* 커뮤니티 안내 메시지 */}
-                        <div className="mb-4 p-4 bg-blue-50 border-l-4 border-blue-400 rounded-r-lg">
-                            <p className="text-sm text-blue-800">
-                                👀 <strong>게시글 목록은 자유롭게 볼 수 있어요!</strong><br/>
-                                상세내용 보기나 글쓰기는 은퇴생활비 계산 후 가능합니다.
-                            </p>
                         </div>
 
                         {/* 토픽 보드 */}
