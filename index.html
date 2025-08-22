@@ -1163,7 +1163,6 @@
                         const { data, error } = await supabase
                             .from('community_posts')
                             .select('*')
-                            .eq('category', activeTopic)
                             .order('created_at', { ascending: false });
                         
                         if (error) throw error;
@@ -1559,7 +1558,11 @@
                                         </h3>
                                         <p className="text-gray-600 mb-4">아직 게시글이 없습니다.</p>
                                         <button
-                                            onClick={() => setShowWriteForm(true)}
+                                            onClick={() => {
+                                                if (checkCalculationForInteraction()) {
+                                                    setShowWriteForm(true);
+                                                }
+                                            }}
                                             className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg"
                                         >
                                             첫 번째 글 작성하기 ✍️
