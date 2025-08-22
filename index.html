@@ -3507,26 +3507,6 @@
                 console.log(`게스트 모드 시작: ${guestUser.nickname}`);
             };
             
-            // 개발용: 임시 회원 모드 활성화
-            const activateDeveloperMemberMode = () => {
-                const tempUser = {
-                    id: 'dev-user-123',
-                    email: 'developer@planb.com',
-                    nickname: '개발자',
-                    isGuest: false,
-                    createdAt: new Date().toISOString()
-                };
-                setCurrentUser(tempUser);
-                setIsAuthenticated(true);
-                setIsGuest(false);
-                setCurrentView('main');
-                localStorage.setItem('planb_calculation_result', JSON.stringify({ 
-                    mockData: true,
-                    totalAssets: 500000000,
-                    monthlyShortfall: -50
-                }));
-                console.log('개발자 회원 모드 활성화 (오프라인)');
-            };
             
             // 로그아웃 핸들러
             const handleLogout = async () => {
@@ -3684,56 +3664,9 @@
                             </div>
                             
                             <div className="space-y-6">
-                                {/* 개발용 회원모드 버튼 */}
-                                <div className="space-y-2">
-                                    <button
-                                        onClick={activateDeveloperMemberMode}
-                                        className="w-full px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 transition-colors"
-                                    >
-                                        🛠️ 개발: 회원모드로 바로 시작
-                                    </button>
-                                    <p className="text-center text-xs text-gray-500">
-                                        개발용 - 커뮤니티 기능 테스트를 위한 임시 버튼
-                                    </p>
-                                </div>
-                                
-                                <div className="relative">
-                                    <div className="absolute inset-0 flex items-center">
-                                        <div className="w-full border-t border-gray-300" />
-                                    </div>
-                                    <div className="relative flex justify-center text-sm">
-                                        <span className="px-2 bg-gradient-to-br from-blue-50 to-indigo-100 text-gray-500">또는</span>
-                                    </div>
-                                </div>
-                                
-                                {/* 은퇴생활비 계산해보기 */}
-                                <div className="space-y-3">
-                                    <button
-                                        onClick={handleGuestStart}
-                                        className="group relative w-full flex justify-center py-4 px-4 border border-transparent text-lg font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-300"
-                                    >
-                                        🧮 게스트로 이용해보기
-                                    </button>
-                                    <p className="text-center text-base text-gray-700 font-medium">
-                                        회원가입 없이 바로 은퇴생활비를 계산해보세요
-                                    </p>
-                                    <p className="text-center text-sm text-gray-500">
-                                        게스트 모드에서는 계산기만 이용할 수 있습니다
-                                    </p>
-                                </div>
-                                
-                                <div className="relative">
-                                    <div className="absolute inset-0 flex items-center">
-                                        <div className="w-full border-t border-gray-300" />
-                                    </div>
-                                    <div className="relative flex justify-center text-sm">
-                                        <span className="px-2 bg-gradient-to-br from-blue-50 to-indigo-100 text-gray-500">또는</span>
-                                    </div>
-                                </div>
-                                
-                                {/* 회원 로그인/가입 */}
+                                {/* 회원 로그인/가입 - 메인 액션 */}
                                 <div className="space-y-4">
-                                    <div className="grid grid-cols-1 gap-3">
+                                    <div className="grid grid-cols-2 gap-3">
                                         <button
                                             onClick={() => {
                                                 setAuthMode('login');
@@ -3748,13 +3681,35 @@
                                                 setAuthMode('signup');
                                                 setCurrentView('auth');
                                             }}
-                                            className="group relative w-full flex justify-center py-3 px-4 border-2 border-blue-600 text-base font-medium rounded-lg text-blue-600 bg-white hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-300"
+                                            className="group relative flex justify-center py-4 px-4 border-2 border-blue-600 text-lg font-medium rounded-lg text-blue-600 bg-white hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-300"
                                         >
                                             📝 회원가입
                                         </button>
                                     </div>
                                     <p className="text-center text-sm text-gray-600">
                                         은퇴생활비 계산, 커뮤니티를 포함한 모든 서비스를 즐겨보세요!
+                                    </p>
+                                </div>
+                                
+                                <div className="relative">
+                                    <div className="absolute inset-0 flex items-center">
+                                        <div className="w-full border-t border-gray-300" />
+                                    </div>
+                                    <div className="relative flex justify-center text-sm">
+                                        <span className="px-2 bg-gradient-to-br from-blue-50 to-indigo-100 text-gray-500">또는</span>
+                                    </div>
+                                </div>
+                                
+                                {/* 게스트로 이용해보기 - 보조 액션 */}
+                                <div className="text-center space-y-3">
+                                    <button
+                                        onClick={handleGuestStart}
+                                        className="group relative w-full flex justify-center py-3 px-4 border border-gray-300 text-base font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-all duration-300"
+                                    >
+                                        🧮 게스트로 이용해보기
+                                    </button>
+                                    <p className="text-center text-sm text-gray-500">
+                                        회원가입 없이 계산기만 이용 (커뮤니티 이용 불가)
                                     </p>
                                 </div>
                             </div>
