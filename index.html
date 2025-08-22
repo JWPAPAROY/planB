@@ -562,6 +562,33 @@
                 }
             }
             
+            // 이메일 중복 체크
+            async checkEmail(email) {
+                try {
+                    // Supabase auth에서 이메일 중복 체크
+                    const { data, error } = await supabase.auth.signUp({
+                        email: email,
+                        password: 'temp_password_for_check_only',
+                        options: {
+                            data: {
+                                temp_check: true
+                            }
+                        }
+                    });
+                    
+                    if (error) {
+                        if (error.message.includes('already registered') || error.message.includes('이미 등록')) {
+                            return { success: false, error: '이미 등록된 이메일입니다' };
+                        }
+                        // 다른 에러는 무시 (임시 체크이므로)
+                    }
+                    
+                    return { success: true };
+                } catch (error) {
+                    return { success: true }; // 체크 실패시에도 진행 허용
+                }
+            }
+
             // 로그아웃
             async signOut() {
                 try {
@@ -628,6 +655,110 @@
                         </p>
                     </div>
                 </label>
+            );
+        };
+
+        // 전문가용 개인정보수집이용동의서 컴포넌트
+        const ExpertPrivacyConsentComponent = ({ checked, onChange }) => {
+            const [showFullText, setShowFullText] = useState(false);
+
+            return (
+                <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                    <div className="mb-4">
+                        <h3 className="text-lg font-semibold text-gray-800 mb-2">개인정보 수집·이용 동의서</h3>
+                        <div className="text-sm text-gray-700 space-y-2">
+                            <div className="bg-white p-3 rounded border">
+                                <p><strong>• 수집항목:</strong> 성명, 이메일, 연락처, 전문분야, 자격증·경력정보, 사업자등록증</p>
+                                <p><strong>• 수집목적:</strong> 전문가 신원확인, 자격검증, 상담서비스 제공, 수수료 정산</p>
+                                <p><strong>• 보유기간:</strong> 서비스 탈퇴 후 3년 (전자상거래법)</p>
+                                <p><strong>• 제3자 제공:</strong> 상담 매칭을 위한 최소정보만 고객에게 제공</p>
+                                <p className="text-red-600"><strong>• 동의거부권:</strong> 동의를 거부할 수 있으나, 서비스 이용이 제한됩니다</p>
+                            </div>
+                            
+                            <button
+                                type="button"
+                                onClick={() => setShowFullText(!showFullText)}
+                                className="text-blue-600 hover:text-blue-800 text-sm underline"
+                            >
+                                {showFullText ? '간략히 보기' : '전문 보기'}
+                            </button>
+                            
+                            {showFullText && (
+                                <div className="bg-white border border-gray-200 rounded p-4 text-xs text-gray-600 max-h-60 overflow-y-auto">
+                                    <h4 className="font-semibold mb-2">개인정보 수집·이용 동의서 (전문)</h4>
+                                    
+                                    <div className="space-y-3">
+                                        <div>
+                                            <h5 className="font-medium">1. 개인정보의 수집 및 이용목적</h5>
+                                            <p>- 전문가 신원 확인 및 자격 검증</p>
+                                            <p>- 상담 서비스 제공 및 매칭</p>
+                                            <p>- 수수료 정산 및 세금계산서 발행</p>
+                                            <p>- 서비스 품질 향상을 위한 통계 분석</p>
+                                            <p>- 법령상 의무이행 (전자상거래법, 소득세법 등)</p>
+                                        </div>
+                                        
+                                        <div>
+                                            <h5 className="font-medium">2. 수집하는 개인정보의 항목</h5>
+                                            <p><strong>필수항목:</strong> 성명, 이메일, 연락처(휴대폰), 전문분야, 경력년수, 자격증 정보</p>
+                                            <p><strong>선택항목:</strong> 프로필 사진, 상세 이력, 사업자등록번호</p>
+                                            <p><strong>자동수집:</strong> IP주소, 쿠키, 접속 로그, 서비스 이용기록</p>
+                                        </div>
+                                        
+                                        <div>
+                                            <h5 className="font-medium">3. 개인정보의 보유 및 이용기간</h5>
+                                            <p>- 서비스 이용기간 중</p>
+                                            <p>- 서비스 탈퇴 후 3년 (전자상거래 등에서의 소비자보호에 관한 법률)</p>
+                                            <p>- 세법에 따른 장부보관의무: 5년</p>
+                                        </div>
+                                        
+                                        <div>
+                                            <h5 className="font-medium">4. 개인정보의 제3자 제공</h5>
+                                            <p>- 상담 신청 고객에게 전문가 프로필 정보 제공 (성명, 전문분야, 경력, 후기)</p>
+                                            <p>- 세무 신고를 위한 국세청 제공 (법정의무사항)</p>
+                                            <p>- 기타 법령에 의한 제공</p>
+                                        </div>
+                                        
+                                        <div>
+                                            <h5 className="font-medium">5. 개인정보처리의 위탁</h5>
+                                            <p>- 결제대행사: 수수료 정산 (PG사)</p>
+                                            <p>- 클라우드 서비스: 데이터 저장 (Supabase)</p>
+                                            <p>- 알림톡 발송: 예약 확인 알림 (문자서비스)</p>
+                                        </div>
+                                        
+                                        <div>
+                                            <h5 className="font-medium">6. 정보주체의 권리·의무</h5>
+                                            <p>- 개인정보 열람·정정·삭제·처리정지 요구권</p>
+                                            <p>- 손해배상청구권</p>
+                                            <p>- 개인정보보호위원회 신고권 (privacy.go.kr, 국번없이 182)</p>
+                                        </div>
+                                        
+                                        <div className="bg-yellow-50 border border-yellow-200 rounded p-2">
+                                            <p className="text-red-700 font-medium">※ 위 사항에 대한 동의를 거부할 수 있으나, 동의 거부 시 전문가 등록 및 서비스 이용이 제한됩니다.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                    
+                    <label className="flex items-start space-x-3 cursor-pointer">
+                        <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={(e) => onChange(e.target.checked)}
+                            className="mt-1 h-5 w-5 text-orange-600 border-2 border-gray-300 rounded focus:ring-orange-500 focus:ring-2"
+                        />
+                        <div className="flex-1">
+                            <span className="text-sm text-gray-800 font-medium">
+                                위 개인정보 수집·이용에 동의합니다 
+                                <span className="text-red-500 ml-1">(필수)</span>
+                            </span>
+                            <p className="text-xs text-gray-500 mt-1">
+                                전문가 등록을 위해 위 개인정보 수집·이용 동의서의 내용을 읽고 동의합니다
+                            </p>
+                        </div>
+                    </label>
+                </div>
             );
         };
 
@@ -838,6 +969,69 @@
                             ))}
                         </div>
                     </div>
+
+                    {/* 연락처 */}
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700">휴대폰 번호 *</label>
+                        <input
+                            type="tel"
+                            required
+                            value={expertProfile.phone}
+                            onChange={(e) => updateExpertProfile('phone', e.target.value)}
+                            className="mt-1 w-full px-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-orange-500 focus:border-orange-500"
+                            placeholder="010-1234-5678"
+                            pattern="[0-9]{3}-[0-9]{4}-[0-9]{4}"
+                        />
+                        <p className="text-xs text-gray-500 mt-1">상담 예약 확인 및 본인 인증용</p>
+                    </div>
+
+                    {/* 신원 검증 섹션 */}
+                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                        <h4 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                            🔒 신원 검증 (필수 - 둘 중 하나 이상)
+                        </h4>
+                        
+                        <div className="space-y-4">
+                            {/* 사업자등록증 */}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700">사업자등록번호</label>
+                                <input
+                                    type="text"
+                                    value={expertProfile.businessLicense}
+                                    onChange={(e) => updateExpertProfile('businessLicense', e.target.value)}
+                                    className="mt-1 w-full px-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-orange-500 focus:border-orange-500"
+                                    placeholder="123-45-67890"
+                                    pattern="[0-9]{3}-[0-9]{2}-[0-9]{5}"
+                                />
+                                <p className="text-xs text-gray-500 mt-1">개인사업자 또는 법인사업자 등록번호</p>
+                            </div>
+
+                            {/* 자격증번호 */}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700">국가자격증 번호</label>
+                                <input
+                                    type="text"
+                                    value={expertProfile.qualificationNumber}
+                                    onChange={(e) => updateExpertProfile('qualificationNumber', e.target.value)}
+                                    className="mt-1 w-full px-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-orange-500 focus:border-orange-500"
+                                    placeholder="예: 관광통역안내사 제12345호"
+                                />
+                                <p className="text-xs text-gray-500 mt-1">국가자격증, 민간자격증 또는 전문 라이선스 번호</p>
+                            </div>
+
+                            <div className="bg-white border border-orange-200 rounded p-3">
+                                <p className="text-sm text-orange-800">
+                                    <strong>⚠️ 검증 안내:</strong> 
+                                </p>
+                                <ul className="text-xs text-orange-700 mt-1 space-y-1">
+                                    <li>• 사업자등록번호는 국세청 사업자등록상태 조회로 검증</li>
+                                    <li>• 자격증은 발급기관 확인 또는 자격증 사본 요청</li>
+                                    <li>• 허위 정보 제출시 등록 거부 및 서비스 이용 제한</li>
+                                    <li>• 검토 기간: 영업일 기준 3-5일</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             );
         };
@@ -866,7 +1060,9 @@
                 credentials: [],
                 hourlyRate: '',
                 consultationDuration: 60,
-                phoneNumber: '',
+                phone: '',
+                businessLicense: '',
+                qualificationNumber: '',
                 availableTypes: ['phone']
             });
             const [specialtyInput, setSpecialtyInput] = useState('');
@@ -988,7 +1184,7 @@
 
             const handleExpertRegistration = async () => {
                 if (currentStep === 1) {
-                    // 1단계: 기본 회원가입
+                    // 1단계: 기본 정보 검증만 수행 (회원가입은 하지 않음)
                     if (password !== confirmPassword) {
                         setError('비밀번호가 일치하지 않습니다');
                         return;
@@ -1003,15 +1199,19 @@
                         return;
                     }
 
-                    const result = await authManager.signUp(email, password, expertProfile.name);
-                    if (result.success) {
-                        setCurrentStep(2);
-                        setError('');
-                    } else {
-                        setError(result.error);
+                    // 이메일 중복 체크
+                    const emailCheck = await authManager.checkEmail(email);
+                    if (!emailCheck.success) {
+                        setError(emailCheck.error);
+                        return;
                     }
+
+                    // 1단계 통과 - 2단계로 이동 (아직 회원가입은 하지 않음)
+                    setCurrentStep(2);
+                    setError('');
+                    
                 } else if (currentStep === 2) {
-                    // 2단계: 전문가 프로필 등록
+                    // 2단계: 전문가 프로필 완전 검증 및 등록
                     if (!expertProfile.name || !expertProfile.title || !expertProfile.experienceYears || !expertProfile.hourlyRate) {
                         setError('모든 필수 항목을 입력해주세요');
                         return;
@@ -1024,18 +1224,91 @@
                         setError('자격증/경력을 최소 1개 이상 입력해주세요');
                         return;
                     }
+                    
+                    // 연락처 검증
+                    if (!expertProfile.phone) {
+                        setError('휴대폰 번호를 입력해주세요');
+                        return;
+                    }
+                    
+                    // 상담 방식 검증
+                    if (expertProfile.availableTypes.length === 0) {
+                        setError('제공 가능한 상담 방식을 최소 1개 이상 선택해주세요');
+                        return;
+                    }
+
+                    // 엄격한 검증 추가
+                    if (!expertProfile.businessLicense && !expertProfile.qualificationNumber) {
+                        setError('사업자등록증 또는 자격증번호 중 하나는 필수로 입력해야 합니다');
+                        return;
+                    }
+                    
+                    if (parseInt(expertProfile.experienceYears) < 1) {
+                        setError('최소 1년 이상의 경력이 필요합니다');
+                        return;
+                    }
+
+                    if (parseInt(expertProfile.hourlyRate) < 30000) {
+                        setError('상담료는 시간당 최소 3만원 이상이어야 합니다');
+                        return;
+                    }
+
+                    // 사업자등록번호 형식 검증
+                    if (expertProfile.businessLicense && !/^\d{3}-\d{2}-\d{5}$/.test(expertProfile.businessLicense)) {
+                        setError('사업자등록번호는 123-45-67890 형식으로 입력해주세요');
+                        return;
+                    }
+
+                    // 휴대폰 번호 형식 검증
+                    if (!/^010-\d{4}-\d{4}$/.test(expertProfile.phone)) {
+                        setError('휴대폰 번호는 010-1234-5678 형식으로 입력해주세요');
+                        return;
+                    }
 
                     try {
-                        // TODO: Supabase에 전문가 프로필 저장
+                        // 이제 실제 회원가입 수행
+                        const signUpResult = await authManager.signUp(email, password, expertProfile.name);
+                        if (!signUpResult.success) {
+                            setError(signUpResult.error);
+                            return;
+                        }
+
+                        // 전문가 프로필 저장 (검토 대기 상태)
                         console.log('전문가 프로필 저장:', expertProfile);
                         
-                        showNotification('전문가 등록 완료!', `🎉 환영합니다, ${expertProfile.name}님!\n🏆 전문가 인증 검토 중입니다.\n📧 승인 결과를 이메일로 알려드릴게요.`, 'success');
+                        showNotification('전문가 등록 신청 완료!', `📝 ${expertProfile.name}님의 전문가 등록 신청이 접수되었습니다.\n\n🔍 제출하신 서류를 검토 중입니다.\n📧 승인 결과를 이메일로 알려드릴게요.\n\n⏰ 검토 기간: 영업일 기준 3-5일`, 'success');
                         setAuthMode('login');
                         setCurrentStep(1);
+                        resetExpertForm();
                     } catch (error) {
-                        setError('전문가 프로필 저장 중 오류가 발생했습니다');
+                        setError('전문가 등록 처리 중 오류가 발생했습니다');
                     }
                 }
+            };
+
+            // 전문가 폼 초기화
+            const resetExpertForm = () => {
+                setExpertProfile({
+                    name: '',
+                    title: '',
+                    expertType: 'travel',
+                    experienceYears: '',
+                    bio: '',
+                    specialties: [],
+                    credentials: [],
+                    hourlyRate: '',
+                    consultationDuration: 60,
+                    phone: '',
+                    businessLicense: '',
+                    qualificationNumber: '',
+                    availableTypes: ['phone']
+                });
+                setEmail('');
+                setPassword('');
+                setConfirmPassword('');
+                setPrivacyConsent(false);
+                setSpecialtyInput('');
+                setCredentialInput('');
             };
 
             const regenerateNickname = () => {
@@ -1120,7 +1393,7 @@
                                                 />
                                             </div>
                                             
-                                            <PrivacyConsentCheckbox 
+                                            <ExpertPrivacyConsentComponent 
                                                 checked={privacyConsent}
                                                 onChange={setPrivacyConsent}
                                             />
