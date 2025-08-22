@@ -3420,6 +3420,7 @@
             const [isGuest, setIsGuest] = useState(false);
             const [authLoading, setAuthLoading] = useState(true);
             const [authMode, setAuthMode] = useState('login'); // 'login' 또는 'signup'
+            const [showAuthForm, setShowAuthForm] = useState(false); // 웰컴 페이지에서 폼 표시 여부
             const [showGuestConfirmModal, setShowGuestConfirmModal] = useState(false);
             const [showCommunityAccessModal, setShowCommunityAccessModal] = useState(false);
             const [showCalculationRequiredModal, setShowCalculationRequiredModal] = useState(false);
@@ -3576,9 +3577,10 @@
                 // 게스트, 회원 모두 커뮤니티 목록 보기 허용
                 // 인증되지 않은 사용자만 로그인 유도
                 if (!isAuthenticated && !isGuest) {
-                    console.log('로그인 페이지로 이동');
+                    console.log('로그인 폼 표시');
                     setAuthMode('login');
-                    setCurrentView('auth');
+                    setCurrentView('welcome');
+                    setShowAuthForm(true);
                     return;
                 }
                 
@@ -3670,7 +3672,7 @@
                                         <button
                                             onClick={() => {
                                                 setAuthMode('login');
-                                                setCurrentView('auth');
+                                                setShowAuthForm(true);
                                             }}
                                             className="group relative w-full flex justify-center py-4 px-4 border-2 border-blue-600 text-lg font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-300"
                                         >
@@ -3679,7 +3681,7 @@
                                         <button
                                             onClick={() => {
                                                 setAuthMode('signup');
-                                                setCurrentView('auth');
+                                                setShowAuthForm(true);
                                             }}
                                             className="group relative flex justify-center py-4 px-4 border-2 border-blue-600 text-lg font-medium rounded-lg text-blue-600 bg-white hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-300"
                                         >
@@ -3714,6 +3716,32 @@
                                 </div>
                             </div>
                             
+                            {/* 로그인/회원가입 폼 */}
+                            {showAuthForm && (
+                                <div className="mt-8">
+                                    <div className="bg-white rounded-lg shadow-lg p-6">
+                                        <div className="flex items-center justify-between mb-4">
+                                            <h2 className="text-xl font-bold text-gray-900">
+                                                {authMode === 'login' ? '로그인' : '회원가입'}
+                                            </h2>
+                                            <button
+                                                onClick={() => setShowAuthForm(false)}
+                                                className="text-gray-500 hover:text-gray-700 text-2xl font-bold"
+                                            >
+                                                ×
+                                            </button>
+                                        </div>
+                                        <AuthComponent 
+                                            onAuthSuccess={(user) => {
+                                                handleAuthSuccess(user);
+                                                setShowAuthForm(false);
+                                            }} 
+                                            initialMode={authMode} 
+                                        />
+                                    </div>
+                                </div>
+                            )}
+                            
                             {/* 게스트 이용 확인 모달 */}
                             {showGuestConfirmModal && (
                                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 px-4">
@@ -3739,7 +3767,7 @@
                                                     onClick={() => {
                                                         setShowGuestConfirmModal(false);
                                                         setAuthMode('signup');
-                                                        setCurrentView('auth');
+                                                        setShowAuthForm(true);
                                                     }}
                                                     className="w-full px-4 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors text-sm"
                                                 >
@@ -3762,10 +3790,6 @@
                 );
             }
             
-            // 회원가입/로그인 화면
-            if (currentView === 'auth') {
-                return <AuthComponent onAuthSuccess={handleAuthSuccess} initialMode={authMode} />;
-            }
 
             return (
                 <div className="min-h-screen bg-gray-50">
@@ -3808,7 +3832,8 @@
                                                 <button
                                                     onClick={() => {
                                                         setAuthMode('signup');
-                                                        setCurrentView('auth');
+                                                        setCurrentView('welcome');
+                                                        setShowAuthForm(true);
                                                     }}
                                                     className="bg-blue-600 text-white px-2 sm:px-3 py-1 rounded-lg text-xs sm:text-sm hover:bg-blue-700 transition-colors whitespace-nowrap"
                                                 >
@@ -3922,7 +3947,8 @@
                                             onClick={() => {
                                                 setShowCommunityAccessModal(false);
                                                 setAuthMode('signup');
-                                                setCurrentView('auth');
+                                                setCurrentView('welcome');
+                                                setShowAuthForm(true);
                                             }}
                                             className="w-full px-4 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors text-sm"
                                         >
