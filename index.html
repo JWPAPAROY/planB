@@ -649,9 +649,203 @@
             };
         };
 
+        // 전문가 프로필 폼 컴포넌트
+        const ExpertProfileForm = ({ 
+            expertProfile, updateExpertProfile, expertCategories,
+            specialtyInput, setSpecialtyInput, credentialInput, setCredentialInput,
+            addSpecialty, addCredential, removeSpecialty, removeCredential 
+        }) => {
+            return (
+                <div className="space-y-6">
+                    {/* 전문가 카테고리 */}
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-3">전문 분야 *</label>
+                        <div className="grid grid-cols-1 gap-3">
+                            {Object.entries(expertCategories).map(([key, category]) => (
+                                <label key={key} className="flex items-center p-3 border rounded-lg cursor-pointer hover:bg-gray-50">
+                                    <input
+                                        type="radio"
+                                        name="expertType"
+                                        value={key}
+                                        checked={expertProfile.expertType === key}
+                                        onChange={(e) => updateExpertProfile('expertType', e.target.value)}
+                                        className="h-4 w-4 text-orange-600"
+                                    />
+                                    <div className="ml-3">
+                                        <div className="text-lg">{category.icon} {category.name}</div>
+                                        <div className="text-sm text-gray-500">{category.description}</div>
+                                    </div>
+                                </label>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* 직책/타이틀 */}
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700">직책/타이틀 *</label>
+                        <input
+                            type="text"
+                            required
+                            value={expertProfile.title}
+                            onChange={(e) => updateExpertProfile('title', e.target.value)}
+                            className="mt-1 w-full px-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-orange-500 focus:border-orange-500"
+                            placeholder="예: 시니어 여행 전문 플래너"
+                        />
+                    </div>
+
+                    {/* 경력 년수 */}
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700">경력 (년) *</label>
+                        <input
+                            type="number"
+                            required
+                            min="1"
+                            max="50"
+                            value={expertProfile.experienceYears}
+                            onChange={(e) => updateExpertProfile('experienceYears', e.target.value)}
+                            className="mt-1 w-full px-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-orange-500 focus:border-orange-500"
+                            placeholder="경력 년수"
+                        />
+                    </div>
+
+                    {/* 소개 */}
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700">자기소개</label>
+                        <textarea
+                            rows="3"
+                            value={expertProfile.bio}
+                            onChange={(e) => updateExpertProfile('bio', e.target.value)}
+                            className="mt-1 w-full px-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-orange-500 focus:border-orange-500"
+                            placeholder="간단한 자기소개를 작성해주세요"
+                        />
+                    </div>
+
+                    {/* 전문분야 */}
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700">전문분야 *</label>
+                        <div className="flex gap-2 mt-1">
+                            <input
+                                type="text"
+                                value={specialtyInput}
+                                onChange={(e) => setSpecialtyInput(e.target.value)}
+                                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-orange-500 focus:border-orange-500"
+                                placeholder="전문분야 입력 후 추가 버튼"
+                                onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addSpecialty())}
+                            />
+                            <button
+                                type="button"
+                                onClick={addSpecialty}
+                                className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600"
+                            >
+                                추가
+                            </button>
+                        </div>
+                        <div className="flex flex-wrap gap-2 mt-2">
+                            {expertProfile.specialties.map((specialty, index) => (
+                                <span key={index} className="inline-flex items-center px-3 py-1 bg-orange-100 text-orange-800 rounded-full text-sm">
+                                    {specialty}
+                                    <button
+                                        type="button"
+                                        onClick={() => removeSpecialty(index)}
+                                        className="ml-2 text-orange-600 hover:text-orange-800"
+                                    >
+                                        ×
+                                    </button>
+                                </span>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* 자격증/경력 */}
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700">자격증/경력증명 *</label>
+                        <div className="flex gap-2 mt-1">
+                            <input
+                                type="text"
+                                value={credentialInput}
+                                onChange={(e) => setCredentialInput(e.target.value)}
+                                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-orange-500 focus:border-orange-500"
+                                placeholder="자격증/경력 입력 후 추가 버튼"
+                                onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addCredential())}
+                            />
+                            <button
+                                type="button"
+                                onClick={addCredential}
+                                className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600"
+                            >
+                                추가
+                            </button>
+                        </div>
+                        <div className="flex flex-wrap gap-2 mt-2">
+                            {expertProfile.credentials.map((credential, index) => (
+                                <span key={index} className="inline-flex items-center px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">
+                                    {credential}
+                                    <button
+                                        type="button"
+                                        onClick={() => removeCredential(index)}
+                                        className="ml-2 text-blue-600 hover:text-blue-800"
+                                    >
+                                        ×
+                                    </button>
+                                </span>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* 상담료 */}
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700">시간당 상담료 (원) *</label>
+                        <input
+                            type="number"
+                            required
+                            min="10000"
+                            max="500000"
+                            step="10000"
+                            value={expertProfile.hourlyRate}
+                            onChange={(e) => updateExpertProfile('hourlyRate', e.target.value)}
+                            className="mt-1 w-full px-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-orange-500 focus:border-orange-500"
+                            placeholder="예: 60000"
+                        />
+                        <p className="text-xs text-gray-500 mt-1">플랫폼 수수료 10% 별도</p>
+                    </div>
+
+                    {/* 상담 방식 */}
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-3">제공 가능한 상담 방식 *</label>
+                        <div className="space-y-2">
+                            {[
+                                { value: 'phone', label: '📞 전화 상담', desc: '음성 통화로 상담' },
+                                { value: 'video', label: '📹 화상 상담', desc: 'Zoom, Meet 등 화상 통화' },
+                                { value: 'chat', label: '💬 채팅 상담', desc: '텍스트 기반 상담' }
+                            ].map(({ value, label, desc }) => (
+                                <label key={value} className="flex items-center p-2 border rounded cursor-pointer hover:bg-gray-50">
+                                    <input
+                                        type="checkbox"
+                                        checked={expertProfile.availableTypes.includes(value)}
+                                        onChange={(e) => {
+                                            const types = e.target.checked
+                                                ? [...expertProfile.availableTypes, value]
+                                                : expertProfile.availableTypes.filter(t => t !== value);
+                                            updateExpertProfile('availableTypes', types);
+                                        }}
+                                        className="h-4 w-4 text-orange-600"
+                                    />
+                                    <div className="ml-3">
+                                        <div className="font-medium">{label}</div>
+                                        <div className="text-sm text-gray-500">{desc}</div>
+                                    </div>
+                                </label>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
         // 회원가입/로그인 컴포넌트
         const AuthComponent = ({ onAuthSuccess, initialMode = 'login', generateGuestUser }) => {
             const [isLogin, setIsLogin] = useState(initialMode === 'login');
+            const [authMode, setAuthMode] = useState(initialMode); // 'login', 'signup', 'expert'
             const [email, setEmail] = useState('');
             const [password, setPassword] = useState('');
             const [confirmPassword, setConfirmPassword] = useState('');
@@ -660,6 +854,24 @@
             const [customNickname, setCustomNickname] = useState('');
             const [useCustomNickname, setUseCustomNickname] = useState(false);
             const [privacyConsent, setPrivacyConsent] = useState(false);
+            
+            // 전문가 등록 관련 상태
+            const [expertProfile, setExpertProfile] = useState({
+                name: '',
+                title: '',
+                expertType: 'travel',
+                experienceYears: '',
+                bio: '',
+                specialties: [],
+                credentials: [],
+                hourlyRate: '',
+                consultationDuration: 60,
+                phoneNumber: '',
+                availableTypes: ['phone']
+            });
+            const [specialtyInput, setSpecialtyInput] = useState('');
+            const [credentialInput, setCredentialInput] = useState('');
+            const [currentStep, setCurrentStep] = useState(1); // 전문가 등록 단계
 
             useEffect(() => {
                 if (!isLogin) {
@@ -669,12 +881,52 @@
                 }
             }, [isLogin]);
 
+            // 전문가 카테고리 정의
+            const expertCategories = {
+                'travel': { name: '여행/취미', icon: '✈️', description: '시니어 여행 및 취미 활동 전문가' },
+                'legal': { name: '세무/법무/자산관리', icon: '📋', description: '세무, 법무, 자산관리 전문가 (상담만)' },
+                'living': { name: '주거/생활', icon: '🏠', description: '주거 및 생활환경 설계 전문가' }
+            };
+
+            // 전문가 프로필 업데이트 함수
+            const updateExpertProfile = (field, value) => {
+                setExpertProfile(prev => ({ ...prev, [field]: value }));
+            };
+
+            // 전문분야 추가
+            const addSpecialty = () => {
+                if (specialtyInput.trim() && !expertProfile.specialties.includes(specialtyInput.trim())) {
+                    updateExpertProfile('specialties', [...expertProfile.specialties, specialtyInput.trim()]);
+                    setSpecialtyInput('');
+                }
+            };
+
+            // 자격증 추가
+            const addCredential = () => {
+                if (credentialInput.trim() && !expertProfile.credentials.includes(credentialInput.trim())) {
+                    updateExpertProfile('credentials', [...expertProfile.credentials, credentialInput.trim()]);
+                    setCredentialInput('');
+                }
+            };
+
+            // 전문분야 제거
+            const removeSpecialty = (index) => {
+                const newSpecialties = expertProfile.specialties.filter((_, i) => i !== index);
+                updateExpertProfile('specialties', newSpecialties);
+            };
+
+            // 자격증 제거
+            const removeCredential = (index) => {
+                const newCredentials = expertProfile.credentials.filter((_, i) => i !== index);
+                updateExpertProfile('credentials', newCredentials);
+            };
+
             const handleSubmit = async (e) => {
                 e.preventDefault();
                 setError('');
 
                 try {
-                    if (isLogin) {
+                    if (authMode === 'login') {
                         // 로그인
                         const result = await authManager.signIn(email, password);
                         if (result.success) {
@@ -682,8 +934,8 @@
                         } else {
                             setError(result.error);
                         }
-                    } else {
-                        // 회원가입
+                    } else if (authMode === 'signup') {
+                        // 일반 회원가입
                         if (password !== confirmPassword) {
                             setError('비밀번호가 일치하지 않습니다');
                             return;
@@ -720,13 +972,69 @@
                         if (result.success) {
                             setError('');
                             showNotification('회원가입 완료!', `🎉 환영합니다, ${finalNickname}님!\n✨ 바로 서비스를 이용하실 수 있습니다.\n📊 은퇴생활비 계산과 커뮤니티 참여가 가능합니다.`, 'success');
+                            setAuthMode('login');
                             setIsLogin(true);
                         } else {
                             setError(result.error);
                         }
+                    } else if (authMode === 'expert') {
+                        // 전문가 등록
+                        await handleExpertRegistration();
                     }
                 } catch (err) {
                     setError('처리 중 오류가 발생했습니다');
+                }
+            };
+
+            const handleExpertRegistration = async () => {
+                if (currentStep === 1) {
+                    // 1단계: 기본 회원가입
+                    if (password !== confirmPassword) {
+                        setError('비밀번호가 일치하지 않습니다');
+                        return;
+                    }
+                    const passwordValidation = validatePassword(password);
+                    if (!passwordValidation.isValid) {
+                        setError('비밀번호는 8자 이상이며, 영문/숫자/특수문자 중 2종류 이상 조합이어야 합니다');
+                        return;
+                    }
+                    if (!privacyConsent) {
+                        setError('개인정보 수집·이용에 동의해주세요');
+                        return;
+                    }
+
+                    const result = await authManager.signUp(email, password, expertProfile.name);
+                    if (result.success) {
+                        setCurrentStep(2);
+                        setError('');
+                    } else {
+                        setError(result.error);
+                    }
+                } else if (currentStep === 2) {
+                    // 2단계: 전문가 프로필 등록
+                    if (!expertProfile.name || !expertProfile.title || !expertProfile.experienceYears || !expertProfile.hourlyRate) {
+                        setError('모든 필수 항목을 입력해주세요');
+                        return;
+                    }
+                    if (expertProfile.specialties.length === 0) {
+                        setError('전문분야를 최소 1개 이상 입력해주세요');
+                        return;
+                    }
+                    if (expertProfile.credentials.length === 0) {
+                        setError('자격증/경력을 최소 1개 이상 입력해주세요');
+                        return;
+                    }
+
+                    try {
+                        // TODO: Supabase에 전문가 프로필 저장
+                        console.log('전문가 프로필 저장:', expertProfile);
+                        
+                        showNotification('전문가 등록 완료!', `🎉 환영합니다, ${expertProfile.name}님!\n🏆 전문가 인증 검토 중입니다.\n📧 승인 결과를 이메일로 알려드릴게요.`, 'success');
+                        setAuthMode('login');
+                        setCurrentStep(1);
+                    } catch (error) {
+                        setError('전문가 프로필 저장 중 오류가 발생했습니다');
+                    }
                 }
             };
 
@@ -734,6 +1042,149 @@
                 const newNickname = authManager.nicknameGen.generate();
                 setGeneratedNickname(newNickname);
             };
+
+            // 전문가 등록 UI 렌더링
+            if (authMode === 'expert') {
+                return (
+                    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-100 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+                        <div className="max-w-2xl w-full space-y-8">
+                            <div className="text-center">
+                                <div className="mb-6">
+                                    <div className="w-16 h-16 bg-gradient-to-br from-orange-500 to-red-600 rounded-full mx-auto flex items-center justify-center">
+                                        <span className="text-white font-bold text-xl">👩‍⚕️</span>
+                                    </div>
+                                </div>
+                                <h1 className="text-4xl font-bold text-gray-900 mb-2">
+                                    전문가 등록
+                                </h1>
+                                <p className="text-xl text-gray-600 mb-8">
+                                    {currentStep === 1 ? '기본 정보 입력' : '전문가 프로필 등록'}
+                                </p>
+                                <div className="flex justify-center space-x-4 mb-8">
+                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${currentStep >= 1 ? 'bg-orange-500 text-white' : 'bg-gray-200 text-gray-500'}`}>1</div>
+                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${currentStep >= 2 ? 'bg-orange-500 text-white' : 'bg-gray-200 text-gray-500'}`}>2</div>
+                                </div>
+                            </div>
+                            
+                            <div className="bg-white rounded-lg shadow-lg p-6">
+                                <form className="space-y-6" onSubmit={handleSubmit}>
+                                    {currentStep === 1 ? (
+                                        // 1단계: 기본 회원가입
+                                        <div className="space-y-4">
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700">실명 *</label>
+                                                <input
+                                                    type="text"
+                                                    required
+                                                    value={expertProfile.name}
+                                                    onChange={(e) => updateExpertProfile('name', e.target.value)}
+                                                    className="mt-1 w-full px-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-orange-500 focus:border-orange-500 text-lg"
+                                                    placeholder="실명을 입력하세요"
+                                                />
+                                                <p className="text-xs text-gray-500 mt-1">전문가 인증을 위해 실명이 필요합니다</p>
+                                            </div>
+                                            
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700">이메일 *</label>
+                                                <input
+                                                    type="email"
+                                                    required
+                                                    value={email}
+                                                    onChange={(e) => setEmail(e.target.value)}
+                                                    className="mt-1 w-full px-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-orange-500 focus:border-orange-500 text-lg"
+                                                    placeholder="이메일 주소"
+                                                />
+                                            </div>
+                                            
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700">비밀번호 *</label>
+                                                <input
+                                                    type="password"
+                                                    required
+                                                    value={password}
+                                                    onChange={(e) => setPassword(e.target.value)}
+                                                    className="mt-1 w-full px-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-orange-500 focus:border-orange-500 text-lg"
+                                                    placeholder="비밀번호"
+                                                />
+                                            </div>
+                                            
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700">비밀번호 확인 *</label>
+                                                <input
+                                                    type="password"
+                                                    required
+                                                    value={confirmPassword}
+                                                    onChange={(e) => setConfirmPassword(e.target.value)}
+                                                    className="mt-1 w-full px-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-orange-500 focus:border-orange-500 text-lg"
+                                                    placeholder="비밀번호 확인"
+                                                />
+                                            </div>
+                                            
+                                            <PrivacyConsentCheckbox 
+                                                checked={privacyConsent}
+                                                onChange={setPrivacyConsent}
+                                            />
+                                        </div>
+                                    ) : (
+                                        // 2단계: 전문가 프로필
+                                        <ExpertProfileForm 
+                                            expertProfile={expertProfile}
+                                            updateExpertProfile={updateExpertProfile}
+                                            expertCategories={expertCategories}
+                                            specialtyInput={specialtyInput}
+                                            setSpecialtyInput={setSpecialtyInput}
+                                            credentialInput={credentialInput}
+                                            setCredentialInput={setCredentialInput}
+                                            addSpecialty={addSpecialty}
+                                            addCredential={addCredential}
+                                            removeSpecialty={removeSpecialty}
+                                            removeCredential={removeCredential}
+                                        />
+                                    )}
+                                    
+                                    {error && (
+                                        <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                                            <p className="text-red-800 text-sm">{error}</p>
+                                        </div>
+                                    )}
+                                    
+                                    <div className="flex space-x-4">
+                                        {currentStep === 2 && (
+                                            <button
+                                                type="button"
+                                                onClick={() => setCurrentStep(1)}
+                                                className="w-full py-3 px-4 border border-gray-300 text-lg font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50"
+                                            >
+                                                이전 단계
+                                            </button>
+                                        )}
+                                        <button
+                                            type="submit"
+                                            className="w-full py-3 px-4 border border-transparent text-lg font-medium rounded-lg text-white bg-orange-600 hover:bg-orange-700"
+                                        >
+                                            {currentStep === 1 ? '다음 단계' : '전문가 등록 완료'}
+                                        </button>
+                                    </div>
+                                    
+                                    <div className="text-center">
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setAuthMode('login');
+                                                setCurrentStep(1);
+                                                setError('');
+                                            }}
+                                            className="text-orange-600 hover:text-orange-500 text-sm font-medium"
+                                        >
+                                            일반 로그인으로 돌아가기
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                );
+            }
 
             return (
                 <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
@@ -786,7 +1237,7 @@
                                         className="mt-1 appearance-none relative block w-full px-3 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-lg"
                                         placeholder="비밀번호"
                                     />
-                                    {!isLogin && (
+                                    {authMode === 'signup' && (
                                         <div className="mt-2 text-xs text-gray-500">
                                             <p className="mb-1">비밀번호 요구사항:</p>
                                             <ul className="space-y-0.5">
@@ -821,7 +1272,7 @@
                                         </div>
                                     )}
                                 </div>
-                                {!isLogin && (
+                                {authMode === 'signup' && (
                                     <>
                                         <div>
                                             <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
@@ -951,7 +1402,7 @@
                                     type="submit"
                                     className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-lg font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                                 >
-                                    {isLogin ? '로그인' : '회원가입'}
+                                    {authMode === 'login' ? '로그인' : '회원가입'}
                                 </button>
                             </div>
 
@@ -959,7 +1410,8 @@
                                 <button
                                     type="button"
                                     onClick={() => {
-                                        setIsLogin(!isLogin);
+                                        setAuthMode(authMode === 'login' ? 'signup' : 'login');
+                                        setIsLogin(authMode !== 'login');
                                         setError('');
                                         setEmail('');
                                         setPassword('');
@@ -970,7 +1422,7 @@
                                     }}
                                     className="text-blue-600 hover:text-blue-500 text-sm font-medium"
                                 >
-                                    {isLogin ? '계정이 없으신가요? 회원가입' : '이미 계정이 있으신가요? 로그인'}
+                                    {authMode === 'login' ? '계정이 없으신가요? 회원가입' : '이미 계정이 있으신가요? 로그인'}
                                 </button>
                             </div>
                             </form>
@@ -997,6 +1449,28 @@
                                 회원가입 없이 계산기만 이용 (커뮤니티 이용 불가)
                             </p>
                         </div>
+                        
+                        {/* 전문가 등록 */}
+                        <div className="relative">
+                            <div className="absolute inset-0 flex items-center">
+                                <div className="w-full border-t border-gray-300" />
+                            </div>
+                            <div className="relative flex justify-center text-sm">
+                                <span className="px-2 bg-gradient-to-br from-blue-50 to-indigo-100 text-gray-500">전문가이신가요?</span>
+                            </div>
+                        </div>
+                        
+                        <div className="text-center">
+                            <button
+                                onClick={() => setAuthMode('expert')}
+                                className="group relative w-full flex justify-center py-3 px-4 border-2 border-orange-500 text-base font-medium rounded-lg text-orange-600 bg-orange-50 hover:bg-orange-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 transition-all duration-300"
+                            >
+                                👩‍⚕️ 전문가로 등록하기
+                            </button>
+                            <p className="text-center text-sm text-gray-500 mt-2">
+                                여행/취미, 세무/법무, 주거/생활 전문가 모집
+                            </p>
+                        </div>
                     </div>
                 </div>
             );
@@ -1010,6 +1484,23 @@
             const [showWriteForm, setShowWriteForm] = useState(false);
             const [newReply, setNewReply] = useState('');
             const [userProfile, setUserProfile] = useState(null);
+            const [showExpertBookingModal, setShowExpertBookingModal] = useState(false);
+            const [selectedExpertFromPost, setSelectedExpertFromPost] = useState(null);
+
+            // 전문가 게시글에서 전문가 정보 추출
+            const getExpertFromPost = (post) => {
+                if (post.topic !== 'expert') return null;
+                
+                return {
+                    id: post.user_hash,
+                    name: post.expert_name,
+                    title: post.expert_title,
+                    profileImage: '👩‍⚕️',
+                    price: post.consultation_price,
+                    hourlyRate: post.consultation_price?.replace(/[^0-9]/g, '') || '50000',
+                    availableTypes: ['phone', 'video', 'chat']
+                };
+            };
 
             // 라이프스타일 그룹 정의 (중성적이고 포용적인 표현)
             const lifestyleGroups = {
@@ -1045,7 +1536,8 @@
                 'life': { name: '시니어생활', icon: '🌻', description: '일상, 취미, 여행' },
                 'housing': { name: '부동산', icon: '🏠', description: '주택, 임대, 이사' },
                 'family': { name: '가족관계', icon: '👨‍👩‍👧‍👦', description: '부부, 형제자매, 자녀 이야기' },
-                'work': { name: '재취업', icon: '💼', description: '시니어 일자리' }
+                'work': { name: '재취업', icon: '💼', description: '시니어 일자리' },
+                'expert': { name: '전문가 상담', icon: '👩‍⚕️', description: '전문가 서비스 소개 및 상담 안내', isExpertOnly: true }
             };
 
             // 커뮤니티 목록 보기용 샘플 데이터 (상세보기는 계산 후 가능)
@@ -1119,6 +1611,55 @@
                     replies_count: 4,
                     likes_count: 3,
                     created_at: '2025-01-19T14:30:00Z'
+                },
+                // 전문가 게시글 샘플
+                {
+                    id: '6',
+                    title: '시니어 여행 계획, 이것만은 꼭 확인하세요!',
+                    content: '안녕하세요, 시니어 여행 전문 플래너 김여행입니다. 은퇴 후 첫 해외여행을 계획하시는 분들을 위한 체크리스트를 공유합니다...',
+                    topic: 'expert',
+                    expert_category: 'travel',
+                    user_hash: 'expert_kim_travel',
+                    expert_badge: '인증 전문가',
+                    expert_name: '김여행플래너',
+                    expert_title: '시니어 여행 전문 플래너',
+                    consultation_price: '60,000원/60분',
+                    is_hot: true,
+                    replies_count: 23,
+                    likes_count: 45,
+                    created_at: '2025-01-21T09:00:00Z'
+                },
+                {
+                    id: '7', 
+                    title: '상속세 절세 전략 - 증여와 상속의 최적 타이밍',
+                    content: '상속세 전문 세무사 최세무입니다. 많은 분들이 궁금해하시는 증여와 상속의 최적 타이밍에 대해 설명드리겠습니다...',
+                    topic: 'expert',
+                    expert_category: 'legal',
+                    user_hash: 'expert_choi_tax',
+                    expert_badge: '인증 전문가',
+                    expert_name: '최세무사',
+                    expert_title: '상속세 절세 전문 세무사',
+                    consultation_price: '100,000원/60분',
+                    is_hot: true,
+                    replies_count: 18,
+                    likes_count: 32,
+                    created_at: '2025-01-20T15:30:00Z'
+                },
+                {
+                    id: '8',
+                    title: '은퇴 후 다운사이징, 성공적인 이사 가이드',
+                    content: '시니어 주거 전문 컨설턴트 윤부동산입니다. 은퇴 후 집을 줄이는 다운사이징에 대한 실전 가이드를 공유합니다...',
+                    topic: 'expert',
+                    expert_category: 'living',
+                    user_hash: 'expert_yoon_housing',
+                    expert_badge: '인증 전문가',
+                    expert_name: '윤부동산컨설턴트',
+                    expert_title: '시니어 주거 전문 컨설턴트',
+                    consultation_price: '80,000원/60분',
+                    is_hot: false,
+                    replies_count: 12,
+                    likes_count: 28,
+                    created_at: '2025-01-19T11:20:00Z'
                 }
             ];
 
@@ -1450,18 +1991,38 @@
                     {/* 게시글 목록 - 블라인드식 */}
                     <div className="space-y-2">
                                 {posts.map(post => (
-                                    <div key={post.id} className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow">
+                                    <div key={post.id} className={`rounded-lg shadow-md hover:shadow-lg transition-shadow ${
+                                        post.topic === 'expert' ? 'bg-gradient-to-r from-orange-50 to-red-50 border-l-4 border-orange-500' : 'bg-white'
+                                    }`}>
                                         <div className="p-4">
                                             <div className="flex items-start justify-between mb-3">
                                                 <div className="flex-1">
                                                     {/* 뱃지들 */}
                                                     <div className="flex items-center space-x-2 mb-2">
-                                                        <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs font-medium">
-                                                            {post.asset_badge}
-                                                        </span>
-                                                        <span className="bg-gray-100 text-gray-700 px-2 py-1 rounded text-xs">
-                                                            {post.age_badge}
-                                                        </span>
+                                                        {post.topic === 'expert' ? (
+                                                            <>
+                                                                <span className="bg-orange-100 text-orange-800 px-3 py-1 rounded-full text-xs font-bold">
+                                                                    👩‍⚕️ {post.expert_badge}
+                                                                </span>
+                                                                <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs">
+                                                                    {post.expert_name}
+                                                                </span>
+                                                                {post.consultation_price && (
+                                                                    <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-xs">
+                                                                        💰 {post.consultation_price}
+                                                                    </span>
+                                                                )}
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs font-medium">
+                                                                    {post.asset_badge}
+                                                                </span>
+                                                                <span className="bg-gray-100 text-gray-700 px-2 py-1 rounded text-xs">
+                                                                    {post.age_badge}
+                                                                </span>
+                                                            </>
+                                                        )}
                                                         {post.is_hot && (
                                                             <span className="bg-red-100 text-red-600 px-2 py-1 rounded text-xs font-medium">
                                                                 🔥 HOT
@@ -1471,16 +2032,53 @@
                                                     
                                                     {/* 제목 */}
                                                     <h3 
-                                                        className="font-bold text-gray-800 cursor-pointer hover:text-blue-600 transition-colors line-clamp-2"
+                                                        className={`font-bold cursor-pointer hover:text-blue-600 transition-colors line-clamp-2 ${
+                                                            post.topic === 'expert' ? 'text-orange-900' : 'text-gray-800'
+                                                        }`}
                                                         onClick={() => handlePostClick(post)}
                                                     >
                                                         {post.title}
                                                     </h3>
                                                     
+                                                    {/* 전문가 타이틀 */}
+                                                    {post.topic === 'expert' && post.expert_title && (
+                                                        <p className="text-orange-700 text-sm font-medium mt-1">
+                                                            {post.expert_title}
+                                                        </p>
+                                                    )}
+                                                    
                                                     {/* 내용 미리보기 */}
                                                     <p className="text-gray-600 text-sm mt-2 line-clamp-2">
                                                         {post.content.length > 120 ? `${post.content.substring(0, 120)}...` : post.content}
                                                     </p>
+                                                    
+                                                    {/* 전문가 게시글 액션 버튼 */}
+                                                    {post.topic === 'expert' && (
+                                                        <div className="mt-3 flex space-x-2">
+                                                            <button 
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    const expert = getExpertFromPost(post);
+                                                                    if (expert) {
+                                                                        setSelectedExpertFromPost(expert);
+                                                                        setShowExpertBookingModal(true);
+                                                                    }
+                                                                }}
+                                                                className="bg-orange-500 hover:bg-orange-600 text-white px-3 py-1 rounded text-xs font-medium"
+                                                            >
+                                                                📞 상담 예약
+                                                            </button>
+                                                            <button 
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    handlePostClick(post);
+                                                                }}
+                                                                className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-xs font-medium"
+                                                            >
+                                                                📝 질문하기
+                                                            </button>
+                                                        </div>
+                                                    )}
                                                 </div>
                                                 
                                                 {/* 우측 메타 정보 */}
@@ -1516,13 +2114,542 @@
                                     </div>
                                 )}
                     </div>
+                    
+                    {/* 전문가 상담 예약 모달 */}
+                    {showExpertBookingModal && selectedExpertFromPost && (
+                        <ConsultationBookingComponent
+                            expert={selectedExpertFromPost}
+                            currentUser={currentUser}
+                            onClose={() => {
+                                setShowExpertBookingModal(false);
+                                setSelectedExpertFromPost(null);
+                            }}
+                        />
+                    )}
+                </div>
+            );
+        };
+
+        // 상담 완료 확인 시스템 컴포넌트
+        const ConsultationCompletionComponent = ({ consultation, onClose, userType }) => {
+            const [isCompleting, setIsCompleting] = useState(false);
+            const [showReviewForm, setShowReviewForm] = useState(false);
+            const [review, setReview] = useState({
+                rating: 5,
+                reviewTitle: '',
+                reviewContent: '',
+                professionalismRating: 5,
+                communicationRating: 5,
+                satisfactionRating: 5,
+                wouldRecommend: true
+            });
+
+            const handleComplete = async () => {
+                setIsCompleting(true);
+                try {
+                    // TODO: Supabase에 완료 상태 업데이트
+                    const completionData = {
+                        consultationId: consultation.id,
+                        userType, // 'expert' 또는 'client'
+                        completedAt: new Date().toISOString()
+                    };
+                    
+                    console.log('상담 완료 처리:', completionData);
+                    
+                    if (userType === 'client') {
+                        setShowReviewForm(true);
+                    } else {
+                        alert('상담 완료 처리되었습니다');
+                        onClose();
+                    }
+                } catch (error) {
+                    console.error('완료 처리 오류:', error);
+                    alert('완료 처리 중 오류가 발생했습니다');
+                } finally {
+                    setIsCompleting(false);
+                }
+            };
+
+            const handleReviewSubmit = async () => {
+                try {
+                    // TODO: Supabase에 후기 저장
+                    const reviewData = {
+                        consultationId: consultation.id,
+                        ...review,
+                        createdAt: new Date().toISOString()
+                    };
+                    
+                    console.log('후기 저장:', reviewData);
+                    
+                    alert('후기가 등록되었습니다. 감사합니다!');
+                    onClose();
+                } catch (error) {
+                    console.error('후기 저장 오류:', error);
+                    alert('후기 저장 중 오류가 발생했습니다');
+                }
+            };
+
+            if (showReviewForm) {
+                return (
+                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 px-4">
+                        <div className="bg-white rounded-xl p-6 max-w-md w-full shadow-xl max-h-90vh overflow-y-auto">
+                            <div className="flex justify-between items-center mb-6">
+                                <h3 className="text-xl font-bold text-gray-900">상담 후기 작성</h3>
+                                <button onClick={onClose} className="text-gray-500 hover:text-gray-700 text-2xl">×</button>
+                            </div>
+
+                            <div className="space-y-6">
+                                {/* 전체 평점 */}
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">전체 만족도 *</label>
+                                    <div className="flex space-x-1">
+                                        {[1, 2, 3, 4, 5].map(star => (
+                                            <button
+                                                key={star}
+                                                onClick={() => setReview(prev => ({ ...prev, rating: star }))}
+                                                className={`text-2xl ${star <= review.rating ? 'text-yellow-400' : 'text-gray-300'}`}
+                                            >
+                                                ⭐
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* 세부 평가 */}
+                                <div className="space-y-4">
+                                    <h4 className="font-medium">세부 평가</h4>
+                                    
+                                    {[
+                                        { key: 'professionalismRating', label: '전문성' },
+                                        { key: 'communicationRating', label: '소통' },
+                                        { key: 'satisfactionRating', label: '만족도' }
+                                    ].map(({ key, label }) => (
+                                        <div key={key}>
+                                            <label className="block text-sm text-gray-600 mb-1">{label}</label>
+                                            <div className="flex space-x-1">
+                                                {[1, 2, 3, 4, 5].map(star => (
+                                                    <button
+                                                        key={star}
+                                                        onClick={() => setReview(prev => ({ ...prev, [key]: star }))}
+                                                        className={`text-lg ${star <= review[key] ? 'text-yellow-400' : 'text-gray-300'}`}
+                                                    >
+                                                        ⭐
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                {/* 후기 제목 */}
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">후기 제목</label>
+                                    <input
+                                        type="text"
+                                        value={review.reviewTitle}
+                                        onChange={(e) => setReview(prev => ({ ...prev, reviewTitle: e.target.value }))}
+                                        className="w-full p-3 border border-gray-300 rounded-lg"
+                                        placeholder="후기 제목을 입력하세요"
+                                    />
+                                </div>
+
+                                {/* 후기 내용 */}
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">상세 후기</label>
+                                    <textarea
+                                        value={review.reviewContent}
+                                        onChange={(e) => setReview(prev => ({ ...prev, reviewContent: e.target.value }))}
+                                        className="w-full p-3 border border-gray-300 rounded-lg"
+                                        rows="4"
+                                        placeholder="상담 경험을 다른 분들과 공유해주세요"
+                                    />
+                                </div>
+
+                                {/* 추천 여부 */}
+                                <div>
+                                    <label className="flex items-center">
+                                        <input
+                                            type="checkbox"
+                                            checked={review.wouldRecommend}
+                                            onChange={(e) => setReview(prev => ({ ...prev, wouldRecommend: e.target.checked }))}
+                                            className="h-4 w-4 text-blue-600"
+                                        />
+                                        <span className="ml-2 text-sm text-gray-700">이 전문가를 다른 분들께 추천하시겠어요?</span>
+                                    </label>
+                                </div>
+
+                                <div className="flex space-x-4">
+                                    <button
+                                        onClick={() => setShowReviewForm(false)}
+                                        className="flex-1 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                                    >
+                                        나중에 작성
+                                    </button>
+                                    <button
+                                        onClick={handleReviewSubmit}
+                                        className="flex-1 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                                    >
+                                        후기 등록
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                );
+            }
+
+            return (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 px-4">
+                    <div className="bg-white rounded-xl p-6 max-w-md w-full shadow-xl">
+                        <div className="text-center">
+                            <div className="text-6xl mb-4">✅</div>
+                            <h3 className="text-xl font-bold text-gray-900 mb-4">상담이 완료되었나요?</h3>
+                            
+                            <div className="bg-gray-50 p-4 rounded-lg mb-6 text-left">
+                                <div className="space-y-2 text-sm">
+                                    <div><strong>전문가:</strong> {consultation.expertName}</div>
+                                    <div><strong>상담 일시:</strong> {consultation.scheduledTime}</div>
+                                    <div><strong>상담 주제:</strong> {consultation.topic}</div>
+                                </div>
+                            </div>
+                            
+                            <p className="text-gray-600 mb-6">
+                                {userType === 'expert' ? 
+                                    '상담을 완료하셨으면 완료 버튼을 눌러주세요.' :
+                                    '상담이 완료되었으면 완료 확인 후 후기를 작성해주세요.'
+                                }
+                            </p>
+                            
+                            <div className="flex space-x-4">
+                                <button
+                                    onClick={onClose}
+                                    className="flex-1 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                                >
+                                    나중에
+                                </button>
+                                <button
+                                    onClick={handleComplete}
+                                    disabled={isCompleting}
+                                    className="flex-1 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-300"
+                                >
+                                    {isCompleting ? '처리중...' : '상담 완료'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // 예약 시스템 컴포넌트
+        const ConsultationBookingComponent = ({ expert, onClose, currentUser }) => {
+            const [selectedDate, setSelectedDate] = useState('');
+            const [selectedTime, setSelectedTime] = useState('');
+            const [consultationType, setConsultationType] = useState('phone');
+            const [consultationTopic, setConsultationTopic] = useState('');
+            const [clientQuestions, setClientQuestions] = useState('');
+            const [phoneNumber, setPhoneNumber] = useState('');
+            const [currentStep, setCurrentStep] = useState(1);
+            const [bookingResult, setBookingResult] = useState(null);
+
+            // 예약 가능한 날짜 생성 (오늘부터 30일간)
+            const getAvailableDates = () => {
+                const dates = [];
+                const today = new Date();
+                for (let i = 1; i <= 30; i++) {
+                    const date = new Date(today);
+                    date.setDate(today.getDate() + i);
+                    // 주말 제외 (토: 6, 일: 0)
+                    if (date.getDay() !== 0 && date.getDay() !== 6) {
+                        dates.push(date);
+                    }
+                }
+                return dates;
+            };
+
+            // 예약 가능한 시간 생성
+            const getAvailableTimes = () => {
+                const times = [];
+                for (let hour = 9; hour <= 18; hour++) {
+                    times.push(`${hour.toString().padStart(2, '0')}:00`);
+                    if (hour < 18) {
+                        times.push(`${hour.toString().padStart(2, '0')}:30`);
+                    }
+                }
+                return times;
+            };
+
+            const handleBooking = async () => {
+                if (!selectedDate || !selectedTime || !consultationTopic) {
+                    alert('모든 필수 항목을 입력해주세요');
+                    return;
+                }
+
+                try {
+                    const bookingData = {
+                        expertId: expert.id,
+                        clientUserHash: currentUser?.id || 'guest_' + Date.now(),
+                        scheduledTime: `${selectedDate} ${selectedTime}`,
+                        consultationType,
+                        consultationTopic,
+                        clientQuestions,
+                        phoneNumber: consultationType === 'phone' ? phoneNumber : '',
+                        paymentAmount: parseInt(expert.hourlyRate),
+                        platformFee: Math.round(parseInt(expert.hourlyRate) * 0.1),
+                        expertPayout: Math.round(parseInt(expert.hourlyRate) * 0.9)
+                    };
+
+                    // TODO: Supabase에 예약 정보 저장
+                    console.log('예약 정보 저장:', bookingData);
+                    
+                    setBookingResult(bookingData);
+                    setCurrentStep(3);
+                } catch (error) {
+                    console.error('예약 처리 오류:', error);
+                    alert('예약 처리 중 오류가 발생했습니다');
+                }
+            };
+
+            if (currentStep === 3 && bookingResult) {
+                return (
+                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 px-4">
+                        <div className="bg-white rounded-xl p-6 max-w-md w-full shadow-xl">
+                            <div className="text-center">
+                                <div className="text-6xl mb-4">✅</div>
+                                <h3 className="text-xl font-bold text-gray-900 mb-4">예약 완료!</h3>
+                                <div className="bg-green-50 p-4 rounded-lg mb-4 text-left">
+                                    <div className="space-y-2 text-sm">
+                                        <div><strong>전문가:</strong> {expert.name}</div>
+                                        <div><strong>일시:</strong> {bookingResult.scheduledTime}</div>
+                                        <div><strong>상담 방식:</strong> {
+                                            consultationType === 'phone' ? '📞 전화 상담' :
+                                            consultationType === 'video' ? '📹 화상 상담' : '💬 채팅 상담'
+                                        }</div>
+                                        <div><strong>상담료:</strong> {expert.hourlyRate.toLocaleString()}원</div>
+                                        <div><strong>플랫폼 수수료:</strong> {bookingResult.platformFee.toLocaleString()}원</div>
+                                    </div>
+                                </div>
+                                <p className="text-sm text-gray-600 mb-6">
+                                    예약 확정 메일을 발송했습니다.<br/>
+                                    상담 전에 전문가가 연락드릴 예정입니다.
+                                </p>
+                                <button
+                                    onClick={onClose}
+                                    className="w-full py-3 bg-green-600 text-white rounded-lg hover:bg-green-700"
+                                >
+                                    확인
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                );
+            }
+
+            return (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 px-4">
+                    <div className="bg-white rounded-xl p-6 max-w-2xl w-full shadow-xl max-h-90vh overflow-y-auto">
+                        <div className="flex justify-between items-center mb-6">
+                            <h3 className="text-xl font-bold text-gray-900">상담 예약</h3>
+                            <button onClick={onClose} className="text-gray-500 hover:text-gray-700 text-2xl">×</button>
+                        </div>
+
+                        {/* 전문가 정보 */}
+                        <div className="bg-orange-50 p-4 rounded-lg mb-6">
+                            <div className="flex items-center gap-4">
+                                <div className="text-3xl">{expert.profileImage}</div>
+                                <div>
+                                    <h4 className="font-bold text-gray-800">{expert.name}</h4>
+                                    <p className="text-sm text-gray-600">{expert.title}</p>
+                                    <p className="text-sm font-medium text-orange-600">{expert.price}</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {currentStep === 1 && (
+                            <div className="space-y-6">
+                                <h4 className="font-bold text-lg">1단계: 날짜 및 시간 선택</h4>
+                                
+                                {/* 날짜 선택 */}
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">상담 날짜 *</label>
+                                    <select
+                                        value={selectedDate}
+                                        onChange={(e) => setSelectedDate(e.target.value)}
+                                        className="w-full p-3 border border-gray-300 rounded-lg"
+                                        required
+                                    >
+                                        <option value="">날짜 선택</option>
+                                        {getAvailableDates().map(date => (
+                                            <option key={date.toISOString()} value={date.toISOString().split('T')[0]}>
+                                                {date.toLocaleDateString('ko-KR', { 
+                                                    year: 'numeric', 
+                                                    month: 'long', 
+                                                    day: 'numeric',
+                                                    weekday: 'short'
+                                                })}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                {/* 시간 선택 */}
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">상담 시간 *</label>
+                                    <div className="grid grid-cols-4 gap-2">
+                                        {getAvailableTimes().map(time => (
+                                            <button
+                                                key={time}
+                                                onClick={() => setSelectedTime(time)}
+                                                className={`p-2 text-sm rounded-lg border transition-colors ${
+                                                    selectedTime === time
+                                                        ? 'bg-orange-500 text-white border-orange-500'
+                                                        : 'bg-white text-gray-700 border-gray-300 hover:bg-orange-50'
+                                                }`}
+                                            >
+                                                {time}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* 상담 방식 */}
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">상담 방식 *</label>
+                                    <div className="space-y-2">
+                                        {expert.availableTypes?.map(type => (
+                                            <label key={type} className="flex items-center p-3 border rounded-lg cursor-pointer hover:bg-gray-50">
+                                                <input
+                                                    type="radio"
+                                                    name="consultationType"
+                                                    value={type}
+                                                    checked={consultationType === type}
+                                                    onChange={(e) => setConsultationType(e.target.value)}
+                                                    className="h-4 w-4 text-orange-600"
+                                                />
+                                                <div className="ml-3">
+                                                    <div className="font-medium">
+                                                        {type === 'phone' ? '📞 전화 상담' :
+                                                         type === 'video' ? '📹 화상 상담' : '💬 채팅 상담'}
+                                                    </div>
+                                                </div>
+                                            </label>
+                                        )) || (
+                                            <label className="flex items-center p-3 border rounded-lg cursor-pointer hover:bg-gray-50">
+                                                <input
+                                                    type="radio"
+                                                    name="consultationType"
+                                                    value="phone"
+                                                    checked={true}
+                                                    onChange={() => setConsultationType('phone')}
+                                                    className="h-4 w-4 text-orange-600"
+                                                />
+                                                <div className="ml-3">
+                                                    <div className="font-medium">📞 전화 상담</div>
+                                                </div>
+                                            </label>
+                                        )}
+                                    </div>
+                                </div>
+
+                                <div className="flex justify-between">
+                                    <button
+                                        onClick={onClose}
+                                        className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                                    >
+                                        취소
+                                    </button>
+                                    <button
+                                        onClick={() => setCurrentStep(2)}
+                                        disabled={!selectedDate || !selectedTime}
+                                        className="px-6 py-3 bg-orange-500 text-white rounded-lg hover:bg-orange-600 disabled:bg-gray-300"
+                                    >
+                                        다음 단계
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
+                        {currentStep === 2 && (
+                            <div className="space-y-6">
+                                <h4 className="font-bold text-lg">2단계: 상담 내용</h4>
+                                
+                                {/* 상담 주제 */}
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">상담 주제 *</label>
+                                    <input
+                                        type="text"
+                                        value={consultationTopic}
+                                        onChange={(e) => setConsultationTopic(e.target.value)}
+                                        className="w-full p-3 border border-gray-300 rounded-lg"
+                                        placeholder="상담받고 싶은 주제를 간단히 적어주세요"
+                                        required
+                                    />
+                                </div>
+
+                                {/* 구체적인 질문 */}
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">구체적인 질문이나 상황</label>
+                                    <textarea
+                                        value={clientQuestions}
+                                        onChange={(e) => setClientQuestions(e.target.value)}
+                                        className="w-full p-3 border border-gray-300 rounded-lg"
+                                        rows="4"
+                                        placeholder="상담을 위해 전문가가 미리 알아야 할 내용이나 질문을 적어주세요"
+                                    />
+                                </div>
+
+                                {/* 전화번호 (전화 상담인 경우) */}
+                                {consultationType === 'phone' && (
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">연락처 *</label>
+                                        <input
+                                            type="tel"
+                                            value={phoneNumber}
+                                            onChange={(e) => setPhoneNumber(e.target.value)}
+                                            className="w-full p-3 border border-gray-300 rounded-lg"
+                                            placeholder="010-1234-5678"
+                                            required
+                                        />
+                                    </div>
+                                )}
+
+                                {/* 예약 요약 */}
+                                <div className="bg-gray-50 p-4 rounded-lg">
+                                    <h5 className="font-medium mb-2">예약 요약</h5>
+                                    <div className="text-sm space-y-1">
+                                        <div>📅 날짜: {selectedDate}</div>
+                                        <div>⏰ 시간: {selectedTime}</div>
+                                        <div>📞 방식: {consultationType === 'phone' ? '전화 상담' : consultationType === 'video' ? '화상 상담' : '채팅 상담'}</div>
+                                        <div>💰 상담료: {expert.price}</div>
+                                    </div>
+                                </div>
+
+                                <div className="flex justify-between">
+                                    <button
+                                        onClick={() => setCurrentStep(1)}
+                                        className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                                    >
+                                        이전
+                                    </button>
+                                    <button
+                                        onClick={handleBooking}
+                                        className="px-6 py-3 bg-orange-500 text-white rounded-lg hover:bg-orange-600"
+                                    >
+                                        예약 확정
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+                    </div>
                 </div>
             );
         };
 
         // 전문가 찾기 컴포넌트
-        const ExpertFinderComponent = () => {
+        const ExpertFinderComponent = ({ currentUser }) => {
             const [activeCategory, setActiveCategory] = useState('travel');
+            const [showBookingModal, setShowBookingModal] = useState(false);
+            const [selectedExpert, setSelectedExpert] = useState(null);
             
             // 3대 전문가 카테고리 정의
             const expertCategories = {
@@ -1738,7 +2865,10 @@
                                                 <span className="text-xs text-gray-500 ml-2">응답률 {expert.responseRate}%</span>
                                             </div>
                                             <button 
-                                                onClick={() => alert('상담 예약 기능은 준비중입니다.')}
+                                                onClick={() => {
+                                                    setSelectedExpert(expert);
+                                                    setShowBookingModal(true);
+                                                }}
                                                 className="px-4 py-2 bg-blue-500 text-white rounded-lg text-sm font-medium hover:bg-blue-600 transition-colors"
                                             >
                                                 상담 예약
@@ -1761,6 +2891,18 @@
                             <p>🚧 현재 시범 운영 중 - 2025년 3월 정식 오픈 예정</p>
                         </div>
                     </div>
+                    
+                    {/* 예약 모달 */}
+                    {showBookingModal && selectedExpert && (
+                        <ConsultationBookingComponent
+                            expert={selectedExpert}
+                            currentUser={currentUser}
+                            onClose={() => {
+                                setShowBookingModal(false);
+                                setSelectedExpert(null);
+                            }}
+                        />
+                    )}
                 </div>
             );
         };
@@ -3212,7 +4354,7 @@
 
                                     {/* 전문가 찾기 탭 */}
                                     {activeTab === 'expert' && (
-                                        <ExpertFinderComponent />
+                                        <ExpertFinderComponent currentUser={currentUser} />
                                     )}
                                 </div>
                             )}
@@ -4016,7 +5158,7 @@
                                     <h2 className="text-2xl font-bold text-gray-800 mb-6 text-center">
                                         🔍 전문가 찾기
                                     </h2>
-                                    <ExpertFinderComponent />
+                                    <ExpertFinderComponent currentUser={currentUser} />
                                 </div>
                             </div>
                         )}
