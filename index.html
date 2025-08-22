@@ -5075,6 +5075,14 @@
                     localStorage.removeItem('planb_guest_user');
                     localStorage.removeItem('planb_calculation_result');
                     
+                    // 사용자가 명시적으로 로그아웃했는지 확인
+                    const userLoggedOut = localStorage.getItem('planb_user_logged_out');
+                    if (userLoggedOut === 'true') {
+                        // 로그아웃 상태이므로 자동 로그인 건너뛰기
+                        console.log('사용자가 로그아웃한 상태입니다');
+                        return;
+                    }
+                    
                     // 현재 사용자 확인 (회원만)
                     const user = await authManager.getCurrentUser();
                     if (user) {
@@ -5082,7 +5090,7 @@
                         setIsAuthenticated(true);
                         setCurrentView('main');
                         const isAdmin = isAdminUser(user);
-                        console.log(`로그인됨: ${user.email}${isAdmin ? ' (관리자 권한)' : ' (일반 사용자)'}`);
+                        console.log(`자동 로그인됨: ${user.email}${isAdmin ? ' (관리자 권한)' : ' (일반 사용자)'}`);
                         
                         // 기존 계산 결과 불러오기
                         loadSavedCalculations();
@@ -5095,6 +5103,9 @@
             
             // 인증 성공 핸들러
             const handleAuthSuccess = (user) => {
+                // 로그인 성공시 로그아웃 플래그 제거
+                localStorage.removeItem('planb_user_logged_out');
+                
                 // 기존 게스트 데이터가 있다면 회원 계정으로 이관
                 const guestCalculation = localStorage.getItem('planb_calculation_result');
                 
@@ -5104,7 +5115,7 @@
                 setCurrentView('main');
                 
                 const isAdmin = isAdminUser(user);
-                console.log(`회원가입 완료: ${user.email}${isAdmin ? ' (관리자 권한)' : ' (일반 사용자)'}`);
+                console.log(`로그인 완료: ${user.email}${isAdmin ? ' (관리자 권한)' : ' (일반 사용자)'}`);
                 loadSavedCalculations();
                 
                 // 게스트 데이터 정리
@@ -5152,11 +5163,15 @@
                     // 회원 로그아웃
                     const result = await authManager.signOut();
                     if (result.success) {
+                        // 로그아웃 상태를 localStorage에 저장
+                        localStorage.setItem('planb_user_logged_out', 'true');
+                        
                         setCurrentUser(null);
                         setIsAuthenticated(false);
                         setCurrentView('login');
                         setSavedCalculations([]);
                         localStorage.removeItem('planb_calculation_result');
+                        console.log('로그아웃 완료 - 자동 로그인 비활성화');
                     }
                 }
             };
