@@ -562,8 +562,8 @@
                 }
             }
             
-            // 이메일 중복 체크 (전문가 등록용)
-            async checkEmailForExpert(email) {
+            // 이메일 중복 체크 (단순 중복 확인)
+            async checkEmail(email) {
                 try {
                     // 기존 user_profiles 테이블에서 이메일 확인
                     const { data: existingUser, error } = await supabase
@@ -573,19 +573,17 @@
                         .single();
                     
                     if (existingUser) {
-                        // 이미 존재하는 회원
+                        // 이미 존재하는 이메일
                         return { 
                             success: false, 
-                            error: '이미 등록된 이메일입니다', 
-                            isExistingUser: true,
-                            userId: existingUser.id
+                            error: '이미 등록된 이메일입니다. 다른 이메일을 사용해주세요.'
                         };
                     }
                     
-                    return { success: true, isExistingUser: false };
+                    return { success: true };
                 } catch (error) {
                     // 사용자가 없는 경우 (정상적인 상황)
-                    return { success: true, isExistingUser: false };
+                    return { success: true };
                 }
             }
 
@@ -1059,191 +1057,26 @@
             );
         };
 
-        // 기존 회원 전문가 등록 컴포넌트
-        const ExistingMemberExpertRegistration = ({ currentUser, onRegistrationComplete, onCancel }) => {
-            const [expertProfile, setExpertProfile] = useState({
-                name: currentUser?.nickname || '',
-                title: '',
-                expertType: 'travel',
-                experienceYears: '',
-                bio: '',
-                specialties: [],
-                credentials: [],
-                hourlyRate: '',
-                consultationDuration: 60,
-                phone: '',
-                businessLicense: '',
-                qualificationNumber: '',
-                availableTypes: ['phone']
-            });
-            const [specialtyInput, setSpecialtyInput] = useState('');
-            const [credentialInput, setCredentialInput] = useState('');
-            const [error, setError] = useState('');
-
-            const updateExpertProfile = (field, value) => {
-                setExpertProfile(prev => ({ ...prev, [field]: value }));
-            };
-
-            const addSpecialty = () => {
-                if (specialtyInput.trim() && !expertProfile.specialties.includes(specialtyInput.trim())) {
-                    setExpertProfile(prev => ({
-                        ...prev,
-                        specialties: [...prev.specialties, specialtyInput.trim()]
-                    }));
-                    setSpecialtyInput('');
-                }
-            };
-
-            const addCredential = () => {
-                if (credentialInput.trim() && !expertProfile.credentials.includes(credentialInput.trim())) {
-                    setExpertProfile(prev => ({
-                        ...prev,
-                        credentials: [...prev.credentials, credentialInput.trim()]
-                    }));
-                    setCredentialInput('');
-                }
-            };
-
-            const removeSpecialty = (index) => {
-                setExpertProfile(prev => ({
-                    ...prev,
-                    specialties: prev.specialties.filter((_, i) => i !== index)
-                }));
-            };
-
-            const removeCredential = (index) => {
-                setExpertProfile(prev => ({
-                    ...prev,
-                    credentials: prev.credentials.filter((_, i) => i !== index)
-                }));
-            };
-
-            const handleSubmit = async (e) => {
-                e.preventDefault();
-                setError('');
-
-                // 검증
-                if (!expertProfile.name || !expertProfile.title || !expertProfile.experienceYears || !expertProfile.hourlyRate) {
-                    setError('모든 필수 항목을 입력해주세요');
-                    return;
-                }
-                if (expertProfile.specialties.length === 0) {
-                    setError('전문분야를 최소 1개 이상 입력해주세요');
-                    return;
-                }
-                if (expertProfile.credentials.length === 0) {
-                    setError('자격증/경력을 최소 1개 이상 입력해주세요');
-                    return;
-                }
-                if (!expertProfile.phone) {
-                    setError('휴대폰 번호를 입력해주세요');
-                    return;
-                }
-                if (!/^010-\d{4}-\d{4}$/.test(expertProfile.phone)) {
-                    setError('휴대폰 번호는 010-1234-5678 형식으로 입력해주세요');
-                    return;
-                }
-                if (expertProfile.availableTypes.length === 0) {
-                    setError('제공 가능한 상담 방식을 최소 1개 이상 선택해주세요');
-                    return;
-                }
-                if (!expertProfile.businessLicense && !expertProfile.qualificationNumber) {
-                    setError('사업자등록증 또는 자격증번호 중 하나는 필수로 입력해야 합니다');
-                    return;
-                }
-                if (parseInt(expertProfile.experienceYears) < 1) {
-                    setError('최소 1년 이상의 경력이 필요합니다');
-                    return;
-                }
-                if (parseInt(expertProfile.hourlyRate) < 30000) {
-                    setError('상담료는 시간당 최소 3만원 이상이어야 합니다');
-                    return;
-                }
-                if (expertProfile.businessLicense && !/^\d{3}-\d{2}-\d{5}$/.test(expertProfile.businessLicense)) {
-                    setError('사업자등록번호는 123-45-67890 형식으로 입력해주세요');
-                    return;
-                }
-
-                try {
-                    // TODO: Supabase에 전문가 프로필 저장 (기존 사용자 ID 연결)
-                    console.log('기존 회원 전문가 프로필 저장:', {
-                        userId: currentUser.id,
-                        ...expertProfile
-                    });
-                    
-                    showNotification('전문가 등록 완료!', `🎉 ${expertProfile.name}님의 전문가 등록이 완료되었습니다!\n\n🔍 관리자 검토 후 승인됩니다.\n📧 승인 결과를 이메일로 알려드릴게요.`, 'success');
-                    onRegistrationComplete();
-                } catch (error) {
-                    setError('전문가 등록 처리 중 오류가 발생했습니다');
-                }
-            };
-
-            return (
-                <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-100 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-                    <div className="max-w-2xl w-full space-y-8">
-                        <div className="text-center">
-                            <div className="mb-6">
-                                <div className="w-16 h-16 bg-gradient-to-br from-orange-500 to-red-600 rounded-full mx-auto flex items-center justify-center">
-                                    <span className="text-white font-bold text-xl">🎯</span>
-                                </div>
-                            </div>
-                            <h1 className="text-4xl font-bold text-gray-900 mb-2">
-                                전문가 등록
-                            </h1>
-                            <p className="text-xl text-gray-600 mb-8">
-                                {currentUser?.nickname || currentUser?.email}님의 전문가 프로필을 작성해주세요
-                            </p>
-                        </div>
-                        
-                        <div className="bg-white rounded-lg shadow-lg p-6">
-                            <form className="space-y-6" onSubmit={handleSubmit}>
-                                <ExpertProfileForm 
-                                    expertProfile={expertProfile}
-                                    updateExpertProfile={updateExpertProfile}
-                                    expertCategories={expertCategories}
-                                    specialtyInput={specialtyInput}
-                                    setSpecialtyInput={setSpecialtyInput}
-                                    credentialInput={credentialInput}
-                                    setCredentialInput={setCredentialInput}
-                                    addSpecialty={addSpecialty}
-                                    addCredential={addCredential}
-                                    removeSpecialty={removeSpecialty}
-                                    removeCredential={removeCredential}
-                                />
-                                
-                                {error && (
-                                    <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-                                        <p className="text-red-800 text-sm">{error}</p>
-                                    </div>
-                                )}
-                                
-                                <div className="flex space-x-4">
-                                    <button
-                                        type="button"
-                                        onClick={onCancel}
-                                        className="w-full py-3 px-4 border border-gray-300 text-lg font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50"
-                                    >
-                                        취소
-                                    </button>
-                                    <button
-                                        type="submit"
-                                        className="w-full py-3 px-4 border border-transparent text-lg font-medium rounded-lg text-white bg-orange-600 hover:bg-orange-700"
-                                    >
-                                        전문가 등록 완료
-                                    </button>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
-                </div>
-            );
-        };
 
         // 마이페이지 컴포넌트
         const MyPageComponent = ({ currentUser, onClose, getUserType, getUserTypeName }) => {
-            const userType = getUserType(currentUser);
-            const userTypeName = getUserTypeName(userType);
+            const [userType, setUserType] = useState('member');
+            const [userTypeName, setUserTypeName] = useState('일반회원');
             const [activeTab, setActiveTab] = useState('profile');
+            
+            // 사용자 타입 확인 (async)
+            useEffect(() => {
+                const checkUserType = async () => {
+                    const type = await getUserType(currentUser);
+                    const typeName = getUserTypeName(type);
+                    setUserType(type);
+                    setUserTypeName(typeName);
+                };
+                
+                if (currentUser) {
+                    checkUserType();
+                }
+            }, [currentUser]);
 
             const tabs = [
                 { id: 'profile', name: '내 정보', icon: '👤' },
@@ -5717,13 +5550,27 @@
                 return adminEmails.includes(user.email.toLowerCase());
             };
 
-            // 사용자 타입 확인 함수
-            const getUserType = (user) => {
+            // 사용자 타입 확인 함수 (async)
+            const getUserType = async (user) => {
                 if (!user) return 'guest';
                 if (isAdminUser(user)) return 'admin';
-                // TODO: 전문가 여부 확인 (Supabase에서 expert_profiles 테이블 조회)
-                // 현재는 임시로 이메일로 판단
-                if (user.email?.includes('expert')) return 'expert';
+                
+                // Supabase에서 expert_profiles 테이블 조회하여 전문가 여부 확인
+                try {
+                    const { data: expertProfile, error } = await supabase
+                        .from('expert_profiles')
+                        .select('id, verification_status')
+                        .eq('email', user.email)
+                        .single();
+                    
+                    if (expertProfile && expertProfile.verification_status === 'approved') {
+                        return 'expert';
+                    }
+                } catch (error) {
+                    // expert_profiles에 없으면 일반회원
+                    console.log('Expert profile not found, user is regular member');
+                }
+                
                 return 'member';
             };
 
@@ -5784,22 +5631,6 @@
                 );
             }
 
-            // 기존 회원 전문가 등록 페이지
-            if (currentView === 'expert-registration' && authMode === 'existing-expert') {
-                return (
-                    <ExistingMemberExpertRegistration 
-                        currentUser={currentUser}
-                        onRegistrationComplete={() => {
-                            setCurrentView('main');
-                            setAuthMode('login');
-                        }}
-                        onCancel={() => {
-                            setCurrentView('main');
-                            setAuthMode('login');
-                        }}
-                    />
-                );
-            }
 
             // 마이페이지
             if (currentView === 'mypage') {
@@ -5888,15 +5719,6 @@
                                                     className="bg-blue-500 text-white px-2 py-1 rounded text-xs hover:bg-blue-600 transition-colors whitespace-nowrap"
                                                 >
                                                     👤 마이페이지
-                                                </button>
-                                                <button
-                                                    onClick={() => {
-                                                        setCurrentView('expert-registration');
-                                                        setAuthMode('existing-expert');
-                                                    }}
-                                                    className="bg-orange-500 text-white px-2 py-1 rounded text-xs hover:bg-orange-600 transition-colors whitespace-nowrap"
-                                                >
-                                                    🎯 전문가등록
                                                 </button>
                                                 <button
                                                     onClick={handleLogout}
