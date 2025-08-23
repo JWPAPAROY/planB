@@ -562,30 +562,30 @@
                 }
             }
             
-            // 이메일 중복 체크
-            async checkEmail(email) {
+            // 이메일 중복 체크 (전문가 등록용)
+            async checkEmailForExpert(email) {
                 try {
-                    // Supabase auth에서 이메일 중복 체크
-                    const { data, error } = await supabase.auth.signUp({
-                        email: email,
-                        password: 'temp_password_for_check_only',
-                        options: {
-                            data: {
-                                temp_check: true
-                            }
-                        }
-                    });
+                    // 기존 user_profiles 테이블에서 이메일 확인
+                    const { data: existingUser, error } = await supabase
+                        .from('user_profiles')
+                        .select('id, email')
+                        .eq('email', email)
+                        .single();
                     
-                    if (error) {
-                        if (error.message.includes('already registered') || error.message.includes('이미 등록')) {
-                            return { success: false, error: '이미 등록된 이메일입니다' };
-                        }
-                        // 다른 에러는 무시 (임시 체크이므로)
+                    if (existingUser) {
+                        // 이미 존재하는 회원
+                        return { 
+                            success: false, 
+                            error: '이미 등록된 이메일입니다', 
+                            isExistingUser: true,
+                            userId: existingUser.id
+                        };
                     }
                     
-                    return { success: true };
+                    return { success: true, isExistingUser: false };
                 } catch (error) {
-                    return { success: true }; // 체크 실패시에도 진행 허용
+                    // 사용자가 없는 경우 (정상적인 상황)
+                    return { success: true, isExistingUser: false };
                 }
             }
 
@@ -970,20 +970,6 @@
                         </div>
                     </div>
 
-                    {/* 연락처 */}
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700">휴대폰 번호 *</label>
-                        <input
-                            type="tel"
-                            required
-                            value={expertProfile.phone}
-                            onChange={(e) => updateExpertProfile('phone', e.target.value)}
-                            className="mt-1 w-full px-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-orange-500 focus:border-orange-500"
-                            placeholder="010-1234-5678"
-                            pattern="[0-9]{3}-[0-9]{4}-[0-9]{4}"
-                        />
-                        <p className="text-xs text-gray-500 mt-1">상담 예약 확인 및 본인 인증용</p>
-                    </div>
 
                     {/* 신원 검증 섹션 */}
                     <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
@@ -1030,6 +1016,186 @@
                                     <li>• 검토 기간: 영업일 기준 3-5일</li>
                                 </ul>
                             </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // 기존 회원 전문가 등록 컴포넌트
+        const ExistingMemberExpertRegistration = ({ currentUser, onRegistrationComplete, onCancel }) => {
+            const [expertProfile, setExpertProfile] = useState({
+                name: currentUser?.nickname || '',
+                title: '',
+                expertType: 'travel',
+                experienceYears: '',
+                bio: '',
+                specialties: [],
+                credentials: [],
+                hourlyRate: '',
+                consultationDuration: 60,
+                phone: '',
+                businessLicense: '',
+                qualificationNumber: '',
+                availableTypes: ['phone']
+            });
+            const [specialtyInput, setSpecialtyInput] = useState('');
+            const [credentialInput, setCredentialInput] = useState('');
+            const [error, setError] = useState('');
+
+            const updateExpertProfile = (field, value) => {
+                setExpertProfile(prev => ({ ...prev, [field]: value }));
+            };
+
+            const addSpecialty = () => {
+                if (specialtyInput.trim() && !expertProfile.specialties.includes(specialtyInput.trim())) {
+                    setExpertProfile(prev => ({
+                        ...prev,
+                        specialties: [...prev.specialties, specialtyInput.trim()]
+                    }));
+                    setSpecialtyInput('');
+                }
+            };
+
+            const addCredential = () => {
+                if (credentialInput.trim() && !expertProfile.credentials.includes(credentialInput.trim())) {
+                    setExpertProfile(prev => ({
+                        ...prev,
+                        credentials: [...prev.credentials, credentialInput.trim()]
+                    }));
+                    setCredentialInput('');
+                }
+            };
+
+            const removeSpecialty = (index) => {
+                setExpertProfile(prev => ({
+                    ...prev,
+                    specialties: prev.specialties.filter((_, i) => i !== index)
+                }));
+            };
+
+            const removeCredential = (index) => {
+                setExpertProfile(prev => ({
+                    ...prev,
+                    credentials: prev.credentials.filter((_, i) => i !== index)
+                }));
+            };
+
+            const handleSubmit = async (e) => {
+                e.preventDefault();
+                setError('');
+
+                // 검증
+                if (!expertProfile.name || !expertProfile.title || !expertProfile.experienceYears || !expertProfile.hourlyRate) {
+                    setError('모든 필수 항목을 입력해주세요');
+                    return;
+                }
+                if (expertProfile.specialties.length === 0) {
+                    setError('전문분야를 최소 1개 이상 입력해주세요');
+                    return;
+                }
+                if (expertProfile.credentials.length === 0) {
+                    setError('자격증/경력을 최소 1개 이상 입력해주세요');
+                    return;
+                }
+                if (!expertProfile.phone) {
+                    setError('휴대폰 번호를 입력해주세요');
+                    return;
+                }
+                if (!/^010-\d{4}-\d{4}$/.test(expertProfile.phone)) {
+                    setError('휴대폰 번호는 010-1234-5678 형식으로 입력해주세요');
+                    return;
+                }
+                if (expertProfile.availableTypes.length === 0) {
+                    setError('제공 가능한 상담 방식을 최소 1개 이상 선택해주세요');
+                    return;
+                }
+                if (!expertProfile.businessLicense && !expertProfile.qualificationNumber) {
+                    setError('사업자등록증 또는 자격증번호 중 하나는 필수로 입력해야 합니다');
+                    return;
+                }
+                if (parseInt(expertProfile.experienceYears) < 1) {
+                    setError('최소 1년 이상의 경력이 필요합니다');
+                    return;
+                }
+                if (parseInt(expertProfile.hourlyRate) < 30000) {
+                    setError('상담료는 시간당 최소 3만원 이상이어야 합니다');
+                    return;
+                }
+                if (expertProfile.businessLicense && !/^\d{3}-\d{2}-\d{5}$/.test(expertProfile.businessLicense)) {
+                    setError('사업자등록번호는 123-45-67890 형식으로 입력해주세요');
+                    return;
+                }
+
+                try {
+                    // TODO: Supabase에 전문가 프로필 저장 (기존 사용자 ID 연결)
+                    console.log('기존 회원 전문가 프로필 저장:', {
+                        userId: currentUser.id,
+                        ...expertProfile
+                    });
+                    
+                    showNotification('전문가 등록 완료!', `🎉 ${expertProfile.name}님의 전문가 등록이 완료되었습니다!\n\n🔍 관리자 검토 후 승인됩니다.\n📧 승인 결과를 이메일로 알려드릴게요.`, 'success');
+                    onRegistrationComplete();
+                } catch (error) {
+                    setError('전문가 등록 처리 중 오류가 발생했습니다');
+                }
+            };
+
+            return (
+                <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-100 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+                    <div className="max-w-2xl w-full space-y-8">
+                        <div className="text-center">
+                            <div className="mb-6">
+                                <div className="w-16 h-16 bg-gradient-to-br from-orange-500 to-red-600 rounded-full mx-auto flex items-center justify-center">
+                                    <span className="text-white font-bold text-xl">🎯</span>
+                                </div>
+                            </div>
+                            <h1 className="text-4xl font-bold text-gray-900 mb-2">
+                                전문가 등록
+                            </h1>
+                            <p className="text-xl text-gray-600 mb-8">
+                                {currentUser?.nickname || currentUser?.email}님의 전문가 프로필을 작성해주세요
+                            </p>
+                        </div>
+                        
+                        <div className="bg-white rounded-lg shadow-lg p-6">
+                            <form className="space-y-6" onSubmit={handleSubmit}>
+                                <ExpertProfileForm 
+                                    expertProfile={expertProfile}
+                                    updateExpertProfile={updateExpertProfile}
+                                    expertCategories={expertCategories}
+                                    specialtyInput={specialtyInput}
+                                    setSpecialtyInput={setSpecialtyInput}
+                                    credentialInput={credentialInput}
+                                    setCredentialInput={setCredentialInput}
+                                    addSpecialty={addSpecialty}
+                                    addCredential={addCredential}
+                                    removeSpecialty={removeSpecialty}
+                                    removeCredential={removeCredential}
+                                />
+                                
+                                {error && (
+                                    <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                                        <p className="text-red-800 text-sm">{error}</p>
+                                    </div>
+                                )}
+                                
+                                <div className="flex space-x-4">
+                                    <button
+                                        type="button"
+                                        onClick={onCancel}
+                                        className="w-full py-3 px-4 border border-gray-300 text-lg font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50"
+                                    >
+                                        취소
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        className="w-full py-3 px-4 border border-transparent text-lg font-medium rounded-lg text-white bg-orange-600 hover:bg-orange-700"
+                                    >
+                                        전문가 등록 완료
+                                    </button>
+                                </div>
+                            </form>
                         </div>
                     </div>
                 </div>
@@ -1198,11 +1364,25 @@
                         setError('개인정보 수집·이용에 동의해주세요');
                         return;
                     }
+                    if (!expertProfile.phone) {
+                        setError('휴대폰 번호를 입력해주세요');
+                        return;
+                    }
+                    if (!/^010-\d{4}-\d{4}$/.test(expertProfile.phone)) {
+                        setError('휴대폰 번호는 010-1234-5678 형식으로 입력해주세요');
+                        return;
+                    }
 
-                    // 이메일 중복 체크
-                    const emailCheck = await authManager.checkEmail(email);
-                    if (!emailCheck.success) {
+                    // 이메일 중복 체크 (전문가용)
+                    const emailCheck = await authManager.checkEmailForExpert(email);
+                    if (!emailCheck.success && !emailCheck.isExistingUser) {
                         setError(emailCheck.error);
+                        return;
+                    }
+                    
+                    if (emailCheck.isExistingUser) {
+                        // 기존 회원인 경우
+                        setError('이미 등록된 회원입니다. 기존 계정으로 로그인 후 전문가 등록을 진행해주세요.');
                         return;
                     }
 
@@ -1225,11 +1405,6 @@
                         return;
                     }
                     
-                    // 연락처 검증
-                    if (!expertProfile.phone) {
-                        setError('휴대폰 번호를 입력해주세요');
-                        return;
-                    }
                     
                     // 상담 방식 검증
                     if (expertProfile.availableTypes.length === 0) {
@@ -1324,7 +1499,7 @@
                             <div className="text-center">
                                 <div className="mb-6">
                                     <div className="w-16 h-16 bg-gradient-to-br from-orange-500 to-red-600 rounded-full mx-auto flex items-center justify-center">
-                                        <span className="text-white font-bold text-xl">👩‍⚕️</span>
+                                        <span className="text-white font-bold text-xl">🎯</span>
                                     </div>
                                 </div>
                                 <h1 className="text-4xl font-bold text-gray-900 mb-2">
@@ -1391,6 +1566,20 @@
                                                     className="mt-1 w-full px-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-orange-500 focus:border-orange-500 text-lg"
                                                     placeholder="비밀번호 확인"
                                                 />
+                                            </div>
+
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700">휴대폰 번호 *</label>
+                                                <input
+                                                    type="tel"
+                                                    required
+                                                    value={expertProfile.phone}
+                                                    onChange={(e) => updateExpertProfile('phone', e.target.value)}
+                                                    className="mt-1 w-full px-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-orange-500 focus:border-orange-500 text-lg"
+                                                    placeholder="010-1234-5678"
+                                                    pattern="[0-9]{3}-[0-9]{4}-[0-9]{4}"
+                                                />
+                                                <p className="text-xs text-gray-500 mt-1">본인 확인 및 상담 예약 연락용</p>
                                             </div>
                                             
                                             <ExpertPrivacyConsentComponent 
@@ -1738,7 +1927,7 @@
                                 onClick={() => setAuthMode('expert')}
                                 className="group relative w-full flex justify-center py-3 px-4 border-2 border-orange-500 text-base font-medium rounded-lg text-orange-600 bg-orange-50 hover:bg-orange-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 transition-all duration-300"
                             >
-                                👩‍⚕️ 전문가로 등록하기
+                                🎯 전문가로 등록하기
                             </button>
                             <p className="text-center text-sm text-gray-500 mt-2">
                                 여행/취미, 세무/법무, 주거/생활 전문가 모집
@@ -1768,7 +1957,7 @@
                     id: post.user_hash,
                     name: post.expert_name,
                     title: post.expert_title,
-                    profileImage: '👩‍⚕️',
+                    profileImage: '🎯',
                     price: post.consultation_price,
                     hourlyRate: post.consultation_price?.replace(/[^0-9]/g, '') || '50000',
                     availableTypes: ['phone', 'video', 'chat']
@@ -1810,7 +1999,7 @@
                 'housing': { name: '부동산', icon: '🏠', description: '주택, 임대, 이사' },
                 'family': { name: '가족관계', icon: '👨‍👩‍👧‍👦', description: '부부, 형제자매, 자녀 이야기' },
                 'work': { name: '재취업', icon: '💼', description: '시니어 일자리' },
-                'expert': { name: '전문가 상담', icon: '👩‍⚕️', description: '전문가 서비스 소개 및 상담 안내', isExpertOnly: true }
+                'expert': { name: '전문가 상담', icon: '🎯', description: '전문가 서비스 소개 및 상담 안내', isExpertOnly: true }
             };
 
             // 커뮤니티 목록 보기용 샘플 데이터 (상세보기는 계산 후 가능)
@@ -2275,7 +2464,7 @@
                                                         {post.topic === 'expert' ? (
                                                             <>
                                                                 <span className="bg-orange-100 text-orange-800 px-3 py-1 rounded-full text-xs font-bold">
-                                                                    👩‍⚕️ {post.expert_badge}
+                                                                    🎯 {post.expert_badge}
                                                                 </span>
                                                                 <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs">
                                                                     {post.expert_name}
@@ -5288,6 +5477,23 @@
                     />
                 );
             }
+
+            // 기존 회원 전문가 등록 페이지
+            if (currentView === 'expert-registration' && authMode === 'existing-expert') {
+                return (
+                    <ExistingMemberExpertRegistration 
+                        currentUser={currentUser}
+                        onRegistrationComplete={() => {
+                            setCurrentView('main');
+                            setAuthMode('login');
+                        }}
+                        onCancel={() => {
+                            setCurrentView('main');
+                            setAuthMode('login');
+                        }}
+                    />
+                );
+            }
             
 
             return (
@@ -5360,6 +5566,15 @@
                                                     )}
                                                 </span>
                                                 <button
+                                                    onClick={() => {
+                                                        setCurrentView('expert-registration');
+                                                        setAuthMode('existing-expert');
+                                                    }}
+                                                    className="bg-orange-500 text-white px-2 py-1 rounded text-xs hover:bg-orange-600 transition-colors whitespace-nowrap"
+                                                >
+                                                    🎯 전문가등록
+                                                </button>
+                                                <button
                                                     onClick={handleLogout}
                                                     className="text-gray-500 hover:text-red-600 transition-colors text-xs sm:text-sm whitespace-nowrap"
                                                 >
@@ -5417,7 +5632,7 @@
                                     
                                     <div className="card hover:shadow-xl transition-shadow cursor-pointer hover-lift"
                                          onClick={() => setCurrentView('experts')}>
-                                        <div className="text-4xl mb-4">👩‍⚕️</div>
+                                        <div className="text-4xl mb-4">🎯</div>
                                         <h3 className="text-xl font-bold text-gray-800 mb-2">
                                             전문가 찾기
                                         </h3>
