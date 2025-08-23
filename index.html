@@ -1071,7 +1071,8 @@
             const tabs = [
                 { id: 'profile', name: '내 정보', icon: '👤' },
                 { id: 'activity', name: '활동 내역', icon: '📊' },
-                ...(userType === 'expert' ? [{ id: 'expert', name: '전문가 관리', icon: '🎯' }] : []),
+                // 관리자는 모든 탭 접근 가능, 전문가는 전문가 탭만
+                ...(userType === 'expert' || userType === 'admin' ? [{ id: 'expert', name: '전문가 관리', icon: '🎯' }] : []),
                 ...(userType === 'admin' ? [{ id: 'admin', name: '관리자', icon: '👑' }] : [])
             ];
 
@@ -2459,7 +2460,16 @@
                         <div>
                             <h3 className="text-sm font-medium text-gray-600 mb-2">📂 토픽 보드</h3>
                             <div className="grid grid-cols-4 md:grid-cols-8 gap-1">
-                                {Object.entries(topics).map(([key, topic]) => (
+                                {Object.entries(topics)
+                                    .filter(([key, topic]) => {
+                                        // 전문가 전용 토픽은 관리자와 전문가만 표시
+                                        if (topic.isExpertOnly) {
+                                            return isAdminUser(currentUser) || 
+                                                   (currentUser && currentUser.user_type === 'expert');
+                                        }
+                                        return true;
+                                    })
+                                    .map(([key, topic]) => (
                                     <button
                                         key={key}
                                         onClick={() => setActiveTopic(key)}
@@ -5628,9 +5638,11 @@
                 return adminEmails.includes(user.email.toLowerCase());
             };
 
-            // 사용자 타입 확인 함수 (async)
+            // 사용자 타입 확인 함수 (async) - 관리자는 모든 권한 보유
             const getUserType = async (user) => {
                 if (!user) return 'guest';
+                
+                // 관리자는 모든 권한을 가지므로 'admin' 반환하지만 UI에서 모든 기능 접근 가능
                 if (isAdminUser(user)) return 'admin';
                 
                 // Supabase에서 expert_profiles 테이블 조회하여 전문가 여부 확인
@@ -5650,6 +5662,25 @@
                 }
                 
                 return 'member';
+            };
+
+            // 관리자 권한 확인 함수들
+            const hasAdminAccess = (user) => isAdminUser(user);
+            const hasMemberAccess = (user) => user && (isAdminUser(user) || !isGuest);
+            const hasExpertAccess = async (user) => {
+                if (!user) return false;
+                if (isAdminUser(user)) return true; // 관리자는 전문가 권한 포함
+                
+                try {
+                    const { data: expertProfile } = await supabase
+                        .from('expert_profiles')
+                        .select('verification_status')
+                        .eq('email', user.email)
+                        .single();
+                    return expertProfile?.verification_status === 'approved';
+                } catch {
+                    return false;
+                }
             };
 
             // 사용자 타입별 표시 이름
@@ -5838,10 +5869,12 @@
                                         ) : currentUser ? (
                                             <>
                                                 <div className="px-4 py-2 text-gray-700 font-medium flex items-center">
-                                                    <span className="mr-2">👤</span>
+                                                    <span className="mr-2">
+                                                        {isAdminUser(currentUser) ? '👑' : '👤'}
+                                                    </span>
                                                     {currentUser?.nickname || currentUser?.email}
                                                     {isAdminUser(currentUser) && (
-                                                        <span className="ml-2 text-red-500">👑</span>
+                                                        <span className="ml-2 text-red-500 text-xs bg-red-50 px-2 py-1 rounded">슈퍼관리자</span>
                                                     )}
                                                 </div>
                                                 <button
