@@ -1489,16 +1489,10 @@
                         return;
                     }
 
-                    // 이메일 중복 체크 (전문가용)
-                    const emailCheck = await authManager.checkEmailForExpert(email);
-                    if (!emailCheck.success && !emailCheck.isExistingUser) {
+                    // 이메일 중복 체크
+                    const emailCheck = await authManager.checkEmail(email);
+                    if (!emailCheck.success) {
                         setError(emailCheck.error);
-                        return;
-                    }
-                    
-                    if (emailCheck.isExistingUser) {
-                        // 기존 회원인 경우
-                        setError('이미 등록된 회원입니다. 기존 계정으로 로그인 후 전문가 등록을 진행해주세요.');
                         return;
                     }
 
@@ -2037,7 +2031,7 @@
                                 <div className="w-full border-t border-gray-300" />
                             </div>
                             <div className="relative flex justify-center text-sm">
-                                <span className="px-2 bg-gray-50 text-gray-500">전문가이신가요?</span>
+                                <span className="text-gray-500">전문가이신가요?</span>
                             </div>
                         </div>
                         
