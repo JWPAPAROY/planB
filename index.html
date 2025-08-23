@@ -5369,6 +5369,19 @@
             const [showCalculationRequiredModal, setShowCalculationRequiredModal] = useState(false);
             const [showNotificationModal, setShowNotificationModal] = useState(false);
             const [notificationContent, setNotificationContent] = useState({ title: '', message: '', type: 'info' });
+            const [showMobileMenu, setShowMobileMenu] = useState(false);
+
+            // 외부 클릭시 메뉴 닫기
+            useEffect(() => {
+                const handleClickOutside = (event) => {
+                    if (showMobileMenu && !event.target.closest('nav')) {
+                        setShowMobileMenu(false);
+                    }
+                };
+                
+                document.addEventListener('click', handleClickOutside);
+                return () => document.removeEventListener('click', handleClickOutside);
+            }, [showMobileMenu]);
             
             // 통합 알림 모달 함수
             const showNotification = (title, message, type = 'info') => {
@@ -5653,89 +5666,162 @@
                 <div className="min-h-screen bg-gray-50">
                     {/* 상단 네비게이션 */}
                     <nav className="bg-white shadow-sm border-b border-gray-200">
-                        <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-8">
+                        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                             <div className="flex justify-between items-center h-16">
                                 {/* 로고 */}
                                 <div 
-                                    className="text-base sm:text-lg font-bold text-blue-600 cursor-pointer flex-shrink-0"
+                                    className="text-xl font-bold text-blue-600 cursor-pointer"
                                     onClick={() => setCurrentView('main')}
                                 >
-                                    <span className="hidden sm:inline">플랜비</span>
-                                    <span className="sm:hidden">PB</span>
+                                    플랜비
                                 </div>
-                                
-                                {/* 메뉴와 사용자 정보 - 오른쪽 */}
-                                <div className="flex items-center space-x-2 sm:space-x-4 md:space-x-6">
+
+                                {/* 햄버거 버튼 */}
+                                <button
+                                    onClick={() => setShowMobileMenu(!showMobileMenu)}
+                                    className="p-2 rounded-md text-gray-600 hover:text-blue-600 hover:bg-gray-100 transition-colors"
+                                >
+                                    <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        {showMobileMenu ? (
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                        ) : (
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                                        )}
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        {/* 드롭다운 메뉴 */}
+                        {showMobileMenu && (
+                            <div className="bg-white border-t border-gray-200 shadow-lg">
+                                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 space-y-3">
+                                    {/* 메인 메뉴들 */}
                                     <button
-                                        className={`${currentView === 'calculator' ? 'text-blue-600 font-semibold' : 'text-gray-700'} hover:text-blue-600 transition-colors text-xs sm:text-sm whitespace-nowrap`}
-                                        onClick={() => setCurrentView('calculator')}
+                                        className={`w-full text-left px-4 py-3 rounded-lg transition-colors flex items-center ${
+                                            currentView === 'calculator' 
+                                                ? 'bg-blue-50 text-blue-600 font-semibold' 
+                                                : 'text-gray-700 hover:bg-gray-50 hover:text-blue-600'
+                                        }`}
+                                        onClick={() => {
+                                            setCurrentView('calculator');
+                                            setShowMobileMenu(false);
+                                        }}
                                     >
-                                        계산기
+                                        <span className="mr-3">🧮</span>
+                                        은퇴생활비 계산기
                                     </button>
+                                    
                                     <button
-                                        className={`${currentView === 'community' ? 'text-blue-600 font-semibold' : 'text-gray-700'} hover:text-blue-600 transition-colors text-xs sm:text-sm whitespace-nowrap`}
-                                        onClick={handleCommunityAccess}
+                                        className={`w-full text-left px-4 py-3 rounded-lg transition-colors flex items-center ${
+                                            currentView === 'community' 
+                                                ? 'bg-blue-50 text-blue-600 font-semibold' 
+                                                : 'text-gray-700 hover:bg-gray-50 hover:text-blue-600'
+                                        }`}
+                                        onClick={() => {
+                                            handleCommunityAccess();
+                                            setShowMobileMenu(false);
+                                        }}
                                     >
+                                        <span className="mr-3">💬</span>
                                         커뮤니티
                                     </button>
+                                    
                                     <button
-                                        className={`${currentView === 'experts' ? 'text-blue-600 font-semibold' : 'text-gray-700'} hover:text-blue-600 transition-colors text-xs sm:text-sm whitespace-nowrap`}
-                                        onClick={() => setCurrentView('experts')}
+                                        className={`w-full text-left px-4 py-3 rounded-lg transition-colors flex items-center ${
+                                            currentView === 'experts' 
+                                                ? 'bg-blue-50 text-blue-600 font-semibold' 
+                                                : 'text-gray-700 hover:bg-gray-50 hover:text-blue-600'
+                                        }`}
+                                        onClick={() => {
+                                            setCurrentView('experts');
+                                            setShowMobileMenu(false);
+                                        }}
                                     >
-                                        전문가
+                                        <span className="mr-3">🔍</span>
+                                        전문가 찾기
                                     </button>
                                     
-                                    
-                                    {/* 구분선과 사용자 정보 */}
-                                    <div className="flex items-center space-x-2 sm:space-x-3 border-l border-gray-300 pl-2 sm:pl-3">
+                                    {/* 구분선 */}
+                                    <div className="border-t border-gray-200 pt-3 mt-3">
+                                        {/* 사용자 정보 및 액션 */}
                                         {isGuest ? (
                                             <>
-                                                <span className="text-amber-600 text-xs sm:text-sm font-medium whitespace-nowrap">
-                                                    🌟 <span className="hidden md:inline">{currentUser?.nickname}</span><span className="md:hidden">{currentUser?.nickname?.slice(0, 10)}</span> <span className="hidden sm:inline">(게스트)</span>
-                                                </span>
+                                                <div className="px-4 py-2 text-amber-600 font-medium flex items-center">
+                                                    <span className="mr-2">🌟</span>
+                                                    {currentUser?.nickname} (게스트)
+                                                </div>
                                                 <button
                                                     onClick={() => {
                                                         setAuthMode('signup');
                                                         setCurrentView('login');
                                                         setShowAuthForm(true);
+                                                        setShowMobileMenu(false);
                                                     }}
-                                                    className="bg-blue-600 text-white px-2 sm:px-3 py-1 rounded-lg text-xs sm:text-sm hover:bg-blue-700 transition-colors whitespace-nowrap"
+                                                    className="w-full text-left px-4 py-3 rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700 transition-colors flex items-center"
                                                 >
-                                                    회원가입
+                                                    <span className="mr-3">✨</span>
+                                                    회원가입하기
                                                 </button>
                                                 <button
-                                                    onClick={handleLogout}
-                                                    className="text-gray-500 hover:text-red-600 transition-colors text-xs sm:text-sm whitespace-nowrap"
+                                                    onClick={() => {
+                                                        handleLogout();
+                                                        setShowMobileMenu(false);
+                                                    }}
+                                                    className="w-full text-left px-4 py-3 rounded-lg text-gray-700 hover:bg-gray-50 hover:text-red-600 transition-colors flex items-center"
                                                 >
+                                                    <span className="mr-3">🚪</span>
                                                     나가기
                                                 </button>
                                             </>
-                                        ) : (
+                                        ) : currentUser ? (
                                             <>
-                                                <span className="text-gray-700 text-xs sm:text-sm whitespace-nowrap">
+                                                <div className="px-4 py-2 text-gray-700 font-medium flex items-center">
+                                                    <span className="mr-2">👤</span>
                                                     {currentUser?.nickname || currentUser?.email}
                                                     {isAdminUser(currentUser) && (
-                                                        <span className="ml-1 text-red-500 text-xs">👑</span>
+                                                        <span className="ml-2 text-red-500">👑</span>
                                                     )}
-                                                </span>
+                                                </div>
                                                 <button
-                                                    onClick={() => setCurrentView('mypage')}
-                                                    className="bg-blue-500 text-white px-2 py-1 rounded text-xs hover:bg-blue-600 transition-colors whitespace-nowrap"
+                                                    onClick={() => {
+                                                        setCurrentView('mypage');
+                                                        setShowMobileMenu(false);
+                                                    }}
+                                                    className="w-full text-left px-4 py-3 rounded-lg text-gray-700 hover:bg-gray-50 hover:text-blue-600 transition-colors flex items-center"
                                                 >
-                                                    👤 마이페이지
+                                                    <span className="mr-3">⚙️</span>
+                                                    마이페이지
                                                 </button>
                                                 <button
-                                                    onClick={handleLogout}
-                                                    className="text-gray-500 hover:text-red-600 transition-colors text-xs sm:text-sm whitespace-nowrap"
+                                                    onClick={() => {
+                                                        handleLogout();
+                                                        setShowMobileMenu(false);
+                                                    }}
+                                                    className="w-full text-left px-4 py-3 rounded-lg text-gray-700 hover:bg-gray-50 hover:text-red-600 transition-colors flex items-center"
                                                 >
+                                                    <span className="mr-3">🚪</span>
                                                     로그아웃
                                                 </button>
                                             </>
+                                        ) : (
+                                            <button
+                                                onClick={() => {
+                                                    setAuthMode('login');
+                                                    setCurrentView('login');
+                                                    setShowAuthForm(true);
+                                                    setShowMobileMenu(false);
+                                                }}
+                                                className="w-full text-left px-4 py-3 rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700 transition-colors flex items-center"
+                                            >
+                                                <span className="mr-3">🔑</span>
+                                                로그인
+                                            </button>
                                         )}
                                     </div>
                                 </div>
                             </div>
-                        </div>
+                        )}
                     </nav>
                     
                     {/* 메인 컨텐츠 영역 */}
