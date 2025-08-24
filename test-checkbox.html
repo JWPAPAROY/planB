@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>체크박스 테스트</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState } = React;
+
+        const TestCheckbox = () => {
+            const [checked, setChecked] = useState(false);
+            const [radioValue, setRadioValue] = useState('');
+            const [checkboxes, setCheckboxes] = useState([]);
+
+            const handleCheckboxChange = (value, isChecked) => {
+                console.log('체크박스 변경:', value, isChecked);
+                if (isChecked) {
+                    setCheckboxes([...checkboxes, value]);
+                } else {
+                    setCheckboxes(checkboxes.filter(item => item !== value));
+                }
+            };
+
+            return (
+                <div className="max-w-2xl mx-auto p-8 space-y-8">
+                    <h1 className="text-2xl font-bold">체크박스 테스트</h1>
+                    
+                    {/* 기본 체크박스 */}
+                    <div className="space-y-4">
+                        <h2 className="text-lg font-semibold">1. 기본 체크박스</h2>
+                        <div className="flex items-center space-x-3">
+                            <input 
+                                type="checkbox" 
+                                id="basic-checkbox"
+                                checked={checked}
+                                onChange={(e) => {
+                                    console.log('기본 체크박스:', e.target.checked);
+                                    setChecked(e.target.checked);
+                                }}
+                                className="w-5 h-5"
+                            />
+                            <label htmlFor="basic-checkbox" className="cursor-pointer">
+                                기본 체크박스 (현재 상태: {checked ? '체크됨' : '체크안됨'})
+                            </label>
+                        </div>
+                    </div>
+
+                    {/* 개인정보동의 스타일 */}
+                    <div className="space-y-4">
+                        <h2 className="text-lg font-semibold">2. 개인정보동의 스타일</h2>
+                        <div className="p-4 border-2 rounded-lg" 
+                             style={{
+                                 borderColor: checked ? '#ea580c' : '#d1d5db',
+                                 backgroundColor: checked ? '#fff7ed' : 'white'
+                             }}>
+                            <div className="flex items-start space-x-4">
+                                <div className="flex-shrink-0 pt-1">
+                                    <input
+                                        type="checkbox"
+                                        id="privacy-checkbox"
+                                        checked={checked}
+                                        onChange={(e) => {
+                                            console.log('개인정보 체크박스:', e.target.checked);
+                                            setChecked(e.target.checked);
+                                        }}
+                                        className="w-6 h-6 cursor-pointer"
+                                        style={{
+                                            accentColor: '#ea580c',
+                                            transform: 'scale(1.5)'
+                                        }}
+                                    />
+                                </div>
+                                <div className="flex-1">
+                                    <label htmlFor="privacy-checkbox" className="cursor-pointer">
+                                        <span className="text-sm font-medium text-gray-800">
+                                            위 개인정보 수집·이용에 동의합니다 
+                                            <span className="text-red-500 ml-1">(필수)</span>
+                                        </span>
+                                    </label>
+                                    <p className="text-xs text-gray-500 mt-1" style={{userSelect: 'text'}}>
+                                        전문가 등록을 위해 위 개인정보 수집·이용 동의서의 내용을 읽고 동의합니다
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* 라디오버튼 */}
+                    <div className="space-y-4">
+                        <h2 className="text-lg font-semibold">3. 라디오버튼 테스트</h2>
+                        {['option1', 'option2', 'option3'].map((option) => (
+                            <div key={option} className="border-2 rounded-lg p-4"
+                                 style={{
+                                     borderColor: radioValue === option ? '#ea580c' : '#d1d5db',
+                                     backgroundColor: radioValue === option ? '#fff7ed' : 'white'
+                                 }}>
+                                <div className="flex items-center">
+                                    <div className="flex-shrink-0 mr-4">
+                                        <input
+                                            type="radio"
+                                            id={`radio-${option}`}
+                                            name="test-radio"
+                                            value={option}
+                                            checked={radioValue === option}
+                                            onChange={(e) => {
+                                                console.log('라디오버튼:', e.target.value);
+                                                setRadioValue(e.target.value);
+                                            }}
+                                            className="w-5 h-5 cursor-pointer"
+                                            style={{
+                                                accentColor: '#ea580c',
+                                                transform: 'scale(1.5)'
+                                            }}
+                                        />
+                                    </div>
+                                    <div className="flex-1">
+                                        <label htmlFor={`radio-${option}`} className="cursor-pointer">
+                                            <div className="font-medium">옵션 {option}</div>
+                                            <div className="text-sm text-gray-500">설명 텍스트</div>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                        <p>선택된 라디오: {radioValue || '없음'}</p>
+                    </div>
+
+                    {/* 다중 체크박스 */}
+                    <div className="space-y-4">
+                        <h2 className="text-lg font-semibold">4. 다중 체크박스</h2>
+                        {['phone', 'video', 'chat'].map((option) => (
+                            <div key={option} className="border-2 rounded-lg p-3"
+                                 style={{
+                                     borderColor: checkboxes.includes(option) ? '#ea580c' : '#d1d5db',
+                                     backgroundColor: checkboxes.includes(option) ? '#fff7ed' : 'white'
+                                 }}>
+                                <div className="flex items-center">
+                                    <div className="flex-shrink-0 mr-4">
+                                        <input
+                                            type="checkbox"
+                                            id={`multi-${option}`}
+                                            checked={checkboxes.includes(option)}
+                                            onChange={(e) => {
+                                                console.log('다중 체크박스:', option, e.target.checked);
+                                                handleCheckboxChange(option, e.target.checked);
+                                            }}
+                                            className="w-5 h-5 cursor-pointer"
+                                            style={{
+                                                accentColor: '#ea580c',
+                                                transform: 'scale(1.5)'
+                                            }}
+                                        />
+                                    </div>
+                                    <div className="flex-1">
+                                        <label htmlFor={`multi-${option}`} className="cursor-pointer">
+                                            <div className="font-medium">📞 {option} 상담</div>
+                                            <div className="text-sm text-gray-500">상담 방식 설명</div>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                        <p>선택된 체크박스: {checkboxes.join(', ') || '없음'}</p>
+                    </div>
+
+                    {/* 상태 표시 */}
+                    <div className="bg-gray-100 p-4 rounded">
+                        <h3 className="font-semibold">현재 상태:</h3>
+                        <ul className="mt-2 space-y-1 text-sm">
+                            <li>개인정보동의: {checked ? '✅ 체크됨' : '❌ 체크안됨'}</li>
+                            <li>라디오버튼: {radioValue || '선택안됨'}</li>
+                            <li>다중체크박스: {checkboxes.length > 0 ? checkboxes.join(', ') : '선택안됨'}</li>
+                        </ul>
+                    </div>
+                </div>
+            );
+        };
+
+        ReactDOM.render(<TestCheckbox />, document.getElementById('root'));
+    </script>
+</body>
+</html>
