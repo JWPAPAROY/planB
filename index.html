@@ -763,31 +763,37 @@
                              borderColor: checked ? '#ea580c' : '#d1d5db',
                              backgroundColor: checked ? '#fff7ed' : 'white'
                          }}>
-                        <label className="flex items-start space-x-4 cursor-pointer">
-                            <input
-                                id="privacy-consent-checkbox"
-                                type="checkbox"
-                                checked={checked}
-                                onChange={(e) => {
-                                    console.log('개인정보동의 체크박스 클릭:', e.target.checked);
-                                    onChange(e.target.checked);
-                                }}
-                                className="mt-1 w-5 h-5 cursor-pointer"
-                                style={{
-                                    accentColor: '#ea580c',
-                                    transform: 'scale(1.4)'
-                                }}
-                            />
-                            <div className="flex-1">
-                                <span className="text-sm text-gray-800 font-medium">
+                        <div className="flex items-start space-x-4">
+                            <label htmlFor="privacy-consent-checkbox" className="cursor-pointer">
+                                <input
+                                    id="privacy-consent-checkbox"
+                                    type="checkbox"
+                                    checked={checked}
+                                    onChange={(e) => {
+                                        console.log('개인정보동의 체크박스 클릭:', e.target.checked);
+                                        onChange(e.target.checked);
+                                    }}
+                                    className="mt-1 w-5 h-5 cursor-pointer"
+                                    style={{
+                                        accentColor: '#ea580c',
+                                        transform: 'scale(1.4)'
+                                    }}
+                                />
+                            </label>
+                            <div className="flex-1 select-text">
+                                <span className="text-sm text-gray-800 font-medium select-text" 
+                                      onMouseDown={(e) => e.stopPropagation()}
+                                      onClick={(e) => e.stopPropagation()}>
                                     위 개인정보 수집·이용에 동의합니다 
                                     <span className="text-red-500 ml-1">(필수)</span>
                                 </span>
-                                <p className="text-xs text-gray-500 mt-1">
+                                <p className="text-xs text-gray-500 mt-1 select-text"
+                                   onMouseDown={(e) => e.stopPropagation()}
+                                   onClick={(e) => e.stopPropagation()}>
                                     전문가 등록을 위해 위 개인정보 수집·이용 동의서의 내용을 읽고 동의합니다
                                 </p>
                             </div>
-                        </label>
+                        </div>
                     </div>
                 </div>
             );
@@ -850,28 +856,32 @@
                                          borderColor: expertProfile.expertType === key ? '#ea580c' : '#d1d5db',
                                          backgroundColor: expertProfile.expertType === key ? '#fff7ed' : 'white'
                                      }}>
-                                    <label className="flex items-center cursor-pointer">
-                                        <input
-                                            id={`expert-type-${key}`}
-                                            type="radio"
-                                            name="expertType"
-                                            value={key}
-                                            checked={expertProfile.expertType === key}
-                                            onChange={(e) => {
-                                                console.log('전문분야 라디오버튼 선택:', key, e.target.checked);
-                                                updateExpertProfile('expertType', e.target.value);
-                                            }}
-                                            className="w-5 h-5 cursor-pointer mr-4"
-                                            style={{
-                                                accentColor: '#ea580c',
-                                                transform: 'scale(1.4)'
-                                            }}
-                                        />
-                                        <div className="flex-1">
-                                            <div className="text-lg font-medium">{category.icon} {category.name}</div>
-                                            <div className="text-sm text-gray-500">{category.description}</div>
+                                    <div className="flex items-center">
+                                        <label htmlFor={`expert-type-${key}`} className="cursor-pointer mr-4">
+                                            <input
+                                                id={`expert-type-${key}`}
+                                                type="radio"
+                                                name="expertType"
+                                                value={key}
+                                                checked={expertProfile.expertType === key}
+                                                onChange={(e) => {
+                                                    console.log('전문분야 라디오버튼 선택:', key, e.target.checked);
+                                                    updateExpertProfile('expertType', e.target.value);
+                                                }}
+                                                className="w-5 h-5 cursor-pointer"
+                                                style={{
+                                                    accentColor: '#ea580c',
+                                                    transform: 'scale(1.4)'
+                                                }}
+                                            />
+                                        </label>
+                                        <div className="flex-1 select-text"
+                                             onMouseDown={(e) => e.stopPropagation()}
+                                             onClick={(e) => e.stopPropagation()}>
+                                            <div className="text-lg font-medium select-text">{category.icon} {category.name}</div>
+                                            <div className="text-sm text-gray-500 select-text">{category.description}</div>
                                         </div>
-                                    </label>
+                                    </div>
                                 </div>
                             ))}
                         </div>
@@ -1005,29 +1015,33 @@
                                          borderColor: expertProfile.availableTypes.includes(value) ? '#ea580c' : '#d1d5db',
                                          backgroundColor: expertProfile.availableTypes.includes(value) ? '#fff7ed' : 'white'
                                      }}>
-                                    <label className="flex items-center cursor-pointer">
-                                        <input
-                                            id={`consultation-type-${value}`}
-                                            type="checkbox"
-                                            checked={expertProfile.availableTypes.includes(value)}
-                                            onChange={(e) => {
-                                                console.log('상담방식 체크박스 클릭:', value, e.target.checked);
-                                                const types = e.target.checked
-                                                    ? [...expertProfile.availableTypes, value]
-                                                    : expertProfile.availableTypes.filter(t => t !== value);
-                                                updateExpertProfile('availableTypes', types);
-                                            }}
-                                            className="w-5 h-5 cursor-pointer mr-4"
-                                            style={{
-                                                accentColor: '#ea580c',
-                                                transform: 'scale(1.4)'
-                                            }}
-                                        />
-                                        <div className="flex-1">
-                                            <div className="font-medium">{label}</div>
-                                            <div className="text-sm text-gray-500">{desc}</div>
+                                    <div className="flex items-center">
+                                        <label htmlFor={`consultation-type-${value}`} className="cursor-pointer mr-4">
+                                            <input
+                                                id={`consultation-type-${value}`}
+                                                type="checkbox"
+                                                checked={expertProfile.availableTypes.includes(value)}
+                                                onChange={(e) => {
+                                                    console.log('상담방식 체크박스 클릭:', value, e.target.checked);
+                                                    const types = e.target.checked
+                                                        ? [...expertProfile.availableTypes, value]
+                                                        : expertProfile.availableTypes.filter(t => t !== value);
+                                                    updateExpertProfile('availableTypes', types);
+                                                }}
+                                                className="w-5 h-5 cursor-pointer"
+                                                style={{
+                                                    accentColor: '#ea580c',
+                                                    transform: 'scale(1.4)'
+                                                }}
+                                            />
+                                        </label>
+                                        <div className="flex-1 select-text"
+                                             onMouseDown={(e) => e.stopPropagation()}
+                                             onClick={(e) => e.stopPropagation()}>
+                                            <div className="font-medium select-text">{label}</div>
+                                            <div className="text-sm text-gray-500 select-text">{desc}</div>
                                         </div>
-                                    </label>
+                                    </div>
                                 </div>
                             ))}
                         </div>
