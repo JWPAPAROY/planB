@@ -15,14 +15,20 @@
 - **기본 정보 입력**: 연령, 건강상태, 생활방식, 주거형태
 - **자산 정보**: 주택가격, 금융자산, 퇴직금, 연금 정보
 - **대출 관리**: 한국 원리금균등상환 방식 지원, 대출 완료년도 설정 가능
+  - 월 상환액 직접 입력
+  - 대출 완료년도 설정으로 은퇴 후 절약액 계산
 - **지출 내역**: 세부 생활비 항목별 입력
 - **계산 결과**: 은퇴시점 부족액, 월 필요저축액 자동 계산
+- **계산 로직**: 단순하고 직관적인 자산 소진 방식
+- **결과 제공**: 부족액, 월 필요저축액, 일별 생활비
 
-### 2. 커뮤니티 시스템
+### 2. 프로그레시브 커뮤니티 시스템
 - **프로그레시브 접근**: 게시글 목록은 자유 열람, 상세보기/글쓰기는 계산 완료 후
 - **게스트/회원 구분**: 게스트는 회원가입 유도, 회원은 계산 완료 여부 확인
 - **게시글 관리**: 작성, 조회, 댓글, 좋아요 기능
 - **전문가 전용 섹션**: 인증된 전문가만 접근 가능한 게시판
+- **익명성 보장**: 개인정보 없는 커뮤니티 참여
+- **실시간 업데이트**: 게시글/댓글 실시간 업데이트
 
 ### 3. 완전한 전문가 플랫폼 (⭐ 신규 완성)
 - **3개 카테고리**: 여행/취미, 세무/법무/자산관리, 주거/생활
@@ -57,8 +63,9 @@
 ```
 /home/knoww/planb-2.0-project/calculator-app/
 ├── index.html              # 단일 파일 React 애플리케이션 (4,300+ lines)
-├── database-schema.sql     # 전문가 플랫폼 데이터베이스 스키마 (7개 테이블)
-├── README.md              # 기본 설명서 (이 파일)
+├── database-schema.sql     # 전문가 플랫폼 데이터베이스 스키마 (12개 테이블)
+├── README.md              # 프로젝트 설명서 (이 파일)
+├── Readme.md              # 기존 MVP 문서 (통합됨)
 └── src/                   # 기존 컴포넌트 구조 (참고용)
 ```
 
@@ -83,6 +90,31 @@ consultation_reviews: 상담 후기 및 평점
 expert_credentials: 자격증/인증서 관리
 expert_availability: 상담 가능 시간 관리
 expert_post_likes: 전문가 게시글 좋아요
+```
+
+### 상세 스키마 예시
+```sql
+-- 사용자 계산 데이터
+CREATE TABLE user_calculations (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_hash TEXT,
+  age_group TEXT,
+  health_status TEXT,
+  life_mode TEXT,
+  housing_type TEXT,
+  housing_value BIGINT,
+  financial_assets BIGINT,
+  home_mortgage BIGINT,
+  home_mortgage_payment INTEGER,
+  know_loan_end_year BOOLEAN,
+  loan_end_year TEXT,
+  severance_pay BIGINT,
+  national_pension INTEGER,
+  private_pension INTEGER,
+  calculation_result JSONB,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
 ```
 
 ## 🔐 전문가 등록 시스템 (완전 개선)
@@ -154,11 +186,14 @@ expert_post_likes: 전문가 게시글 좋아요
 - **사용자 피드백 수집**: 실제 상담 후 개선사항 도출
 - **전문가 평가 시스템**: 누적 평점 기반 추천 알고리즘
 - **고급 예약 기능**: 반복 예약, 패키지 상담 등
+- **커뮤니티 활성화**: 초기 사용자 모집 및 콘텐츠 축적
+- **계산기 정확도 개선**: 실제 사용 데이터 기반 알고리즘 최적화
 
-### 장기 목표 (6개월)
+### 장기 목표 (6-12개월)
 - **AI 챗봇 도입**: 1차 상담 자동화 및 전문가 매칭
 - **모바일 앱 개발**: 네이티브 앱 또는 PWA 전환
 - **오프라인 연계**: 지역별 세미나, 워크숍 개최
+- **멀티 전문가 플랫폼**: 건강, 부동산, 법무 상담 확장
 
 ## 🚨 중요 알림
 

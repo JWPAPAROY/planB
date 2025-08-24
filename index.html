@@ -2068,6 +2068,17 @@
             const [posts, setPosts] = useState([]);
             const [newPost, setNewPost] = useState({ title: '', content: '', topic: 'retirement', is_anonymous: true });
             const [showWriteForm, setShowWriteForm] = useState(false);
+            const [showExpertWriteForm, setShowExpertWriteForm] = useState(false);
+            const [expertPost, setExpertPost] = useState({
+                title: '',
+                content: '',
+                category: 'travel',
+                consultation_price: '20000',
+                consultation_duration: '30',
+                consultation_types: ['phone'],
+                expert_title: '',
+                expert_name: ''
+            });
             const [newReply, setNewReply] = useState('');
             const [userProfile, setUserProfile] = useState(null);
             const [showExpertBookingModal, setShowExpertBookingModal] = useState(false);
@@ -3240,11 +3251,499 @@
             );
         };
 
+        // 전문가 글 작성 모달 컴포넌트
+        const ExpertPostWriteModal = ({ isOpen, onClose, currentUser, onSuccess }) => {
+            const [formData, setFormData] = useState({
+                title: '',
+                content: '',
+                category: 'travel',
+                serviceType: 'consultation',
+                price: '',
+                duration: '60',
+                availableDays: [],
+                availableHours: '',
+                contact: '',
+                tags: []
+            });
+            const [isSubmitting, setIsSubmitting] = useState(false);
+            const [error, setError] = useState('');
+            const [tagInput, setTagInput] = useState('');
+
+            // 카테고리 정의
+            const categories = {
+                'travel': { name: '여행/취미', icon: '✈️', color: 'orange' },
+                'legal': { name: '세무/법무/자산관리', icon: '📋', color: 'blue' },
+                'living': { name: '주거/생활', icon: '🏠', color: 'green' }
+            };
+
+            // 서비스 유형
+            const serviceTypes = {
+                'consultation': '개별 상담',
+                'seminar': '그룹 세미나',
+                'coaching': '장기 코칭',
+                'review': '자료 검토'
+            };
+
+            // 요일 옵션
+            const dayOptions = [
+                { value: 'mon', label: '월' },
+                { value: 'tue', label: '화' },
+                { value: 'wed', label: '수' },
+                { value: 'thu', label: '목' },
+                { value: 'fri', label: '금' },
+                { value: 'sat', label: '토' },
+                { value: 'sun', label: '일' }
+            ];
+
+            // 폼 초기화
+            useEffect(() => {
+                if (isOpen) {
+                    setFormData({
+                        title: '',
+                        content: '',
+                        category: 'travel',
+                        serviceType: 'consultation',
+                        price: '',
+                        duration: '60',
+                        availableDays: [],
+                        availableHours: '',
+                        contact: '',
+                        tags: []
+                    });
+                    setError('');
+                    setTagInput('');
+                }
+            }, [isOpen]);
+
+            // 입력값 변경 핸들러
+            const handleInputChange = (field, value) => {
+                setFormData(prev => ({ ...prev, [field]: value }));
+                setError('');
+            };
+
+            // 요일 선택 핸들러
+            const handleDayToggle = (dayValue) => {
+                setFormData(prev => ({
+                    ...prev,
+                    availableDays: prev.availableDays.includes(dayValue)
+                        ? prev.availableDays.filter(day => day !== dayValue)
+                        : [...prev.availableDays, dayValue]
+                }));
+            };
+
+            // 태그 추가
+            const handleAddTag = () => {
+                const trimmedTag = tagInput.trim();
+                if (trimmedTag && !formData.tags.includes(trimmedTag) && formData.tags.length < 5) {
+                    setFormData(prev => ({
+                        ...prev,
+                        tags: [...prev.tags, trimmedTag]
+                    }));
+                    setTagInput('');
+                }
+            };
+
+            // 태그 삭제
+            const handleRemoveTag = (tagToRemove) => {
+                setFormData(prev => ({
+                    ...prev,
+                    tags: prev.tags.filter(tag => tag !== tagToRemove)
+                }));
+            };
+
+            // 폼 유효성 검사
+            const validateForm = () => {
+                if (!formData.title.trim()) return '제목을 입력해주세요.';
+                if (!formData.content.trim()) return '내용을 입력해주세요.';
+                if (!formData.price.trim()) return '상담료를 입력해주세요.';
+                if (!formData.availableHours.trim()) return '상담 가능 시간을 입력해주세요.';
+                if (formData.availableDays.length === 0) return '상담 가능 요일을 선택해주세요.';
+                if (!formData.contact.trim()) return '연락처를 입력해주세요.';
+                
+                const price = parseInt(formData.price.replace(/,/g, ''));
+                if (isNaN(price) || price < 30000) return '상담료는 최소 30,000원 이상이어야 합니다.';
+                if (price > 500000) return '상담료는 최대 500,000원 이하여야 합니다.';
+
+                return null;
+            };
+
+            // 글 작성 제출
+            const handleSubmit = async () => {
+                const validationError = validateForm();
+                if (validationError) {
+                    setError(validationError);
+                    return;
+                }
+
+                setIsSubmitting(true);
+                
+                try {
+                    // 전문가 프로필 확인
+                    const { data: expertProfile } = await supabase
+                        .from('expert_profiles')
+                        .select('*')
+                        .eq('user_id', currentUser.id)
+                        .eq('is_verified', true)
+                        .eq('is_active', true)
+                        .single();
+
+                    if (!expertProfile) {
+                        setError('승인된 전문가만 글을 작성할 수 있습니다.');
+                        return;
+                    }
+
+                    // 전문가 게시글 데이터 생성
+                    const postData = {
+                        expert_id: expertProfile.id,
+                        title: formData.title.trim(),
+                        content: formData.content.trim(),
+                        service_description: `서비스 유형: ${serviceTypes[formData.serviceType]}\n소요 시간: ${formData.duration}분\n상담료: ${formData.price}원\n가능 요일: ${formData.availableDays.map(d => dayOptions.find(opt => opt.value === d)?.label).join(', ')}\n가능 시간: ${formData.availableHours}\n연락처: ${formData.contact}`,
+                        category: formData.category,
+                        consultation_type: [formData.serviceType],
+                        price_info: `${formData.price}원 / ${formData.duration}분`,
+                        sample_questions: formData.tags
+                    };
+
+                    // expert_posts 테이블에 저장
+                    const { data: expertPost, error: expertError } = await supabase
+                        .from('expert_posts')
+                        .insert([postData])
+                        .select()
+                        .single();
+
+                    if (expertError) {
+                        throw expertError;
+                    }
+
+                    // 커뮤니티 게시글로도 동시 등록 (전문가 카테고리)
+                    const communityPostData = {
+                        user_hash: currentUser.userHash,
+                        topic: 'expert',
+                        title: formData.title.trim(),
+                        content: formData.content.trim(),
+                        expert_category: formData.category,
+                        expert_name: expertProfile.name,
+                        expert_title: expertProfile.title,
+                        expert_badge: '인증 전문가',
+                        created_at: new Date().toISOString()
+                    };
+
+                    const { error: communityError } = await supabase
+                        .from('community_posts')
+                        .insert([communityPostData]);
+
+                    if (communityError) {
+                        console.warn('커뮤니티 게시글 등록 실패:', communityError);
+                    }
+
+                    showNotification(
+                        '전문가 글 작성 완료!',
+                        '글이 성공적으로 등록되었습니다.\n전문가 찾기와 커뮤니티에서 확인할 수 있습니다.',
+                        'success'
+                    );
+
+                    onSuccess && onSuccess();
+                    onClose();
+
+                } catch (error) {
+                    console.error('전문가 글 작성 오류:', error);
+                    setError('글 작성 중 오류가 발생했습니다. 다시 시도해주세요.');
+                } finally {
+                    setIsSubmitting(false);
+                }
+            };
+
+            if (!isOpen) return null;
+
+            return (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+                        {/* 헤더 */}
+                        <div className="sticky top-0 bg-white border-b p-4 flex items-center justify-between">
+                            <h2 className="text-lg font-bold">✍️ 전문가 글 작성</h2>
+                            <button
+                                onClick={onClose}
+                                className="text-gray-500 hover:text-gray-700 text-xl"
+                            >
+                                ✕
+                            </button>
+                        </div>
+
+                        {/* 내용 */}
+                        <div className="p-6 space-y-6">
+                            {error && (
+                                <div className="bg-red-50 border border-red-200 rounded p-3 text-red-700 text-sm">
+                                    {error}
+                                </div>
+                            )}
+
+                            {/* 카테고리 선택 */}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    전문 분야 *
+                                </label>
+                                <div className="grid grid-cols-3 gap-2">
+                                    {Object.entries(categories).map(([key, category]) => (
+                                        <button
+                                            key={key}
+                                            onClick={() => handleInputChange('category', key)}
+                                            className={`p-3 rounded-lg text-center transition-all ${
+                                                formData.category === key
+                                                    ? `bg-${category.color}-500 text-white`
+                                                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                            }`}
+                                        >
+                                            <div className="text-lg mb-1">{category.icon}</div>
+                                            <div className="font-semibold text-xs">{category.name}</div>
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* 제목 */}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    제목 *
+                                </label>
+                                <input
+                                    type="text"
+                                    value={formData.title}
+                                    onChange={(e) => handleInputChange('title', e.target.value)}
+                                    placeholder="예: 은퇴 후 해외 장기체류 완전 가이드"
+                                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                    maxLength={100}
+                                />
+                                <div className="text-xs text-gray-500 mt-1">
+                                    {formData.title.length}/100
+                                </div>
+                            </div>
+
+                            {/* 내용 */}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    내용 *
+                                </label>
+                                <textarea
+                                    value={formData.content}
+                                    onChange={(e) => handleInputChange('content', e.target.value)}
+                                    placeholder="전문가로서 제공하는 서비스를 상세히 설명해주세요.&#10;- 상담 내용&#10;- 경력 및 전문성&#10;- 고객에게 제공할 수 있는 가치"
+                                    rows={8}
+                                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                    maxLength={2000}
+                                />
+                                <div className="text-xs text-gray-500 mt-1">
+                                    {formData.content.length}/2000
+                                </div>
+                            </div>
+
+                            {/* 서비스 정보 */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {/* 서비스 유형 */}
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        서비스 유형
+                                    </label>
+                                    <select
+                                        value={formData.serviceType}
+                                        onChange={(e) => handleInputChange('serviceType', e.target.value)}
+                                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                    >
+                                        {Object.entries(serviceTypes).map(([key, label]) => (
+                                            <option key={key} value={key}>{label}</option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                {/* 소요 시간 */}
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        소요 시간 (분)
+                                    </label>
+                                    <select
+                                        value={formData.duration}
+                                        onChange={(e) => handleInputChange('duration', e.target.value)}
+                                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                    >
+                                        <option value="30">30분</option>
+                                        <option value="45">45분</option>
+                                        <option value="60">60분</option>
+                                        <option value="90">90분</option>
+                                        <option value="120">120분</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            {/* 상담료 */}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    상담료 (원) *
+                                </label>
+                                <input
+                                    type="text"
+                                    value={formData.price}
+                                    onChange={(e) => {
+                                        const value = e.target.value.replace(/[^0-9]/g, '');
+                                        const formatted = value.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+                                        handleInputChange('price', formatted);
+                                    }}
+                                    placeholder="30,000"
+                                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                />
+                                <div className="text-xs text-gray-500 mt-1">
+                                    최소 30,000원 이상, 최대 500,000원 이하
+                                </div>
+                            </div>
+
+                            {/* 상담 가능 요일 */}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    상담 가능 요일 *
+                                </label>
+                                <div className="flex flex-wrap gap-2">
+                                    {dayOptions.map(day => (
+                                        <button
+                                            key={day.value}
+                                            onClick={() => handleDayToggle(day.value)}
+                                            className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                                                formData.availableDays.includes(day.value)
+                                                    ? 'bg-blue-500 text-white'
+                                                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                            }`}
+                                        >
+                                            {day.label}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* 상담 가능 시간 */}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    상담 가능 시간 *
+                                </label>
+                                <input
+                                    type="text"
+                                    value={formData.availableHours}
+                                    onChange={(e) => handleInputChange('availableHours', e.target.value)}
+                                    placeholder="예: 평일 10:00-18:00, 주말 14:00-17:00"
+                                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                />
+                            </div>
+
+                            {/* 연락처 */}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    연락처 *
+                                </label>
+                                <input
+                                    type="text"
+                                    value={formData.contact}
+                                    onChange={(e) => handleInputChange('contact', e.target.value)}
+                                    placeholder="예: 010-1234-5678, email@example.com"
+                                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                />
+                            </div>
+
+                            {/* 태그 */}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    전문 태그 (최대 5개)
+                                </label>
+                                <div className="flex gap-2 mb-2">
+                                    <input
+                                        type="text"
+                                        value={tagInput}
+                                        onChange={(e) => setTagInput(e.target.value)}
+                                        onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddTag())}
+                                        placeholder="태그 입력 후 엔터"
+                                        className="flex-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                    />
+                                    <button
+                                        onClick={handleAddTag}
+                                        disabled={!tagInput.trim() || formData.tags.length >= 5}
+                                        className="px-4 py-2 bg-blue-500 text-white rounded-lg text-sm font-medium hover:bg-blue-600 disabled:bg-gray-300"
+                                    >
+                                        추가
+                                    </button>
+                                </div>
+                                <div className="flex flex-wrap gap-1">
+                                    {formData.tags.map((tag, index) => (
+                                        <span
+                                            key={index}
+                                            className="inline-flex items-center px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded"
+                                        >
+                                            {tag}
+                                            <button
+                                                onClick={() => handleRemoveTag(tag)}
+                                                className="ml-1 text-blue-500 hover:text-blue-700"
+                                            >
+                                                ✕
+                                            </button>
+                                        </span>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* 버튼 */}
+                            <div className="flex gap-3 pt-4">
+                                <button
+                                    onClick={onClose}
+                                    disabled={isSubmitting}
+                                    className="flex-1 py-3 px-4 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 disabled:opacity-50"
+                                >
+                                    취소
+                                </button>
+                                <button
+                                    onClick={handleSubmit}
+                                    disabled={isSubmitting}
+                                    className="flex-1 py-3 px-4 bg-blue-500 text-white rounded-lg font-medium hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    {isSubmitting ? '등록 중...' : '글 등록'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
         // 전문가 찾기 컴포넌트
         const ExpertFinderComponent = ({ currentUser }) => {
             const [activeCategory, setActiveCategory] = useState('travel');
             const [showBookingModal, setShowBookingModal] = useState(false);
             const [selectedExpert, setSelectedExpert] = useState(null);
+            const [showWriteModal, setShowWriteModal] = useState(false);
+            const [isExpert, setIsExpert] = useState(false);
+
+            // 전문가 여부 확인
+            useEffect(() => {
+                const checkExpertStatus = async () => {
+                    if (!currentUser) {
+                        setIsExpert(false);
+                        return;
+                    }
+
+                    try {
+                        const { data: expertProfile } = await supabase
+                            .from('expert_profiles')
+                            .select('is_verified, is_active')
+                            .eq('user_id', currentUser.id)
+                            .single();
+
+                        setIsExpert(expertProfile?.is_verified === true && expertProfile?.is_active === true);
+                    } catch (error) {
+                        setIsExpert(false);
+                    }
+                };
+
+                checkExpertStatus();
+            }, [currentUser]);
+
+            // 글쓰기 완료 후 새로고침
+            const handleWriteSuccess = () => {
+                // 필요시 전문가 목록 새로고침 로직 추가
+                console.log('전문가 글 작성 완료');
+            };
             
             // 3대 전문가 카테고리 정의
             const expertCategories = {
@@ -3396,12 +3895,27 @@
                 <div className={`bg-gradient-to-r ${currentCategory.bgColor} p-6 rounded-lg`}>
                     {/* 헤더 */}
                     <div className="text-center mb-6">
-                        <h3 className="text-xl font-bold text-gray-800 mb-2">
-                            🔍 신뢰할 수 있는 전문가를 찾아보세요
-                        </h3>
-                        <p className="text-gray-600 text-sm">
-                            검증된 자격증 보유 전문가들과 안전한 상담
-                        </p>
+                        <div className="flex items-center justify-between mb-4">
+                            <div></div> {/* 왼쪽 여백 */}
+                            <div className="text-center">
+                                <h3 className="text-xl font-bold text-gray-800 mb-2">
+                                    🔍 신뢰할 수 있는 전문가를 찾아보세요
+                                </h3>
+                                <p className="text-gray-600 text-sm">
+                                    검증된 자격증 보유 전문가들과 안전한 상담
+                                </p>
+                            </div>
+                            {/* 전문가 글쓰기 버튼 */}
+                            {isExpert && (
+                                <button
+                                    onClick={() => setShowWriteModal(true)}
+                                    className="px-4 py-2 bg-orange-500 text-white rounded-lg text-sm font-medium hover:bg-orange-600 transition-colors shadow-lg"
+                                    title="전문가 글 작성"
+                                >
+                                    ✍️ 글쓰기
+                                </button>
+                            )}
+                        </div>
                     </div>
 
                     {/* 카테고리 탭 */}
@@ -3496,6 +4010,16 @@
                                 setShowBookingModal(false);
                                 setSelectedExpert(null);
                             }}
+                        />
+                    )}
+
+                    {/* 전문가 글쓰기 모달 */}
+                    {showWriteModal && (
+                        <ExpertPostWriteModal
+                            isOpen={showWriteModal}
+                            onClose={() => setShowWriteModal(false)}
+                            currentUser={currentUser}
+                            onSuccess={handleWriteSuccess}
                         />
                     )}
                 </div>
