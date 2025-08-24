@@ -758,50 +758,38 @@
                         </div>
                     </div>
                     
-                    {/* 최대한 단순한 HTML 체크박스 */}
-                    <div className="bg-white border-2 border-gray-300 rounded-lg p-6">
-                        <div className="space-y-4">
-                            <div className="text-lg font-semibold text-gray-800">
-                                개인정보 수집 동의 필수
-                            </div>
-                            
-                            <div className="flex items-center space-x-4">
+                    <div className="p-4 border-2 rounded-lg transition-all duration-200"
+                         style={{
+                             borderColor: checked ? '#ea580c' : '#d1d5db',
+                             backgroundColor: checked ? '#fff7ed' : 'white'
+                         }}>
+                        <div className="flex items-start space-x-4">
+                            <div className="flex-shrink-0 pt-1">
                                 <input
                                     type="checkbox"
-                                    id="simple-privacy-checkbox"
+                                    id="expert-privacy-checkbox"
                                     checked={checked}
                                     onChange={(e) => {
-                                        console.log('체크박스 onChange:', e.target.checked);
+                                        console.log('전문가 개인정보동의 체크:', e.target.checked);
                                         onChange(e.target.checked);
                                     }}
-                                    onClick={(e) => {
-                                        console.log('체크박스 onClick:', e.target.checked);
-                                    }}
-                                    className="w-6 h-6 rounded border-2 border-gray-400 text-blue-600 focus:ring-blue-500 focus:ring-2"
+                                    className="w-5 h-5 text-orange-600 border-2 border-gray-300 rounded focus:ring-2 focus:ring-orange-500 cursor-pointer"
                                     style={{
-                                        accentColor: '#3b82f6'
+                                        accentColor: '#ea580c',
+                                        transform: 'scale(1.2)'
                                     }}
                                 />
-                                
-                                <label 
-                                    htmlFor="simple-privacy-checkbox" 
-                                    className="flex-1 text-base text-gray-700 cursor-pointer select-none"
-                                >
-                                    위 개인정보 수집·이용에 동의합니다 
-                                    <span className="text-red-500 font-bold ml-2">*</span>
+                            </div>
+                            <div className="flex-1">
+                                <label htmlFor="expert-privacy-checkbox" className="cursor-pointer">
+                                    <span className="text-sm font-medium text-gray-800">
+                                        위 개인정보 수집·이용에 동의합니다
+                                        <span className="text-red-500 ml-1">(필수)</span>
+                                    </span>
                                 </label>
-                            </div>
-                            
-                            <div className="text-sm text-gray-600 ml-10">
-                                전문가 등록을 위해 위 개인정보 수집·이용 동의서의 내용을 읽고 동의합니다
-                            </div>
-                            
-                            {/* 디버깅용 상태 표시 */}
-                            <div className="mt-4 p-3 bg-gray-50 rounded text-sm">
-                                <strong>디버깅 정보:</strong>
-                                <div>체크 상태: {String(checked)}</div>
-                                <div>체크박스 요소 ID: simple-privacy-checkbox</div>
-                                <div>onChange 함수: {onChange ? '존재' : '없음'}</div>
+                                <p className="text-xs text-gray-500 mt-1">
+                                    전문가 등록을 위해 위 개인정보 수집·이용 동의서의 내용을 읽고 동의합니다
+                                </p>
                             </div>
                         </div>
                     </div>
