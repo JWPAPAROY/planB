@@ -758,61 +758,50 @@
                         </div>
                     </div>
                     
-                    {/* 커스텀 체크박스 - 브라우저 input 대신 div 사용 */}
-                    <div 
-                        className="p-6 border-3 rounded-xl cursor-pointer transition-all duration-300 hover:shadow-lg"
-                        style={{
-                            borderColor: checked ? '#ea580c' : '#d1d5db',
-                            backgroundColor: checked ? '#fff7ed' : 'white',
-                            borderWidth: '3px'
-                        }}
-                        onClick={() => {
-                            const newChecked = !checked;
-                            console.log('개인정보동의 클릭:', newChecked);
-                            onChange(newChecked);
-                        }}
-                    >
-                        <div className="flex items-start gap-5">
-                            {/* 커스텀 체크박스 아이콘 */}
-                            <div className="mt-1 flex-shrink-0">
-                                <div 
-                                    className={`w-8 h-8 border-3 rounded-lg flex items-center justify-center transition-all duration-200 ${
-                                        checked 
-                                            ? 'bg-orange-600 border-orange-600 shadow-lg transform scale-105' 
-                                            : 'bg-white border-gray-400 hover:border-orange-400 hover:shadow-md'
-                                    }`}
-                                    style={{ borderWidth: '3px' }}
-                                >
-                                    {checked && (
-                                        <svg className="w-5 h-5 text-white animate-bounce" fill="currentColor" viewBox="0 0 20 20">
-                                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                                        </svg>
-                                    )}
-                                </div>
+                    {/* 최대한 단순한 HTML 체크박스 */}
+                    <div className="bg-white border-2 border-gray-300 rounded-lg p-6">
+                        <div className="space-y-4">
+                            <div className="text-lg font-semibold text-gray-800">
+                                개인정보 수집 동의 필수
                             </div>
                             
-                            {/* 텍스트 영역 */}
-                            <div className="flex-1">
-                                <div className={`text-lg font-bold mb-2 transition-colors ${
-                                    checked ? 'text-orange-800' : 'text-gray-900'
-                                }`}>
-                                    위 개인정보 수집·이용에 동의합니다
-                                    <span className="text-red-600 ml-3 text-xl">*</span>
-                                    {checked && (
-                                        <span className="ml-3 text-orange-600 font-extrabold text-xl">✓</span>
-                                    )}
-                                </div>
-                                <div className={`text-sm leading-relaxed transition-colors ${
-                                    checked ? 'text-orange-700' : 'text-gray-600'
-                                }`}>
-                                    전문가 등록을 위해 위 개인정보 수집·이용 동의서의 내용을 읽고 동의합니다
-                                </div>
-                                <div className="mt-3 text-sm font-medium">
-                                    상태: {checked ? 
-                                        <span className="text-green-600 font-bold">✅ 동의 완료</span> : 
-                                        <span className="text-red-600 font-bold">❌ 동의 필요</span>
-                                    }
-                                </div>
+                            <div className="flex items-center space-x-4">
+                                <input
+                                    type="checkbox"
+                                    id="simple-privacy-checkbox"
+                                    checked={checked}
+                                    onChange={(e) => {
+                                        console.log('체크박스 onChange:', e.target.checked);
+                                        onChange(e.target.checked);
+                                    }}
+                                    onClick={(e) => {
+                                        console.log('체크박스 onClick:', e.target.checked);
+                                    }}
+                                    className="w-6 h-6 rounded border-2 border-gray-400 text-blue-600 focus:ring-blue-500 focus:ring-2"
+                                    style={{
+                                        accentColor: '#3b82f6'
+                                    }}
+                                />
+                                
+                                <label 
+                                    htmlFor="simple-privacy-checkbox" 
+                                    className="flex-1 text-base text-gray-700 cursor-pointer select-none"
+                                >
+                                    위 개인정보 수집·이용에 동의합니다 
+                                    <span className="text-red-500 font-bold ml-2">*</span>
+                                </label>
+                            </div>
+                            
+                            <div className="text-sm text-gray-600 ml-10">
+                                전문가 등록을 위해 위 개인정보 수집·이용 동의서의 내용을 읽고 동의합니다
+                            </div>
+                            
+                            {/* 디버깅용 상태 표시 */}
+                            <div className="mt-4 p-3 bg-gray-50 rounded text-sm">
+                                <strong>디버깅 정보:</strong>
+                                <div>체크 상태: {String(checked)}</div>
+                                <div>체크박스 요소 ID: simple-privacy-checkbox</div>
+                                <div>onChange 함수: {onChange ? '존재' : '없음'}</div>
                             </div>
                         </div>
                     </div>
@@ -2173,6 +2162,7 @@
             const [customNickname, setCustomNickname] = useState('');
             const [useCustomNickname, setUseCustomNickname] = useState(false);
             const [privacyConsent, setPrivacyConsent] = useState(false);
+            const [expertPrivacyConsent, setExpertPrivacyConsent] = useState(false); // 전문가 등록 전용
             
             // 전문가 등록 관련 상태
             const [expertProfile, setExpertProfile] = useState({
@@ -2284,7 +2274,7 @@
                                 return;
                             }
                         }
-                        if (!privacyConsent) {
+                        if (!expertPrivacyConsent) {
                             setError('개인정보 수집·이용에 동의해주세요');
                             return;
                         }
@@ -2319,7 +2309,7 @@
                         setError('비밀번호는 8자 이상이며, 영문/숫자/특수문자 중 2종류 이상 조합이어야 합니다');
                         return;
                     }
-                    if (!privacyConsent) {
+                    if (!expertPrivacyConsent) {
                         setError('개인정보 수집·이용에 동의해주세요');
                         return;
                     }
@@ -2573,8 +2563,8 @@
 
                                             
                                             <ExpertPrivacyConsentComponent 
-                                                checked={privacyConsent}
-                                                onChange={setPrivacyConsent}
+                                                checked={expertPrivacyConsent}
+                                                onChange={setExpertPrivacyConsent}
                                             />
                                         </div>
                                     ) : (
