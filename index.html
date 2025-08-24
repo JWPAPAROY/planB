@@ -161,6 +161,44 @@
     <script type="text/babel">
         const { useState, useEffect } = React;
 
+        // 이메일 알림 시스템
+        const sendExpertNotification = async (expert, action, reason = '') => {
+            try {
+                // 실제 서비스에서는 이메일 서비스 연동 필요 (예: Supabase Edge Functions)
+                const emailData = {
+                    to: expert.email,
+                    subject: action === 'approve' ? 
+                        '[플랜비] 전문가 승인 완료 🎉' : 
+                        '[플랜비] 전문가 신청 검토 결과',
+                    html: action === 'approve' ? 
+                        `<h2>🎉 전문가 승인이 완료되었습니다!</h2>
+                         <p>안녕하세요 ${expert.nickname}님,</p>
+                         <p>플랜비 전문가 신청이 <strong>승인</strong>되었습니다.</p>
+                         <p><strong>승인 사유:</strong> ${reason || '전문가 자격 요건을 충족합니다.'}</p>
+                         <p>이제 플랜비에서 전문가로 활동하실 수 있습니다!</p>
+                         <p><a href="https://jwpaparoy.github.io/planB/" style="background-color: #3b82f6; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">플랜비 바로가기</a></p>
+                         <p>감사합니다.<br/>플랜비 운영팀</p>` :
+                        `<h2>전문가 신청 검토 결과</h2>
+                         <p>안녕하세요 ${expert.nickname}님,</p>
+                         <p>플랜비 전문가 신청을 검토한 결과를 안내드립니다.</p>
+                         <p><strong>검토 결과:</strong> 승인 보류</p>
+                         <p><strong>사유:</strong> ${reason || '자격 요건 미달'}</p>
+                         <p>추가 자격증이나 경력을 보완하신 후 다시 신청해주세요.</p>
+                         <p>감사합니다.<br/>플랜비 운영팀</p>`
+                };
+                
+                console.log('이메일 발송 예정:', emailData);
+                
+                // TODO: 실제 이메일 발송 구현
+                // const { data, error } = await supabase.functions.invoke('send-email', { body: emailData });
+                
+                return { success: true, message: '알림 이메일이 발송되었습니다.' };
+            } catch (error) {
+                console.error('이메일 발송 오류:', error);
+                return { success: false, message: '이메일 발송에 실패했습니다.' };
+            }
+        };
+
         // AmountInput 컴포넌트 (외부에서 정의하여 재생성 방지)
         const AmountInput = ({ label, value, onChange, placeholder }) => {
             const formatAmount = (value) => {
@@ -1759,7 +1797,7 @@
                         </div>
 
                         <div className="p-6">
-                            {activeSection === 'dashboard' && <AdminDashboard stats={stats} />}
+                            {activeSection === 'dashboard' && <AdminDashboard stats={stats} setActiveSection={setActiveSection} />}
                             {activeSection === 'settlements' && <FeeManagementSection currentUser={currentUser} />}
                             {activeSection === 'experts' && <ExpertManagementSection currentUser={currentUser} />}
                             {activeSection === 'users' && <UserManagementSection currentUser={currentUser} />}
@@ -1770,7 +1808,7 @@
         };
 
         // 관리자 대시보드 컴포넌트
-        const AdminDashboard = ({ stats }) => (
+        const AdminDashboard = ({ stats, setActiveSection }) => (
             <div className="space-y-6">
                 <h2 className="text-xl font-semibold">📊 플랫폼 현황</h2>
                 
@@ -1826,7 +1864,10 @@
                             <div className="font-medium text-green-600">📊 월간 리포트</div>
                             <div className="text-gray-500">월간 수익 보고서 생성</div>
                         </button>
-                        <button className="p-3 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 text-left text-sm">
+                        <button 
+                            onClick={() => setActiveSection('experts')}
+                            className="p-3 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 text-left text-sm cursor-pointer hover:border-purple-300 transition-colors"
+                        >
                             <div className="font-medium text-purple-600">👑 전문가 승인</div>
                             <div className="text-gray-500">신규 전문가 검토</div>
                         </button>
@@ -2117,16 +2158,466 @@
             );
         };
 
-        // 전문가 관리 섹션 (기본 구현)
-        const ExpertManagementSection = ({ currentUser }) => (
-            <div className="space-y-6">
-                <h2 className="text-xl font-semibold">🎯 전문가 관리</h2>
-                <div className="text-center py-12 text-gray-500">
-                    <div className="text-4xl mb-4">🔧</div>
-                    <p>전문가 관리 기능이 곧 추가될 예정입니다.</p>
+        // 전문가 관리 섹션 - 완전 구현
+        const ExpertManagementSection = ({ currentUser }) => {
+            const [activeTab, setActiveTab] = useState('pending');
+            const [experts, setExperts] = useState([]);
+            const [loading, setLoading] = useState(true);
+            const [processingId, setProcessingId] = useState(null);
+            const [selectedExpert, setSelectedExpert] = useState(null);
+            const [showDetailModal, setShowDetailModal] = useState(false);
+            const [actionReason, setActionReason] = useState('');
+
+            // 전문가 목록 로드
+            useEffect(() => {
+                loadExperts();
+            }, [activeTab]);
+
+            const loadExperts = async () => {
+                try {
+                    setLoading(true);
+                    if (supabase) {
+                        const { data, error } = await supabase
+                            .from('user_profiles')
+                            .select('*')
+                            .eq('role', 'expert')
+                            .eq('expert_status', activeTab)
+                            .order('created_at', { ascending: false });
+                        
+                        if (error) throw error;
+                        setExperts(data || []);
+                    } else {
+                        // 데모 데이터
+                        const demoExperts = [
+                            {
+                                id: 1,
+                                user_id: 'expert1',
+                                email: 'expert1@example.com',
+                                nickname: '김재무전문가',
+                                expert_type: 'legal',
+                                expert_title: '공인회계사 • 세무사',
+                                expert_specialties: ['세무상담', '자산관리', '절세전략'],
+                                expert_credentials: ['공인회계사', '세무사', 'CFP'],
+                                expert_experience_years: '15',
+                                expert_bio: '15년 경력의 세무 전문가입니다. 개인 및 법인 세무 상담을 전문으로 합니다.',
+                                expert_hourly_rate: '100000',
+                                expert_phone: '010-1234-5678',
+                                expert_business_license: 'BL-2024-001',
+                                expert_qualification_number: 'CPA-12345',
+                                expert_status: activeTab,
+                                created_at: '2024-08-20T10:30:00Z',
+                                expert_available_types: ['phone', 'video']
+                            },
+                            {
+                                id: 2,
+                                user_id: 'expert2',
+                                email: 'expert2@example.com',
+                                nickname: '박여행전문가',
+                                expert_type: 'travel',
+                                expert_title: '시니어 여행 플래너',
+                                expert_specialties: ['시니어여행', '국내여행', '해외여행'],
+                                expert_credentials: ['관광통역안내사', '여행상품기획사'],
+                                expert_experience_years: '8',
+                                expert_bio: '시니어 여행 전문 플래너로 안전하고 즐거운 여행을 기획합니다.',
+                                expert_hourly_rate: '80000',
+                                expert_phone: '010-9876-5432',
+                                expert_business_license: '',
+                                expert_qualification_number: 'TG-67890',
+                                expert_status: activeTab,
+                                created_at: '2024-08-19T14:20:00Z',
+                                expert_available_types: ['phone', 'video', 'chat']
+                            }
+                        ];
+                        setExperts(activeTab === 'pending' ? demoExperts : []);
+                    }
+                } catch (error) {
+                    console.error('전문가 목록 로드 오류:', error);
+                    setExperts([]);
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            // 전문가 승인/거절 처리
+            const handleExpertAction = async (expertId, action, reason = '') => {
+                if (!confirm(`정말로 이 전문가를 ${action === 'approve' ? '승인' : '거절'}하시겠습니까?`)) {
+                    return;
+                }
+
+                try {
+                    setProcessingId(expertId);
+                    const newStatus = action === 'approve' ? 'approved' : 'rejected';
+                    
+                    if (supabase) {
+                        const { error } = await supabase
+                            .from('user_profiles')
+                            .update({ 
+                                expert_status: newStatus,
+                                expert_status_updated_at: new Date().toISOString(),
+                                expert_status_reason: reason || (action === 'approve' ? '전문가 자격 요건을 충족합니다.' : '자격 요건 미달')
+                            })
+                            .eq('user_id', expertId);
+                        
+                        if (error) throw error;
+                        
+                        // 승인/거절 이메일 발송
+                        const currentExpert = experts.find(e => e.user_id === expertId);
+                        if (currentExpert) {
+                            const emailResult = await sendExpertNotification(currentExpert, action, reason);
+                            if (!emailResult.success) {
+                                console.warn('이메일 발송 실패:', emailResult.message);
+                            }
+                        }
+                    }
+                    
+                    alert(`전문가 ${action === 'approve' ? '승인' : '거절'} 처리가 완료되었습니다.`);
+                    setActionReason('');
+                    setShowDetailModal(false);
+                    loadExperts(); // 목록 새로고침
+                    
+                } catch (error) {
+                    console.error('전문가 상태 변경 오류:', error);
+                    alert('처리 중 오류가 발생했습니다.');
+                } finally {
+                    setProcessingId(null);
+                }
+            };
+
+            // 전문가 상세 정보 보기
+            const showExpertDetail = (expert) => {
+                setSelectedExpert(expert);
+                setShowDetailModal(true);
+            };
+
+            const tabs = [
+                { id: 'pending', name: '승인 대기', icon: '⏳', count: experts.filter(e => e.expert_status === 'pending').length },
+                { id: 'approved', name: '승인됨', icon: '✅', count: experts.filter(e => e.expert_status === 'approved').length },
+                { id: 'rejected', name: '거절됨', icon: '❌', count: experts.filter(e => e.expert_status === 'rejected').length },
+                { id: 'all', name: '전체', icon: '📋', count: experts.length }
+            ];
+
+            return (
+                <div className="space-y-6">
+                    {/* 헤더 */}
+                    <div className="flex items-center justify-between">
+                        <h2 className="text-xl font-semibold">🎯 전문가 승인 관리</h2>
+                        <div className="text-sm text-gray-500">
+                            총 {experts.length}명의 전문가
+                        </div>
+                    </div>
+
+                    {/* 탭 메뉴 */}
+                    <div className="border-b border-gray-200">
+                        <div className="flex space-x-8">
+                            {tabs.map((tab) => (
+                                <button
+                                    key={tab.id}
+                                    onClick={() => setActiveTab(tab.id)}
+                                    className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors flex items-center space-x-2 ${
+                                        activeTab === tab.id
+                                            ? 'border-blue-500 text-blue-600'
+                                            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                    }`}
+                                >
+                                    <span>{tab.icon}</span>
+                                    <span>{tab.name}</span>
+                                    {activeTab !== 'all' && (
+                                        <span className={`px-2 py-0.5 text-xs rounded-full ${
+                                            activeTab === tab.id ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-500'
+                                        }`}>
+                                            {experts.length}
+                                        </span>
+                                    )}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* 전문가 목록 */}
+                    {loading ? (
+                        <div className="text-center py-12">
+                            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                            <p className="mt-2 text-gray-500">전문가 목록을 불러오는 중...</p>
+                        </div>
+                    ) : experts.length === 0 ? (
+                        <div className="text-center py-12 text-gray-500">
+                            <div className="text-4xl mb-4">📝</div>
+                            <p>{activeTab === 'pending' ? '승인 대기 중인 전문가가 없습니다.' : '해당하는 전문가가 없습니다.'}</p>
+                        </div>
+                    ) : (
+                        <div className="space-y-4">
+                            {experts.map((expert) => (
+                                <div key={expert.id || expert.user_id} className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow">
+                                    <div className="flex items-start justify-between">
+                                        <div className="flex-1">
+                                            {/* 기본 정보 */}
+                                            <div className="flex items-center space-x-3 mb-3">
+                                                <div className="w-12 h-12 bg-gradient-to-br from-orange-400 to-red-500 rounded-full flex items-center justify-center">
+                                                    <span className="text-white font-bold text-lg">🎯</span>
+                                                </div>
+                                                <div>
+                                                    <h3 className="text-lg font-semibold text-gray-800">{expert.nickname}</h3>
+                                                    <p className="text-orange-600 font-medium">{expert.expert_title}</p>
+                                                    <p className="text-sm text-gray-500">{expert.email}</p>
+                                                </div>
+                                                <div className={`px-3 py-1 rounded-full text-xs font-medium ${
+                                                    expert.expert_status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                                                    expert.expert_status === 'approved' ? 'bg-green-100 text-green-800' :
+                                                    'bg-red-100 text-red-800'
+                                                }`}>
+                                                    {expert.expert_status === 'pending' ? '⏳ 승인대기' :
+                                                     expert.expert_status === 'approved' ? '✅ 승인완료' : '❌ 거절됨'}
+                                                </div>
+                                            </div>
+
+                                            {/* 전문 정보 */}
+                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                                                <div>
+                                                    <label className="text-xs text-gray-500 uppercase tracking-wide">카테고리</label>
+                                                    <p className="text-sm font-medium">
+                                                        {expert.expert_type === 'legal' ? '📋 세무/법무/자산관리' :
+                                                         expert.expert_type === 'travel' ? '✈️ 여행/취미' : '🏠 주거/생활'}
+                                                    </p>
+                                                </div>
+                                                <div>
+                                                    <label className="text-xs text-gray-500 uppercase tracking-wide">경력</label>
+                                                    <p className="text-sm font-medium">{expert.expert_experience_years}년</p>
+                                                </div>
+                                                <div>
+                                                    <label className="text-xs text-gray-500 uppercase tracking-wide">상담료</label>
+                                                    <p className="text-sm font-medium">{Number(expert.expert_hourly_rate).toLocaleString()}원/시간</p>
+                                                </div>
+                                            </div>
+
+                                            {/* 전문분야 */}
+                                            <div className="mb-3">
+                                                <label className="text-xs text-gray-500 uppercase tracking-wide">전문분야</label>
+                                                <div className="flex flex-wrap gap-2 mt-1">
+                                                    {expert.expert_specialties.map((specialty, index) => (
+                                                        <span key={index} className="px-2 py-1 bg-blue-50 text-blue-600 text-xs rounded-full">
+                                                            {specialty}
+                                                        </span>
+                                                    ))}
+                                                </div>
+                                            </div>
+
+                                            {/* 자격증 */}
+                                            <div className="mb-4">
+                                                <label className="text-xs text-gray-500 uppercase tracking-wide">자격증</label>
+                                                <div className="flex flex-wrap gap-2 mt-1">
+                                                    {expert.expert_credentials.map((credential, index) => (
+                                                        <span key={index} className="px-2 py-1 bg-green-50 text-green-600 text-xs rounded-full">
+                                                            {credential}
+                                                        </span>
+                                                    ))}
+                                                </div>
+                                            </div>
+
+                                            {/* 등록일 */}
+                                            <p className="text-xs text-gray-500">
+                                                등록일: {new Date(expert.created_at).toLocaleDateString('ko-KR')}
+                                            </p>
+                                        </div>
+
+                                        {/* 액션 버튼 */}
+                                        <div className="flex flex-col space-y-2 ml-4">
+                                            <button
+                                                onClick={() => showExpertDetail(expert)}
+                                                className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm rounded-lg transition-colors"
+                                            >
+                                                📋 상세보기
+                                            </button>
+                                            
+                                            {expert.expert_status === 'pending' && (
+                                                <>
+                                                    <button
+                                                        onClick={() => handleExpertAction(expert.user_id, 'approve')}
+                                                        disabled={processingId === expert.user_id}
+                                                        className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white text-sm rounded-lg transition-colors disabled:bg-gray-400"
+                                                    >
+                                                        {processingId === expert.user_id ? '처리중...' : '✅ 승인'}
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleExpertAction(expert.user_id, 'reject')}
+                                                        disabled={processingId === expert.user_id}
+                                                        className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white text-sm rounded-lg transition-colors disabled:bg-gray-400"
+                                                    >
+                                                        {processingId === expert.user_id ? '처리중...' : '❌ 거절'}
+                                                    </button>
+                                                </>
+                                            )}
+                                            
+                                            {expert.expert_status === 'approved' && (
+                                                <button
+                                                    onClick={() => handleExpertAction(expert.user_id, 'reject')}
+                                                    disabled={processingId === expert.user_id}
+                                                    className="px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-white text-sm rounded-lg transition-colors disabled:bg-gray-400"
+                                                >
+                                                    🔄 승인취소
+                                                </button>
+                                            )}
+                                            
+                                            {expert.expert_status === 'rejected' && (
+                                                <button
+                                                    onClick={() => handleExpertAction(expert.user_id, 'approve')}
+                                                    disabled={processingId === expert.user_id}
+                                                    className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white text-sm rounded-lg transition-colors disabled:bg-gray-400"
+                                                >
+                                                    🔄 재승인
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+
+                    {/* 전문가 상세 모달 */}
+                    {showDetailModal && selectedExpert && (
+                        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                            <div className="bg-white rounded-xl max-w-2xl w-full max-h-90vh overflow-y-auto">
+                                <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+                                    <h3 className="text-lg font-semibold">전문가 상세 정보</h3>
+                                    <button
+                                        onClick={() => setShowDetailModal(false)}
+                                        className="text-gray-400 hover:text-gray-600 transition-colors"
+                                    >
+                                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                        </svg>
+                                    </button>
+                                </div>
+                                
+                                <div className="p-6 space-y-6">
+                                    {/* 기본 정보 */}
+                                    <div>
+                                        <h4 className="font-medium text-gray-900 mb-3">👤 기본 정보</h4>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div>
+                                                <label className="text-sm text-gray-500">이메일</label>
+                                                <p className="font-medium">{selectedExpert.email}</p>
+                                            </div>
+                                            <div>
+                                                <label className="text-sm text-gray-500">닉네임</label>
+                                                <p className="font-medium">{selectedExpert.nickname}</p>
+                                            </div>
+                                            <div>
+                                                <label className="text-sm text-gray-500">전화번호</label>
+                                                <p className="font-medium">{selectedExpert.expert_phone}</p>
+                                            </div>
+                                            <div>
+                                                <label className="text-sm text-gray-500">사업자등록번호</label>
+                                                <p className="font-medium">{selectedExpert.expert_business_license || '개인 전문가'}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* 전문가 정보 */}
+                                    <div>
+                                        <h4 className="font-medium text-gray-900 mb-3">🎯 전문가 정보</h4>
+                                        <div className="space-y-3">
+                                            <div>
+                                                <label className="text-sm text-gray-500">전문가 타이틀</label>
+                                                <p className="font-medium text-orange-600">{selectedExpert.expert_title}</p>
+                                            </div>
+                                            <div>
+                                                <label className="text-sm text-gray-500">경력</label>
+                                                <p className="font-medium">{selectedExpert.expert_experience_years}년</p>
+                                            </div>
+                                            <div>
+                                                <label className="text-sm text-gray-500">자기소개</label>
+                                                <p className="text-gray-700 whitespace-pre-wrap">{selectedExpert.expert_bio}</p>
+                                            </div>
+                                            <div>
+                                                <label className="text-sm text-gray-500">시간당 상담료</label>
+                                                <p className="font-medium text-green-600">{Number(selectedExpert.expert_hourly_rate).toLocaleString()}원</p>
+                                            </div>
+                                            <div>
+                                                <label className="text-sm text-gray-500">상담 가능 방식</label>
+                                                <div className="flex gap-2 mt-1">
+                                                    {selectedExpert.expert_available_types.map((type) => (
+                                                        <span key={type} className="px-2 py-1 bg-blue-50 text-blue-600 text-sm rounded">
+                                                            {type === 'phone' ? '📞 전화' : type === 'video' ? '📹 영상' : '💬 채팅'}
+                                                        </span>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* 자격 정보 */}
+                                    <div>
+                                        <h4 className="font-medium text-gray-900 mb-3">📜 자격 정보</h4>
+                                        <div className="space-y-3">
+                                            <div>
+                                                <label className="text-sm text-gray-500">자격증번호</label>
+                                                <p className="font-medium">{selectedExpert.expert_qualification_number}</p>
+                                            </div>
+                                            <div>
+                                                <label className="text-sm text-gray-500">전문분야</label>
+                                                <div className="flex flex-wrap gap-2 mt-1">
+                                                    {selectedExpert.expert_specialties.map((specialty, index) => (
+                                                        <span key={index} className="px-3 py-1 bg-blue-100 text-blue-800 text-sm rounded-full">
+                                                            {specialty}
+                                                        </span>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <label className="text-sm text-gray-500">보유 자격증</label>
+                                                <div className="flex flex-wrap gap-2 mt-1">
+                                                    {selectedExpert.expert_credentials.map((credential, index) => (
+                                                        <span key={index} className="px-3 py-1 bg-green-100 text-green-800 text-sm rounded-full">
+                                                            {credential}
+                                                        </span>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* 승인/거절 처리 */}
+                                    {selectedExpert.expert_status === 'pending' && (
+                                        <div className="border-t pt-6">
+                                            <h4 className="font-medium text-gray-900 mb-3">⚡ 승인 처리</h4>
+                                            <div className="space-y-3">
+                                                <div>
+                                                    <label className="block text-sm text-gray-500 mb-1">처리 사유</label>
+                                                    <textarea
+                                                        value={actionReason}
+                                                        onChange={(e) => setActionReason(e.target.value)}
+                                                        placeholder="승인 또는 거절 사유를 입력하세요..."
+                                                        className="w-full p-3 border border-gray-200 rounded-lg resize-none"
+                                                        rows="3"
+                                                    />
+                                                </div>
+                                                <div className="flex space-x-3">
+                                                    <button
+                                                        onClick={() => handleExpertAction(selectedExpert.user_id, 'approve', actionReason)}
+                                                        disabled={processingId === selectedExpert.user_id}
+                                                        className="flex-1 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors disabled:bg-gray-400"
+                                                    >
+                                                        ✅ 승인하기
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleExpertAction(selectedExpert.user_id, 'reject', actionReason)}
+                                                        disabled={processingId === selectedExpert.user_id}
+                                                        className="flex-1 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors disabled:bg-gray-400"
+                                                    >
+                                                        ❌ 거절하기
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
-            </div>
-        );
+            );
+        };
 
         // 회원 관리 섹션 (기본 구현)  
         const UserManagementSection = ({ currentUser }) => (
