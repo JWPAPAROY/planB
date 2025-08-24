@@ -758,30 +758,41 @@
                         </div>
                     </div>
                     
-                    <div className="p-3 border rounded-lg"
-                         style={{
-                             borderColor: checked ? '#ea580c' : '#d1d5db',
-                             backgroundColor: checked ? '#fff7ed' : 'white'
-                         }}>
-                        <label htmlFor="expert-privacy-checkbox" className="flex items-center space-x-3 cursor-pointer">
+                    <div className="p-3 border rounded-lg" style={{
+                        borderColor: checked ? '#ea580c' : '#d1d5db',
+                        backgroundColor: checked ? '#fff7ed' : 'white'
+                    }}>
+                        <div className="flex items-center space-x-3">
                             <input
                                 type="checkbox"
-                                id="expert-privacy-checkbox"
                                 checked={checked}
                                 onChange={(e) => {
-                                    console.log('전문가 개인정보동의 체크:', e.target.checked);
-                                    onChange(e.target.checked);
+                                    const isChecked = e.target.checked;
+                                    console.log('전문가 개인정보동의 체크:', isChecked);
+                                    onChange(isChecked);
                                 }}
-                                className="w-4 h-4 text-orange-600 border border-gray-300 rounded cursor-pointer"
+                                onClick={(e) => {
+                                    console.log('체크박스 직접 클릭:', e.target.checked);
+                                }}
+                                className="w-4 h-4 rounded cursor-pointer"
                                 style={{
-                                    accentColor: '#ea580c'
+                                    accentColor: '#ea580c',
+                                    minWidth: '16px',
+                                    minHeight: '16px'
                                 }}
                             />
-                            <span className="text-xs text-gray-700">
+                            <div 
+                                className="flex-1 text-xs text-gray-700 cursor-pointer select-none"
+                                onClick={() => {
+                                    const newChecked = !checked;
+                                    console.log('텍스트 영역 클릭:', newChecked);
+                                    onChange(newChecked);
+                                }}
+                            >
                                 위 개인정보 수집·이용에 동의합니다
                                 <span className="text-red-500 ml-1">*</span>
-                            </span>
-                        </label>
+                            </div>
+                        </div>
                     </div>
                 </div>
             );
@@ -2619,9 +2630,35 @@
                             <h1 className="text-4xl font-bold text-gray-900 mb-2">
                                 플랜비
                             </h1>
-                            <p className="text-xl text-gray-600 mb-8">
+                            <p className="text-xl text-gray-600 mb-6">
                                 행복한 은퇴생활의 시작
                             </p>
+                            
+                            {/* 공지사항 배너 */}
+                            <div 
+                                className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-6 cursor-pointer hover:bg-blue-100 transition-colors"
+                                onClick={() => setCurrentView('announcements')}
+                            >
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center space-x-3">
+                                        <div className="text-blue-600">
+                                            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                                            </svg>
+                                        </div>
+                                        <div className="flex-1">
+                                            <span className="text-sm font-medium text-blue-900">
+                                                📢 공지사항: 새로운 전문가 매칭 서비스 오픈! 클릭하여 자세히 보기
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div className="text-blue-400">
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                        </svg>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                         
                         {/* 로그인/회원가입 폼 */}
@@ -5115,7 +5152,7 @@
             );
         };
 
-        // 실시간 채팅 컴포넌트
+        // 실시간 채팅 컴포넌트 - 전문가-고객 상담용 개선
         const ChatComponent = ({ currentUser, isAdminUser }) => {
             const [chatRooms, setChatRooms] = useState([]);
             const [selectedRoom, setSelectedRoom] = useState(null);
@@ -5124,6 +5161,8 @@
             const [participants, setParticipants] = useState([]);
             const [loading, setLoading] = useState(true);
             const [sending, setSending] = useState(false);
+            const [showCreateRoom, setShowCreateRoom] = useState(false);
+            const [isExpertConsultation, setIsExpertConsultation] = useState(false);
             const messagesEndRef = useRef(null);
             const messageSubscription = useRef(null);
 
@@ -5306,38 +5345,98 @@
                 );
             }
 
+            // 전문가 상담 요청 함수
+            const requestExpertConsultation = async () => {
+                try {
+                    const roomName = `${currentUser.nickname || currentUser.email}님의 상담실`;
+                    const { data, error } = await supabase
+                        .from('chat_rooms')
+                        .insert({
+                            name: roomName,
+                            description: '전문가와의 1:1 상담을 위한 프라이빗 채팅방입니다.',
+                            room_type: 'private',
+                            created_by: currentUser.id,
+                            max_participants: 2
+                        })
+                        .select()
+                        .single();
+
+                    if (error) throw error;
+                    
+                    // 생성된 방에 자동 참여
+                    await joinRoom(data);
+                    loadChatRooms();
+                    setShowCreateRoom(false);
+                } catch (error) {
+                    console.error('상담방 생성 오류:', error);
+                    alert('상담방 생성 중 오류가 발생했습니다.');
+                }
+            };
+
             return (
-                <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden h-[600px] flex flex-col md:flex-row">
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden min-h-[700px] flex flex-col lg:flex-row">
                     {/* 채팅방 목록 (왼쪽/상단) */}
-                    <div className="w-full md:w-1/3 border-b md:border-b-0 md:border-r border-gray-200 flex flex-col h-40 md:h-auto">
-                        <div className="bg-gradient-to-r from-indigo-600 to-purple-600 px-4 py-4 text-white">
-                            <h2 className="text-lg font-bold">💬 실시간 채팅</h2>
-                            <p className="text-indigo-100 text-sm">채팅방을 선택하세요</p>
+                    <div className="w-full lg:w-1/3 border-b lg:border-b-0 lg:border-r border-gray-200 flex flex-col h-48 lg:h-auto">
+                        <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-4 py-4 text-white">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <h2 className="text-lg font-bold">💬 실시간 상담</h2>
+                                    <p className="text-blue-100 text-sm">전문가와 소통하세요</p>
+                                </div>
+                                <button
+                                    onClick={() => setShowCreateRoom(true)}
+                                    className="px-3 py-1 bg-white bg-opacity-20 rounded-lg text-sm hover:bg-opacity-30 transition-colors"
+                                >
+                                    + 상담 요청
+                                </button>
+                            </div>
                         </div>
                         
                         <div className="flex-1 overflow-y-auto">
-                            {chatRooms.map((room) => (
-                                <div
-                                    key={room.id}
-                                    onClick={() => joinRoom(room)}
-                                    className={`p-4 cursor-pointer border-b border-gray-100 hover:bg-gray-50 transition-colors ${
-                                        selectedRoom?.id === room.id ? 'bg-blue-50 border-l-4 border-l-blue-500' : ''
-                                    }`}
-                                >
-                                    <h3 className="font-medium text-gray-800 mb-1">{room.name}</h3>
-                                    <p className="text-sm text-gray-600 line-clamp-2">{room.description}</p>
-                                    <div className="flex items-center mt-2">
-                                        <span className={`px-2 py-1 rounded-full text-xs ${
-                                            room.room_type === 'expert' ? 'bg-orange-100 text-orange-800' :
-                                            room.room_type === 'private' ? 'bg-red-100 text-red-800' :
-                                            'bg-green-100 text-green-800'
-                                        }`}>
-                                            {room.room_type === 'expert' ? '전문가' :
-                                             room.room_type === 'private' ? '프라이빗' : '일반'}
-                                        </span>
-                                    </div>
+                            {chatRooms.length === 0 ? (
+                                <div className="text-center py-8 px-4">
+                                    <div className="text-4xl mb-2">🔍</div>
+                                    <p className="text-gray-500 text-sm mb-4">아직 참여중인 채팅방이 없습니다</p>
+                                    <button
+                                        onClick={() => setShowCreateRoom(true)}
+                                        className="text-blue-600 text-sm underline hover:text-blue-700"
+                                    >
+                                        전문가 상담 요청하기
+                                    </button>
                                 </div>
-                            ))}
+                            ) : (
+                                chatRooms.map((room) => (
+                                    <div
+                                        key={room.id}
+                                        onClick={() => joinRoom(room)}
+                                        className={`p-3 cursor-pointer border-b border-gray-100 hover:bg-gray-50 transition-all duration-200 ${
+                                            selectedRoom?.id === room.id ? 'bg-blue-50 border-l-4 border-l-blue-500 shadow-sm' : ''
+                                        }`}
+                                    >
+                                        <div className="flex items-start justify-between mb-2">
+                                            <h3 className="font-medium text-gray-800 text-sm truncate pr-2">{room.name}</h3>
+                                            <span className={`px-2 py-0.5 rounded-full text-xs font-medium flex-shrink-0 ${
+                                                room.room_type === 'expert' ? 'bg-orange-100 text-orange-700' :
+                                                room.room_type === 'private' ? 'bg-purple-100 text-purple-700' :
+                                                'bg-green-100 text-green-700'
+                                            }`}>
+                                                {room.room_type === 'expert' ? '👨‍💼' :
+                                                 room.room_type === 'private' ? '🔒' : '👥'}
+                                            </span>
+                                        </div>
+                                        <p className="text-xs text-gray-600 line-clamp-2 mb-2">{room.description}</p>
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center text-xs text-gray-500">
+                                                <span className="w-2 h-2 bg-green-400 rounded-full mr-2"></span>
+                                                활성 상태
+                                            </div>
+                                            <div className="text-xs text-gray-400">
+                                                {new Date(room.created_at).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })}
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))
+                            )}
                         </div>
                     </div>
 
@@ -5345,90 +5444,315 @@
                     <div className="flex-1 flex flex-col">
                         {selectedRoom ? (
                             <>
-                                {/* 채팅방 헤더 */}
-                                <div className="bg-gray-50 px-4 py-3 border-b border-gray-200">
+                                {/* 채팅방 헤더 - 전문가 상담용 개선 */}
+                                <div className="bg-gradient-to-r from-gray-50 to-blue-50 px-4 py-3 border-b border-gray-200">
                                     <div className="flex justify-between items-center">
-                                        <div>
-                                            <h3 className="font-bold text-gray-800">{selectedRoom.name}</h3>
-                                            <p className="text-sm text-gray-600">{selectedRoom.description}</p>
+                                        <div className="flex items-center space-x-3">
+                                            <div className={`w-3 h-3 rounded-full ${
+                                                selectedRoom.room_type === 'expert' ? 'bg-orange-400' :
+                                                selectedRoom.room_type === 'private' ? 'bg-purple-400' :
+                                                'bg-green-400'
+                                            } animate-pulse`}></div>
+                                            <div>
+                                                <h3 className="font-bold text-gray-800 flex items-center">
+                                                    {selectedRoom.name}
+                                                    {selectedRoom.room_type === 'private' && (
+                                                        <span className="ml-2 text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full">
+                                                            🔒 프라이빗 상담
+                                                        </span>
+                                                    )}
+                                                </h3>
+                                                <p className="text-xs text-gray-600">{selectedRoom.description}</p>
+                                            </div>
                                         </div>
-                                        <div className="text-sm text-gray-500">
-                                            참여자 {participants.length}명
+                                        <div className="flex items-center space-x-4">
+                                            <div className="text-right">
+                                                <div className="text-sm text-gray-600">
+                                                    👥 {participants.length}명
+                                                </div>
+                                                {selectedRoom.room_type === 'private' && (
+                                                    <div className="text-xs text-green-600 font-medium">
+                                                        ✅ 상담 진행중
+                                                    </div>
+                                                )}
+                                            </div>
+                                            {/* 상담 도구 버튼들 */}
+                                            {selectedRoom.room_type === 'private' && (
+                                                <div className="flex space-x-1">
+                                                    <button
+                                                        className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                                        title="파일 공유"
+                                                    >
+                                                        📎
+                                                    </button>
+                                                    <button
+                                                        className="p-2 text-gray-500 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                                                        title="화면 공유"
+                                                    >
+                                                        🖥️
+                                                    </button>
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                 </div>
 
-                                {/* 메시지 영역 */}
-                                <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                                {/* 메시지 영역 - 전문가 상담용 개선 */}
+                                <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50">
                                     {messages.length === 0 ? (
-                                        <div className="text-center text-gray-500 mt-8">
-                                            <div className="text-4xl mb-2">💭</div>
-                                            <p>첫 번째 메시지를 보내보세요!</p>
+                                        <div className="text-center text-gray-500 mt-16">
+                                            <div className="text-6xl mb-4">
+                                                {selectedRoom.room_type === 'private' ? '🏥' : '💭'}
+                                            </div>
+                                            <h3 className="text-lg font-medium mb-2">
+                                                {selectedRoom.room_type === 'private' ? '상담을 시작하세요' : '대화를 시작하세요'}
+                                            </h3>
+                                            <p className="text-sm">
+                                                {selectedRoom.room_type === 'private' 
+                                                    ? '전문가와 안전한 1:1 상담을 진행할 수 있습니다'
+                                                    : '첫 번째 메시지를 보내보세요!'
+                                                }
+                                            </p>
                                         </div>
                                     ) : (
-                                        messages.map((message) => (
-                                            <div
-                                                key={message.id}
-                                                className={`flex ${
-                                                    message.user_id === currentUser.id ? 'justify-end' : 'justify-start'
-                                                }`}
-                                            >
-                                                <div className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
-                                                    message.user_id === currentUser.id
-                                                        ? 'bg-blue-500 text-white'
-                                                        : 'bg-gray-100 text-gray-800'
-                                                }`}>
-                                                    {message.user_id !== currentUser.id && (
-                                                        <div className="text-xs font-medium mb-1 opacity-75">
-                                                            {message.user_nickname}
+                                        messages.map((message, index) => {
+                                            const isMyMessage = message.user_id === currentUser.id;
+                                            const isExpertMessage = message.user_nickname && message.user_nickname.includes('전문가');
+                                            const showAvatar = index === 0 || messages[index - 1].user_id !== message.user_id;
+                                            
+                                            return (
+                                                <div
+                                                    key={message.id}
+                                                    className={`flex items-end space-x-2 ${
+                                                        isMyMessage ? 'justify-end flex-row-reverse space-x-reverse' : 'justify-start'
+                                                    }`}
+                                                >
+                                                    {/* 프로필 아이콘 */}
+                                                    {showAvatar && !isMyMessage && (
+                                                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
+                                                            isExpertMessage 
+                                                                ? 'bg-orange-100 text-orange-700' 
+                                                                : 'bg-blue-100 text-blue-700'
+                                                        }`}>
+                                                            {isExpertMessage ? '👨‍💼' : '👤'}
                                                         </div>
                                                     )}
-                                                    <div className="whitespace-pre-wrap break-words">
-                                                        {message.message_text}
-                                                    </div>
-                                                    <div className={`text-xs mt-1 ${
-                                                        message.user_id === currentUser.id ? 'text-blue-100' : 'text-gray-500'
-                                                    }`}>
-                                                        {formatMessageTime(message.created_at)}
+                                                    {showAvatar && isMyMessage && (
+                                                        <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white text-sm font-medium">
+                                                            나
+                                                        </div>
+                                                    )}
+                                                    
+                                                    {/* 메시지 버블 */}
+                                                    <div className={`max-w-xs lg:max-w-md ${!showAvatar ? 'ml-10' : ''}`}>
+                                                        {/* 발신자 이름 (전문가 강조) */}
+                                                        {!isMyMessage && showAvatar && (
+                                                            <div className={`text-xs font-medium mb-1 ml-1 ${
+                                                                isExpertMessage ? 'text-orange-700' : 'text-gray-600'
+                                                            }`}>
+                                                                {isExpertMessage && '⭐ '}
+                                                                {message.user_nickname}
+                                                                {isExpertMessage && ' (전문가)'}
+                                                            </div>
+                                                        )}
+                                                        
+                                                        {/* 메시지 내용 */}
+                                                        <div className={`px-4 py-3 rounded-2xl shadow-sm ${
+                                                            isMyMessage
+                                                                ? 'bg-blue-500 text-white rounded-br-md'
+                                                                : isExpertMessage
+                                                                    ? 'bg-orange-50 text-orange-900 border border-orange-200 rounded-bl-md'
+                                                                    : 'bg-white text-gray-800 border border-gray-200 rounded-bl-md'
+                                                        }`}>
+                                                            <div className="whitespace-pre-wrap break-words leading-relaxed">
+                                                                {message.message_text}
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        {/* 시간 */}
+                                                        <div className={`text-xs mt-1 px-1 ${
+                                                            isMyMessage ? 'text-right text-gray-400' : 'text-left text-gray-500'
+                                                        }`}>
+                                                            {formatMessageTime(message.created_at)}
+                                                        </div>
                                                     </div>
                                                 </div>
-                                            </div>
-                                        ))
+                                            );
+                                        })
                                     )}
                                     <div ref={messagesEndRef} />
                                 </div>
 
-                                {/* 메시지 입력 */}
-                                <div className="border-t border-gray-200 p-4">
-                                    <form onSubmit={sendMessage} className="flex gap-2">
-                                        <input
-                                            type="text"
-                                            value={newMessage}
-                                            onChange={(e) => setNewMessage(e.target.value)}
-                                            placeholder="메시지를 입력하세요..."
-                                            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                            disabled={sending}
-                                            maxLength="500"
-                                        />
-                                        <button
-                                            type="submit"
-                                            disabled={!newMessage.trim() || sending}
-                                            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:bg-gray-400"
-                                        >
-                                            {sending ? '전송중...' : '전송'}
-                                        </button>
+                                {/* 메시지 입력 - 전문가 상담용 개선 */}
+                                <div className="border-t border-gray-200 bg-white p-4">
+                                    {selectedRoom.room_type === 'private' && (
+                                        <div className="flex items-center justify-between bg-blue-50 rounded-lg px-3 py-2 mb-3 text-sm">
+                                            <div className="flex items-center space-x-2">
+                                                <span className="w-2 h-2 bg-green-400 rounded-full"></span>
+                                                <span className="text-blue-700 font-medium">안전한 1:1 상담 진행중</span>
+                                            </div>
+                                            <div className="text-xs text-blue-600">
+                                                🔒 암호화된 대화
+                                            </div>
+                                        </div>
+                                    )}
+                                    
+                                    <form onSubmit={sendMessage} className="space-y-3">
+                                        <div className="flex gap-2">
+                                            <div className="flex-1 relative">
+                                                <input
+                                                    type="text"
+                                                    value={newMessage}
+                                                    onChange={(e) => setNewMessage(e.target.value)}
+                                                    placeholder={
+                                                        selectedRoom.room_type === 'private' 
+                                                            ? "궁금한 점을 자세히 말씀해 주세요..."
+                                                            : "메시지를 입력하세요..."
+                                                    }
+                                                    className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                                                    disabled={sending}
+                                                    maxLength="1000"
+                                                />
+                                                <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-xs text-gray-400">
+                                                    {newMessage.length}/1000
+                                                </div>
+                                            </div>
+                                            <button
+                                                type="submit"
+                                                disabled={!newMessage.trim() || sending}
+                                                className={`px-6 py-3 rounded-xl font-medium transition-all duration-200 ${
+                                                    !newMessage.trim() || sending
+                                                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                                        : selectedRoom.room_type === 'private'
+                                                            ? 'bg-orange-500 hover:bg-orange-600 text-white shadow-lg hover:shadow-xl'
+                                                            : 'bg-blue-600 hover:bg-blue-700 text-white shadow-lg hover:shadow-xl'
+                                                }`}
+                                            >
+                                                {sending ? (
+                                                    <div className="flex items-center space-x-2">
+                                                        <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"></div>
+                                                        <span>전송중</span>
+                                                    </div>
+                                                ) : (
+                                                    '전송 📤'
+                                                )}
+                                            </button>
+                                        </div>
+                                        
+                                        {/* 빠른 응답 버튼들 (상담용) */}
+                                        {selectedRoom.room_type === 'private' && newMessage === '' && (
+                                            <div className="flex flex-wrap gap-2">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setNewMessage('안녕하세요! 상담 요청드립니다.')}
+                                                    className="px-3 py-1 text-xs bg-gray-100 text-gray-700 rounded-full hover:bg-gray-200 transition-colors"
+                                                >
+                                                    👋 인사
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setNewMessage('은퇴 계획에 대해 상담받고 싶습니다.')}
+                                                    className="px-3 py-1 text-xs bg-gray-100 text-gray-700 rounded-full hover:bg-gray-200 transition-colors"
+                                                >
+                                                    💰 은퇴 계획
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setNewMessage('투자 포트폴리오 검토를 부탁드립니다.')}
+                                                    className="px-3 py-1 text-xs bg-gray-100 text-gray-700 rounded-full hover:bg-gray-200 transition-colors"
+                                                >
+                                                    📈 투자 상담
+                                                </button>
+                                            </div>
+                                        )}
                                     </form>
                                 </div>
                             </>
                         ) : (
                             <div className="flex items-center justify-center h-full text-gray-500">
-                                <div className="text-center">
-                                    <div className="text-4xl mb-2">💬</div>
-                                    <p>채팅방을 선택해주세요</p>
+                                <div className="text-center max-w-md">
+                                    <div className="text-6xl mb-6">🏥</div>
+                                    <h3 className="text-xl font-semibold text-gray-700 mb-4">전문가 상담 시작하기</h3>
+                                    <p className="text-gray-600 mb-6 leading-relaxed">
+                                        은퇴 계획, 투자, 재무 설계에 대해<br/>
+                                        전문가와 안전하게 상담하세요
+                                    </p>
+                                    <button
+                                        onClick={() => setShowCreateRoom(true)}
+                                        className="px-6 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl font-medium hover:from-blue-600 hover:to-indigo-700 transition-all duration-200 shadow-lg hover:shadow-xl"
+                                    >
+                                        🚀 새 상담 시작하기
+                                    </button>
+                                    <div className="mt-4 text-sm text-gray-500">
+                                        💡 1:1 프라이빗 상담 | 🔒 안전한 암호화 대화
+                                    </div>
                                 </div>
                             </div>
                         )}
                     </div>
+                    
+                    {/* 상담방 생성 모달 */}
+                    {showCreateRoom && (
+                        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                            <div className="bg-white rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl">
+                                <div className="text-center mb-6">
+                                    <div className="text-4xl mb-3">🏥</div>
+                                    <h3 className="text-xl font-bold text-gray-800 mb-2">전문가 상담 요청</h3>
+                                    <p className="text-gray-600 text-sm">
+                                        전문가와의 1:1 상담방을 생성합니다
+                                    </p>
+                                </div>
+                                
+                                <div className="space-y-4 mb-6">
+                                    <div className="bg-blue-50 rounded-lg p-4">
+                                        <div className="flex items-center space-x-3">
+                                            <div className="text-2xl">👤</div>
+                                            <div>
+                                                <div className="font-medium text-gray-800">
+                                                    {currentUser?.nickname || currentUser?.email}
+                                                </div>
+                                                <div className="text-sm text-gray-600">상담 신청자</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="bg-orange-50 rounded-lg p-4">
+                                        <h4 className="font-medium text-gray-800 mb-2">🎯 상담 가능 분야</h4>
+                                        <div className="grid grid-cols-2 gap-2 text-sm">
+                                            <div className="text-gray-700">• 은퇴 계획 설계</div>
+                                            <div className="text-gray-700">• 투자 포트폴리오</div>
+                                            <div className="text-gray-700">• 세금 최적화</div>
+                                            <div className="text-gray-700">• 보험 상담</div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="bg-green-50 rounded-lg p-4">
+                                        <h4 className="font-medium text-gray-800 mb-2">✅ 상담 혜택</h4>
+                                        <div className="text-sm space-y-1">
+                                            <div className="text-gray-700">• 전문가 1:1 맞춤 상담</div>
+                                            <div className="text-gray-700">• 안전한 프라이빗 대화</div>
+                                            <div className="text-gray-700">• 자료 공유 가능</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div className="flex space-x-3">
+                                    <button
+                                        onClick={() => setShowCreateRoom(false)}
+                                        className="flex-1 px-4 py-3 border border-gray-300 text-gray-700 rounded-xl font-medium hover:bg-gray-50 transition-colors"
+                                    >
+                                        취소
+                                    </button>
+                                    <button
+                                        onClick={requestExpertConsultation}
+                                        className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition-colors shadow-lg"
+                                    >
+                                        상담 시작하기
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
             );
         };
@@ -8422,171 +8746,204 @@
                             </div>
                         </div>
                         
-                        {/* 드롭다운 메뉴 */}
+                        {/* 사이드바 메뉴 */}
                         {showMobileMenu && (
-                            <div className="bg-white border-t border-gray-200 shadow-lg">
-                                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 space-y-3">
-                                    {/* 메인 메뉴들 */}
-                                    <button
-                                        className={`w-full text-left px-4 py-3 rounded-lg transition-colors flex items-center ${
-                                            currentView === 'calculator' 
-                                                ? 'bg-blue-50 text-blue-600 font-semibold' 
-                                                : 'text-gray-700 hover:bg-gray-50 hover:text-blue-600'
-                                        }`}
-                                        onClick={() => {
-                                            setCurrentView('calculator');
-                                            setShowMobileMenu(false);
-                                        }}
-                                    >
-                                        <span className="mr-3">🧮</span>
-                                        은퇴생활비 계산기
-                                    </button>
+                            <>
+                                {/* 사이드바 배경 오버레이 */}
+                                <div 
+                                    className="fixed inset-0 bg-black bg-opacity-50 z-40"
+                                    onClick={() => setShowMobileMenu(false)}
+                                />
+                                
+                                {/* 사이드바 */}
+                                <div className="fixed top-0 right-0 h-full w-80 bg-white shadow-2xl z-50 transform transition-transform duration-300 ease-in-out">
+                                    {/* 사이드바 헤더 */}
+                                    <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-blue-50">
+                                        <div className="flex items-center space-x-2">
+                                            <div className="text-xl font-bold text-blue-600">플랜비</div>
+                                            <span className="text-xs text-gray-500">메뉴</span>
+                                        </div>
+                                        <button
+                                            onClick={() => setShowMobileMenu(false)}
+                                            className="p-2 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+                                        >
+                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                            </svg>
+                                        </button>
+                                    </div>
                                     
-                                    <button
-                                        className={`w-full text-left px-4 py-3 rounded-lg transition-colors flex items-center ${
-                                            currentView === 'community' 
-                                                ? 'bg-blue-50 text-blue-600 font-semibold' 
-                                                : 'text-gray-700 hover:bg-gray-50 hover:text-blue-600'
-                                        }`}
-                                        onClick={() => {
-                                            handleCommunityAccess();
-                                            setShowMobileMenu(false);
-                                        }}
-                                    >
-                                        <span className="mr-3">💬</span>
-                                        커뮤니티
-                                    </button>
+                                    {/* 사이드바 컨텐츠 */}
+                                    <div className="flex flex-col h-full">
+                                        <div className="flex-1 px-4 py-4 space-y-2 overflow-y-auto">
+                                            {/* 메인 메뉴들 */}
+                                            <button
+                                                className={`w-full text-left px-3 py-2 rounded-md transition-colors flex items-center text-sm ${
+                                                    currentView === 'calculator' 
+                                                        ? 'bg-blue-100 text-blue-700 font-medium shadow-sm' 
+                                                        : 'text-gray-700 hover:bg-gray-50 hover:text-blue-600'
+                                                }`}
+                                                onClick={() => {
+                                                    setCurrentView('calculator');
+                                                    setShowMobileMenu(false);
+                                                }}
+                                            >
+                                                <span className="mr-3 text-base">🧮</span>
+                                                은퇴생활비 계산기
+                                            </button>
+                                            
+                                            <button
+                                                className={`w-full text-left px-3 py-2 rounded-md transition-colors flex items-center text-sm ${
+                                                    currentView === 'community' 
+                                                        ? 'bg-blue-100 text-blue-700 font-medium shadow-sm' 
+                                                        : 'text-gray-700 hover:bg-gray-50 hover:text-blue-600'
+                                                }`}
+                                                onClick={() => {
+                                                    handleCommunityAccess();
+                                                    setShowMobileMenu(false);
+                                                }}
+                                            >
+                                                <span className="mr-3 text-base">💬</span>
+                                                커뮤니티
+                                            </button>
+                                            
+                                            <button
+                                                className={`w-full text-left px-3 py-2 rounded-md transition-colors flex items-center text-sm ${
+                                                    currentView === 'experts' 
+                                                        ? 'bg-blue-100 text-blue-700 font-medium shadow-sm' 
+                                                        : 'text-gray-700 hover:bg-gray-50 hover:text-blue-600'
+                                                }`}
+                                                onClick={() => {
+                                                    setCurrentView('experts');
+                                                    setShowMobileMenu(false);
+                                                }}
+                                            >
+                                                <span className="mr-3 text-base">🔍</span>
+                                                전문가 찾기
+                                            </button>
+                                            
+                                            <button
+                                                className={`w-full text-left px-3 py-2 rounded-md transition-colors flex items-center text-sm ${
+                                                    currentView === 'announcements' 
+                                                        ? 'bg-blue-100 text-blue-700 font-medium shadow-sm' 
+                                                        : 'text-gray-700 hover:bg-gray-50 hover:text-blue-600'
+                                                }`}
+                                                onClick={() => {
+                                                    setCurrentView('announcements');
+                                                    setShowMobileMenu(false);
+                                                }}
+                                            >
+                                                <span className="mr-3 text-base">📢</span>
+                                                공지사항
+                                            </button>
+                                            
+                                            <button
+                                                className={`w-full text-left px-3 py-2 rounded-md transition-colors flex items-center text-sm ${
+                                                    currentView === 'chat' 
+                                                        ? 'bg-blue-100 text-blue-700 font-medium shadow-sm' 
+                                                        : 'text-gray-700 hover:bg-gray-50 hover:text-blue-600'
+                                                }`}
+                                                onClick={() => {
+                                                    // 채팅은 회원만 가능 
+                                                    if (!checkCalculationForInteraction('chat_access')) {
+                                                        return;
+                                                    }
+                                                    setCurrentView('chat');
+                                                    setShowMobileMenu(false);
+                                                }}
+                                            >
+                                                <span className="mr-3 text-base">💬</span>
+                                                실시간 채팅
+                                            </button>
                                     
-                                    <button
-                                        className={`w-full text-left px-4 py-3 rounded-lg transition-colors flex items-center ${
-                                            currentView === 'experts' 
-                                                ? 'bg-blue-50 text-blue-600 font-semibold' 
-                                                : 'text-gray-700 hover:bg-gray-50 hover:text-blue-600'
-                                        }`}
-                                        onClick={() => {
-                                            setCurrentView('experts');
-                                            setShowMobileMenu(false);
-                                        }}
-                                    >
-                                        <span className="mr-3">🔍</span>
-                                        전문가 찾기
-                                    </button>
-                                    
-                                    <button
-                                        className={`w-full text-left px-4 py-3 rounded-lg transition-colors flex items-center ${
-                                            currentView === 'announcements' 
-                                                ? 'bg-blue-50 text-blue-600 font-semibold' 
-                                                : 'text-gray-700 hover:bg-gray-50 hover:text-blue-600'
-                                        }`}
-                                        onClick={() => {
-                                            setCurrentView('announcements');
-                                            setShowMobileMenu(false);
-                                        }}
-                                    >
-                                        <span className="mr-3">📢</span>
-                                        공지사항
-                                    </button>
-                                    
-                                    <button
-                                        className={`w-full text-left px-4 py-3 rounded-lg transition-colors flex items-center ${
-                                            currentView === 'chat' 
-                                                ? 'bg-blue-50 text-blue-600 font-semibold' 
-                                                : 'text-gray-700 hover:bg-gray-50 hover:text-blue-600'
-                                        }`}
-                                        onClick={() => {
-                                            // 채팅은 회원만 가능 
-                                            if (!checkCalculationForInteraction('chat_access')) {
-                                                return;
-                                            }
-                                            setCurrentView('chat');
-                                            setShowMobileMenu(false);
-                                        }}
-                                    >
-                                        <span className="mr-3">💬</span>
-                                        실시간 채팅
-                                    </button>
-                                    
-                                    {/* 구분선 */}
-                                    <div className="border-t border-gray-200 pt-3 mt-3">
-                                        {/* 사용자 정보 및 액션 */}
-                                        {isGuest ? (
-                                            <>
-                                                <div className="px-4 py-2 text-amber-600 font-medium flex items-center">
-                                                    <span className="mr-2">🌟</span>
-                                                    {currentUser?.nickname} (게스트)
-                                                </div>
+                                        </div>
+                                        
+                                        {/* 사이드바 하단 사용자 영역 */}
+                                        <div className="border-t border-gray-200 p-4 space-y-2 bg-gray-50">
+                                            {isGuest ? (
+                                                <>
+                                                    <div className="px-3 py-2 text-amber-600 font-medium flex items-center text-sm">
+                                                        <span className="mr-2 text-base">🌟</span>
+                                                        <div className="flex-1 min-w-0">
+                                                            <span className="truncate">{currentUser?.nickname}</span>
+                                                            <span className="text-xs text-amber-500 block">(게스트)</span>
+                                                        </div>
+                                                    </div>
+                                                    <button
+                                                        onClick={() => {
+                                                            setAuthMode('signup');
+                                                            setCurrentView('login');
+                                                            setShowAuthForm(true);
+                                                            setShowMobileMenu(false);
+                                                        }}
+                                                        className="w-full text-left px-3 py-2 rounded-md bg-blue-600 text-white font-medium hover:bg-blue-700 transition-colors flex items-center text-sm"
+                                                    >
+                                                        <span className="mr-3 text-base">✨</span>
+                                                        회원가입하기
+                                                    </button>
+                                                    <button
+                                                        onClick={() => {
+                                                            handleLogout();
+                                                            setShowMobileMenu(false);
+                                                        }}
+                                                        className="w-full text-left px-3 py-2 rounded-md text-gray-700 hover:bg-gray-200 hover:text-red-600 transition-colors flex items-center text-sm"
+                                                    >
+                                                        <span className="mr-3 text-base">🚪</span>
+                                                        나가기
+                                                    </button>
+                                                </>
+                                            ) : currentUser ? (
+                                                <>
+                                                    <div className="px-3 py-2 text-gray-700 font-medium flex items-center text-sm">
+                                                        <span className="mr-2 text-base">
+                                                            {isAdminUser(currentUser) ? '👑' : '👤'}
+                                                        </span>
+                                                        <div className="flex-1 min-w-0">
+                                                            <div className="truncate">{currentUser?.nickname || currentUser?.email}</div>
+                                                            {isAdminUser(currentUser) && (
+                                                                <span className="text-red-500 text-xs bg-red-100 px-1 py-0.5 rounded mt-1 inline-block">슈퍼관리자</span>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                    <button
+                                                        onClick={() => {
+                                                            setCurrentView('mypage');
+                                                            setShowMobileMenu(false);
+                                                        }}
+                                                        className="w-full text-left px-3 py-2 rounded-md text-gray-700 hover:bg-gray-200 hover:text-blue-600 transition-colors flex items-center text-sm"
+                                                    >
+                                                        <span className="mr-3 text-base">⚙️</span>
+                                                        마이페이지
+                                                    </button>
+                                                    <button
+                                                        onClick={() => {
+                                                            handleLogout();
+                                                            setShowMobileMenu(false);
+                                                        }}
+                                                        className="w-full text-left px-3 py-2 rounded-md text-gray-700 hover:bg-gray-200 hover:text-red-600 transition-colors flex items-center text-sm"
+                                                    >
+                                                        <span className="mr-3 text-base">🚪</span>
+                                                        로그아웃
+                                                    </button>
+                                                </>
+                                            ) : (
                                                 <button
                                                     onClick={() => {
-                                                        setAuthMode('signup');
+                                                        setAuthMode('login');
                                                         setCurrentView('login');
                                                         setShowAuthForm(true);
                                                         setShowMobileMenu(false);
                                                     }}
-                                                    className="w-full text-left px-4 py-3 rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700 transition-colors flex items-center"
+                                                    className="w-full text-left px-3 py-2 rounded-md bg-blue-600 text-white font-medium hover:bg-blue-700 transition-colors flex items-center text-sm"
                                                 >
-                                                    <span className="mr-3">✨</span>
-                                                    회원가입하기
+                                                    <span className="mr-3 text-base">🔑</span>
+                                                    로그인
                                                 </button>
-                                                <button
-                                                    onClick={() => {
-                                                        handleLogout();
-                                                        setShowMobileMenu(false);
-                                                    }}
-                                                    className="w-full text-left px-4 py-3 rounded-lg text-gray-700 hover:bg-gray-50 hover:text-red-600 transition-colors flex items-center"
-                                                >
-                                                    <span className="mr-3">🚪</span>
-                                                    나가기
-                                                </button>
-                                            </>
-                                        ) : currentUser ? (
-                                            <>
-                                                <div className="px-4 py-2 text-gray-700 font-medium flex items-center">
-                                                    <span className="mr-2">
-                                                        {isAdminUser(currentUser) ? '👑' : '👤'}
-                                                    </span>
-                                                    {currentUser?.nickname || currentUser?.email}
-                                                    {isAdminUser(currentUser) && (
-                                                        <span className="ml-2 text-red-500 text-xs bg-red-50 px-2 py-1 rounded">슈퍼관리자</span>
-                                                    )}
-                                                </div>
-                                                <button
-                                                    onClick={() => {
-                                                        setCurrentView('mypage');
-                                                        setShowMobileMenu(false);
-                                                    }}
-                                                    className="w-full text-left px-4 py-3 rounded-lg text-gray-700 hover:bg-gray-50 hover:text-blue-600 transition-colors flex items-center"
-                                                >
-                                                    <span className="mr-3">⚙️</span>
-                                                    마이페이지
-                                                </button>
-                                                <button
-                                                    onClick={() => {
-                                                        handleLogout();
-                                                        setShowMobileMenu(false);
-                                                    }}
-                                                    className="w-full text-left px-4 py-3 rounded-lg text-gray-700 hover:bg-gray-50 hover:text-red-600 transition-colors flex items-center"
-                                                >
-                                                    <span className="mr-3">🚪</span>
-                                                    로그아웃
-                                                </button>
-                                            </>
-                                        ) : (
-                                            <button
-                                                onClick={() => {
-                                                    setAuthMode('login');
-                                                    setCurrentView('login');
-                                                    setShowAuthForm(true);
-                                                    setShowMobileMenu(false);
-                                                }}
-                                                className="w-full text-left px-4 py-3 rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700 transition-colors flex items-center"
-                                            >
-                                                <span className="mr-3">🔑</span>
-                                                로그인
-                                            </button>
-                                        )}
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
+                            </>
                         )}
                     </nav>
                     
