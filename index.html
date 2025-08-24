@@ -3955,31 +3955,34 @@
                 <div className={`bg-gradient-to-r ${currentCategory.bgColor} p-6 rounded-lg`}>
                     {/* 헤더 */}
                     <div className="mb-6">
-                        <div className="flex items-center justify-between mb-4">
-                            <div className="flex-1">
-                                <h3 className="text-lg md:text-xl font-bold text-gray-800 mb-2 no-break-korean">
-                                    🎯 관심있는 분야의 전문가에게 정보를 얻으세요!
-                                </h3>
-                                <p className="text-gray-600 text-xs md:text-sm break-keep">
-                                    신뢰할 수 있는 전문가들과 안전한 상담
-                                </p>
-                            </div>
-                            {/* 전문가 서비스 게시 안내 및 버튼 */}
-                            {isExpert && (
-                                <div className="text-right">
-                                    <p className="text-xs text-gray-500 mb-2 no-break-korean">
-                                        💡 전문가는 서비스를 업로드할 수 있어요!
-                                    </p>
+                        <div className="text-center mb-4">
+                            <h3 className="text-lg md:text-xl font-bold text-gray-800 no-break-korean">
+                                🎯 관심있는 분야의 전문가에게 정보를 얻으세요!
+                            </h3>
+                        </div>
+                        
+                        {/* 전문가 전용 서비스 게시 섹션 */}
+                        {isExpert && (
+                            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                                <div className="flex flex-col md:flex-row items-center justify-between gap-3">
+                                    <div className="text-center md:text-left">
+                                        <p className="text-sm font-medium text-blue-800 no-break-korean">
+                                            💡 전문가는 서비스를 업로드할 수 있어요!
+                                        </p>
+                                        <p className="text-xs text-blue-600 mt-1">
+                                            고객들이 예약하고 상담받을 수 있는 서비스를 등록해보세요
+                                        </p>
+                                    </div>
                                     <button
                                         onClick={() => setShowWriteModal(true)}
-                                        className="px-3 md:px-4 py-2 bg-blue-500 text-white rounded-lg text-xs md:text-sm font-medium hover:bg-blue-600 transition-colors shadow-lg no-break-korean"
+                                        className="px-4 py-2.5 bg-blue-500 text-white rounded-lg text-sm font-medium hover:bg-blue-600 transition-colors shadow-md no-break-korean whitespace-nowrap"
                                         title="서비스 게시하기"
                                     >
                                         📝 내 서비스 게시하기
                                     </button>
                                 </div>
-                            )}
-                        </div>
+                            </div>
+                        )}
                     </div>
 
                     {/* 카테고리 탭 */}
