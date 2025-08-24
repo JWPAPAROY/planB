@@ -758,40 +758,30 @@
                         </div>
                     </div>
                     
-                    <div className="p-4 border-2 rounded-lg transition-all duration-200"
+                    <div className="p-3 border rounded-lg"
                          style={{
                              borderColor: checked ? '#ea580c' : '#d1d5db',
                              backgroundColor: checked ? '#fff7ed' : 'white'
                          }}>
-                        <div className="flex items-start space-x-4">
-                            <div className="flex-shrink-0 pt-1">
-                                <input
-                                    type="checkbox"
-                                    id="expert-privacy-checkbox"
-                                    checked={checked}
-                                    onChange={(e) => {
-                                        console.log('전문가 개인정보동의 체크:', e.target.checked);
-                                        onChange(e.target.checked);
-                                    }}
-                                    className="w-5 h-5 text-orange-600 border-2 border-gray-300 rounded focus:ring-2 focus:ring-orange-500 cursor-pointer"
-                                    style={{
-                                        accentColor: '#ea580c',
-                                        transform: 'scale(1.2)'
-                                    }}
-                                />
-                            </div>
-                            <div className="flex-1">
-                                <label htmlFor="expert-privacy-checkbox" className="cursor-pointer">
-                                    <span className="text-sm font-medium text-gray-800">
-                                        위 개인정보 수집·이용에 동의합니다
-                                        <span className="text-red-500 ml-1">(필수)</span>
-                                    </span>
-                                </label>
-                                <p className="text-xs text-gray-500 mt-1">
-                                    전문가 등록을 위해 위 개인정보 수집·이용 동의서의 내용을 읽고 동의합니다
-                                </p>
-                            </div>
-                        </div>
+                        <label htmlFor="expert-privacy-checkbox" className="flex items-center space-x-3 cursor-pointer">
+                            <input
+                                type="checkbox"
+                                id="expert-privacy-checkbox"
+                                checked={checked}
+                                onChange={(e) => {
+                                    console.log('전문가 개인정보동의 체크:', e.target.checked);
+                                    onChange(e.target.checked);
+                                }}
+                                className="w-4 h-4 text-orange-600 border border-gray-300 rounded cursor-pointer"
+                                style={{
+                                    accentColor: '#ea580c'
+                                }}
+                            />
+                            <span className="text-xs text-gray-700">
+                                위 개인정보 수집·이용에 동의합니다
+                                <span className="text-red-500 ml-1">*</span>
+                            </span>
+                        </label>
                     </div>
                 </div>
             );
