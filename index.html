@@ -3252,7 +3252,7 @@
         };
 
         // 전문가 글 작성 모달 컴포넌트
-        const ExpertPostWriteModal = ({ isOpen, onClose, currentUser, onSuccess }) => {
+        const ExpertPostWriteModal = ({ isOpen, onClose, currentUser, onSuccess, isAdminUser }) => {
             const [formData, setFormData] = useState({
                 title: '',
                 content: '',
@@ -3378,41 +3378,57 @@
                 setIsSubmitting(true);
                 
                 try {
-                    // 전문가 프로필 확인
-                    const { data: expertProfile } = await supabase
-                        .from('expert_profiles')
-                        .select('*')
-                        .eq('user_id', currentUser.id)
-                        .eq('is_verified', true)
-                        .eq('is_active', true)
-                        .single();
+                    let expertProfile = null;
 
-                    if (!expertProfile) {
-                        setError('승인된 전문가만 글을 작성할 수 있습니다.');
-                        return;
+                    // 관리자는 전문가 프로필 없이도 글 작성 가능
+                    if (isAdminUser && isAdminUser(currentUser)) {
+                        // 관리자용 임시 프로필 생성
+                        expertProfile = {
+                            id: 'admin-' + currentUser.id,
+                            name: currentUser.email?.split('@')[0] || '관리자',
+                            title: '시스템 관리자',
+                            user_id: currentUser.id
+                        };
+                    } else {
+                        // 일반 사용자는 전문가 프로필 확인
+                        const { data: profile } = await supabase
+                            .from('expert_profiles')
+                            .select('*')
+                            .eq('user_id', currentUser.id)
+                            .eq('is_verified', true)
+                            .eq('is_active', true)
+                            .single();
+
+                        if (!profile) {
+                            setError('승인된 전문가만 글을 작성할 수 있습니다.');
+                            return;
+                        }
+                        expertProfile = profile;
                     }
 
-                    // 전문가 게시글 데이터 생성
-                    const postData = {
-                        expert_id: expertProfile.id,
-                        title: formData.title.trim(),
-                        content: formData.content.trim(),
-                        service_description: `서비스 유형: ${serviceTypes[formData.serviceType]}\n소요 시간: ${formData.duration}분\n상담료: ${formData.price}원\n가능 요일: ${formData.availableDays.map(d => dayOptions.find(opt => opt.value === d)?.label).join(', ')}\n가능 시간: ${formData.availableHours}\n연락처: ${formData.contact}`,
-                        category: formData.category,
-                        consultation_type: [formData.serviceType],
-                        price_info: `${formData.price}원 / ${formData.duration}분`,
-                        sample_questions: formData.tags
-                    };
+                    // 일반 전문가의 경우 expert_posts 테이블에 저장
+                    if (!isAdminUser || !isAdminUser(currentUser)) {
+                        const postData = {
+                            expert_id: expertProfile.id,
+                            title: formData.title.trim(),
+                            content: formData.content.trim(),
+                            service_description: `서비스 유형: ${serviceTypes[formData.serviceType]}\n소요 시간: ${formData.duration}분\n상담료: ${formData.price}원\n가능 요일: ${formData.availableDays.map(d => dayOptions.find(opt => opt.value === d)?.label).join(', ')}\n가능 시간: ${formData.availableHours}\n연락처: ${formData.contact}`,
+                            category: formData.category,
+                            consultation_type: [formData.serviceType],
+                            price_info: `${formData.price}원 / ${formData.duration}분`,
+                            sample_questions: formData.tags
+                        };
 
-                    // expert_posts 테이블에 저장
-                    const { data: expertPost, error: expertError } = await supabase
-                        .from('expert_posts')
-                        .insert([postData])
-                        .select()
-                        .single();
+                        // expert_posts 테이블에 저장
+                        const { data: expertPost, error: expertError } = await supabase
+                            .from('expert_posts')
+                            .insert([postData])
+                            .select()
+                            .single();
 
-                    if (expertError) {
-                        throw expertError;
+                        if (expertError) {
+                            throw expertError;
+                        }
                     }
 
                     // 커뮤니티 게시글로도 동시 등록 (전문가 카테고리)
@@ -3424,7 +3440,7 @@
                         expert_category: formData.category,
                         expert_name: expertProfile.name,
                         expert_title: expertProfile.title,
-                        expert_badge: '인증 전문가',
+                        expert_badge: isAdminUser && isAdminUser(currentUser) ? '👑 슈퍼관리자' : '인증 전문가',
                         created_at: new Date().toISOString()
                     };
 
@@ -3708,18 +3724,24 @@
         };
 
         // 전문가 찾기 컴포넌트
-        const ExpertFinderComponent = ({ currentUser }) => {
+        const ExpertFinderComponent = ({ currentUser, isAdminUser }) => {
             const [activeCategory, setActiveCategory] = useState('travel');
             const [showBookingModal, setShowBookingModal] = useState(false);
             const [selectedExpert, setSelectedExpert] = useState(null);
             const [showWriteModal, setShowWriteModal] = useState(false);
             const [isExpert, setIsExpert] = useState(false);
 
-            // 전문가 여부 확인
+            // 전문가 여부 확인 (관리자는 모든 권한 보유)
             useEffect(() => {
                 const checkExpertStatus = async () => {
                     if (!currentUser) {
                         setIsExpert(false);
+                        return;
+                    }
+
+                    // 관리자는 모든 전문가 권한 보유
+                    if (isAdminUser && isAdminUser(currentUser)) {
+                        setIsExpert(true);
                         return;
                     }
 
@@ -4020,6 +4042,7 @@
                             onClose={() => setShowWriteModal(false)}
                             currentUser={currentUser}
                             onSuccess={handleWriteSuccess}
+                            isAdminUser={isAdminUser}
                         />
                     )}
                 </div>
@@ -5473,7 +5496,7 @@
 
                                     {/* 전문가 찾기 탭 */}
                                     {activeTab === 'expert' && (
-                                        <ExpertFinderComponent currentUser={currentUser} />
+                                        <ExpertFinderComponent currentUser={currentUser} isAdminUser={isAdminUser} />
                                     )}
                                 </div>
                             )}
@@ -6515,7 +6538,7 @@
                                     <h2 className="text-2xl font-bold text-gray-800 mb-6 text-center">
                                         🔍 전문가 찾기
                                     </h2>
-                                    <ExpertFinderComponent currentUser={currentUser} />
+                                    <ExpertFinderComponent currentUser={currentUser} isAdminUser={isAdminUser} />
                                 </div>
                             </div>
                         )}
