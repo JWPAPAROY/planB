@@ -3761,6 +3761,324 @@
             );
         };
 
+        // 실시간 채팅 컴포넌트
+        const ChatComponent = ({ currentUser, isAdminUser }) => {
+            const [chatRooms, setChatRooms] = useState([]);
+            const [selectedRoom, setSelectedRoom] = useState(null);
+            const [messages, setMessages] = useState([]);
+            const [newMessage, setNewMessage] = useState('');
+            const [participants, setParticipants] = useState([]);
+            const [loading, setLoading] = useState(true);
+            const [sending, setSending] = useState(false);
+            const messagesEndRef = useRef(null);
+            const messageSubscription = useRef(null);
+
+            // 채팅방 목록 로드
+            const loadChatRooms = async () => {
+                try {
+                    const { data, error } = await supabase
+                        .from('chat_rooms')
+                        .select('*')
+                        .eq('is_active', true)
+                        .order('created_at', { ascending: false });
+
+                    if (error) throw error;
+                    setChatRooms(data || []);
+                    
+                    // 첫 번째 채팅방을 기본 선택
+                    if (data && data.length > 0) {
+                        setSelectedRoom(data[0]);
+                    }
+                } catch (error) {
+                    console.error('채팅방 로드 오류:', error);
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            // 채팅방 참여
+            const joinRoom = async (room) => {
+                try {
+                    // 참여자로 추가 (이미 있으면 업데이트)
+                    await supabase
+                        .from('chat_participants')
+                        .upsert({
+                            room_id: room.id,
+                            user_id: currentUser.id,
+                            is_active: true
+                        }, {
+                            onConflict: 'room_id,user_id'
+                        });
+                        
+                    setSelectedRoom(room);
+                    loadMessages(room.id);
+                    loadParticipants(room.id);
+                } catch (error) {
+                    console.error('채팅방 참여 오류:', error);
+                }
+            };
+
+            // 메시지 로드
+            const loadMessages = async (roomId) => {
+                try {
+                    const { data, error } = await supabase
+                        .from('chat_messages')
+                        .select('*')
+                        .eq('room_id', roomId)
+                        .order('created_at', { ascending: true })
+                        .limit(100); // 최근 100개 메시지만
+
+                    if (error) throw error;
+                    setMessages(data || []);
+                    
+                    // 스크롤을 맨 아래로
+                    setTimeout(() => scrollToBottom(), 100);
+                } catch (error) {
+                    console.error('메시지 로드 오류:', error);
+                }
+            };
+
+            // 참여자 로드
+            const loadParticipants = async (roomId) => {
+                try {
+                    const { data, error } = await supabase
+                        .from('chat_participants')
+                        .select(`
+                            *,
+                            user_profiles:user_id (
+                                nickname,
+                                role
+                            )
+                        `)
+                        .eq('room_id', roomId)
+                        .eq('is_active', true);
+
+                    if (error) throw error;
+                    setParticipants(data || []);
+                } catch (error) {
+                    console.error('참여자 로드 오류:', error);
+                }
+            };
+
+            // 메시지 전송
+            const sendMessage = async (e) => {
+                e.preventDefault();
+                if (!newMessage.trim() || !selectedRoom || sending) return;
+
+                try {
+                    setSending(true);
+                    const { error } = await supabase
+                        .from('chat_messages')
+                        .insert({
+                            room_id: selectedRoom.id,
+                            user_id: currentUser.id,
+                            user_nickname: currentUser.nickname || currentUser.email,
+                            message_text: newMessage.trim(),
+                            message_type: 'text'
+                        });
+
+                    if (error) throw error;
+                    setNewMessage('');
+                } catch (error) {
+                    console.error('메시지 전송 오류:', error);
+                    alert('메시지 전송 중 오류가 발생했습니다.');
+                } finally {
+                    setSending(false);
+                }
+            };
+
+            // 스크롤을 맨 아래로
+            const scrollToBottom = () => {
+                messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+            };
+
+            // 실시간 구독 설정
+            const setupRealtimeSubscription = (roomId) => {
+                // 기존 구독 해제
+                if (messageSubscription.current) {
+                    messageSubscription.current.unsubscribe();
+                }
+
+                // 새 메시지 구독
+                messageSubscription.current = supabase
+                    .channel(`chat-${roomId}`)
+                    .on('postgres_changes', {
+                        event: 'INSERT',
+                        schema: 'public',
+                        table: 'chat_messages',
+                        filter: `room_id=eq.${roomId}`
+                    }, (payload) => {
+                        setMessages(prev => [...prev, payload.new]);
+                        setTimeout(() => scrollToBottom(), 100);
+                    })
+                    .subscribe();
+            };
+
+            useEffect(() => {
+                if (currentUser) {
+                    loadChatRooms();
+                }
+
+                return () => {
+                    if (messageSubscription.current) {
+                        messageSubscription.current.unsubscribe();
+                    }
+                };
+            }, [currentUser]);
+
+            useEffect(() => {
+                if (selectedRoom) {
+                    setupRealtimeSubscription(selectedRoom.id);
+                }
+            }, [selectedRoom]);
+
+            // 메시지 시간 포맷
+            const formatMessageTime = (timestamp) => {
+                const date = new Date(timestamp);
+                return date.toLocaleTimeString('ko-KR', { 
+                    hour: '2-digit', 
+                    minute: '2-digit' 
+                });
+            };
+
+            if (loading) {
+                return (
+                    <div className="flex items-center justify-center h-96">
+                        <div className="text-center">
+                            <div className="text-4xl mb-4">💬</div>
+                            <p className="text-gray-500">채팅방을 불러오는 중...</p>
+                        </div>
+                    </div>
+                );
+            }
+
+            return (
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden h-[600px] flex flex-col md:flex-row">
+                    {/* 채팅방 목록 (왼쪽/상단) */}
+                    <div className="w-full md:w-1/3 border-b md:border-b-0 md:border-r border-gray-200 flex flex-col h-40 md:h-auto">
+                        <div className="bg-gradient-to-r from-indigo-600 to-purple-600 px-4 py-4 text-white">
+                            <h2 className="text-lg font-bold">💬 실시간 채팅</h2>
+                            <p className="text-indigo-100 text-sm">채팅방을 선택하세요</p>
+                        </div>
+                        
+                        <div className="flex-1 overflow-y-auto">
+                            {chatRooms.map((room) => (
+                                <div
+                                    key={room.id}
+                                    onClick={() => joinRoom(room)}
+                                    className={`p-4 cursor-pointer border-b border-gray-100 hover:bg-gray-50 transition-colors ${
+                                        selectedRoom?.id === room.id ? 'bg-blue-50 border-l-4 border-l-blue-500' : ''
+                                    }`}
+                                >
+                                    <h3 className="font-medium text-gray-800 mb-1">{room.name}</h3>
+                                    <p className="text-sm text-gray-600 line-clamp-2">{room.description}</p>
+                                    <div className="flex items-center mt-2">
+                                        <span className={`px-2 py-1 rounded-full text-xs ${
+                                            room.room_type === 'expert' ? 'bg-orange-100 text-orange-800' :
+                                            room.room_type === 'private' ? 'bg-red-100 text-red-800' :
+                                            'bg-green-100 text-green-800'
+                                        }`}>
+                                            {room.room_type === 'expert' ? '전문가' :
+                                             room.room_type === 'private' ? '프라이빗' : '일반'}
+                                        </span>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* 채팅 영역 (오른쪽) */}
+                    <div className="flex-1 flex flex-col">
+                        {selectedRoom ? (
+                            <>
+                                {/* 채팅방 헤더 */}
+                                <div className="bg-gray-50 px-4 py-3 border-b border-gray-200">
+                                    <div className="flex justify-between items-center">
+                                        <div>
+                                            <h3 className="font-bold text-gray-800">{selectedRoom.name}</h3>
+                                            <p className="text-sm text-gray-600">{selectedRoom.description}</p>
+                                        </div>
+                                        <div className="text-sm text-gray-500">
+                                            참여자 {participants.length}명
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* 메시지 영역 */}
+                                <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                                    {messages.length === 0 ? (
+                                        <div className="text-center text-gray-500 mt-8">
+                                            <div className="text-4xl mb-2">💭</div>
+                                            <p>첫 번째 메시지를 보내보세요!</p>
+                                        </div>
+                                    ) : (
+                                        messages.map((message) => (
+                                            <div
+                                                key={message.id}
+                                                className={`flex ${
+                                                    message.user_id === currentUser.id ? 'justify-end' : 'justify-start'
+                                                }`}
+                                            >
+                                                <div className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
+                                                    message.user_id === currentUser.id
+                                                        ? 'bg-blue-500 text-white'
+                                                        : 'bg-gray-100 text-gray-800'
+                                                }`}>
+                                                    {message.user_id !== currentUser.id && (
+                                                        <div className="text-xs font-medium mb-1 opacity-75">
+                                                            {message.user_nickname}
+                                                        </div>
+                                                    )}
+                                                    <div className="whitespace-pre-wrap break-words">
+                                                        {message.message_text}
+                                                    </div>
+                                                    <div className={`text-xs mt-1 ${
+                                                        message.user_id === currentUser.id ? 'text-blue-100' : 'text-gray-500'
+                                                    }`}>
+                                                        {formatMessageTime(message.created_at)}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))
+                                    )}
+                                    <div ref={messagesEndRef} />
+                                </div>
+
+                                {/* 메시지 입력 */}
+                                <div className="border-t border-gray-200 p-4">
+                                    <form onSubmit={sendMessage} className="flex gap-2">
+                                        <input
+                                            type="text"
+                                            value={newMessage}
+                                            onChange={(e) => setNewMessage(e.target.value)}
+                                            placeholder="메시지를 입력하세요..."
+                                            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                            disabled={sending}
+                                            maxLength="500"
+                                        />
+                                        <button
+                                            type="submit"
+                                            disabled={!newMessage.trim() || sending}
+                                            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:bg-gray-400"
+                                        >
+                                            {sending ? '전송중...' : '전송'}
+                                        </button>
+                                    </form>
+                                </div>
+                            </>
+                        ) : (
+                            <div className="flex items-center justify-center h-full text-gray-500">
+                                <div className="text-center">
+                                    <div className="text-4xl mb-2">💬</div>
+                                    <p>채팅방을 선택해주세요</p>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+        };
+
         // 공지사항 컴포넌트
         const AnnouncementComponent = ({ currentUser, isAdminUser }) => {
             const [announcements, setAnnouncements] = useState([]);
@@ -6814,6 +7132,25 @@
                                         공지사항
                                     </button>
                                     
+                                    <button
+                                        className={`w-full text-left px-4 py-3 rounded-lg transition-colors flex items-center ${
+                                            currentView === 'chat' 
+                                                ? 'bg-blue-50 text-blue-600 font-semibold' 
+                                                : 'text-gray-700 hover:bg-gray-50 hover:text-blue-600'
+                                        }`}
+                                        onClick={() => {
+                                            // 채팅은 회원만 가능 
+                                            if (!checkCalculationForInteraction('chat_access')) {
+                                                return;
+                                            }
+                                            setCurrentView('chat');
+                                            setShowMobileMenu(false);
+                                        }}
+                                    >
+                                        <span className="mr-3">💬</span>
+                                        실시간 채팅
+                                    </button>
+                                    
                                     {/* 구분선 */}
                                     <div className="border-t border-gray-200 pt-3 mt-3">
                                         {/* 사용자 정보 및 액션 */}
@@ -6911,7 +7248,7 @@
                                     </p>
                                 </div>
                                 
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6 mb-12">
                                     <div className="card hover:shadow-xl transition-shadow cursor-pointer hover-lift" 
                                          onClick={() => setCurrentView('calculator')}>
                                         <div className="text-4xl mb-4">🧮</div>
@@ -6967,6 +7304,25 @@
                                             클릭하면 공지사항으로 이동합니다
                                         </div>
                                     </div>
+                                    
+                                    <div className="card hover:shadow-xl transition-shadow cursor-pointer hover-lift"
+                                         onClick={() => {
+                                             if (!checkCalculationForInteraction('chat_access')) {
+                                                 return;
+                                             }
+                                             setCurrentView('chat');
+                                         }}>
+                                        <div className="text-4xl mb-4">💬</div>
+                                        <h3 className="text-xl font-bold text-gray-800 mb-2">
+                                            실시간 채팅
+                                        </h3>
+                                        <p className="text-gray-600 mb-4">
+                                            다른 회원들과 실시간으로 소통하고 정보를 나누세요
+                                        </p>
+                                        <div className="text-indigo-600 font-semibold">
+                                            클릭하면 실시간 채팅으로 이동합니다
+                                        </div>
+                                    </div>
                                 </div>
                                 
                             </div>
@@ -6993,6 +7349,13 @@
                                 <div className="card">
                                     <AnnouncementComponent currentUser={currentUser} isAdminUser={isAdminUser} />
                                 </div>
+                            </div>
+                        )}
+
+                        {/* 실시간 채팅 페이지 - 회원만 접근 가능 */}
+                        {currentView === 'chat' && (
+                            <div className="max-w-6xl mx-auto">
+                                <ChatComponent currentUser={currentUser} isAdminUser={isAdminUser} />
                             </div>
                         )}
                     </main>
