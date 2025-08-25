@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Checkbox Fix Test</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState } = React;
+
+        // 테스트 체크박스 컴포넌트 - 원래 방식 (문제 있는 방식)
+        const ProblemCheckbox = ({ checked, onChange }) => {
+            return (
+                <div className="p-3 border rounded-lg m-4">
+                    <h3 className="text-lg font-bold mb-2">문제가 있던 방식 (수정 전)</h3>
+                    <div className="flex items-center space-x-3">
+                        <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={(e) => onChange(e.target.checked)}
+                            className="w-4 h-4 text-orange-600 border-2 border-gray-300 rounded"
+                        />
+                        <div 
+                            className="flex-1 text-sm text-gray-800 font-medium cursor-pointer"
+                            onClick={() => {
+                                console.log('텍스트 클릭 - 문제 방식');
+                                onChange(!checked);
+                            }}
+                        >
+                            체크박스 텍스트 (클릭 가능)
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // 수정된 체크박스 컴포넌트 - 라벨 방식
+        const FixedCheckbox = ({ checked, onChange }) => {
+            return (
+                <div className="p-3 border rounded-lg m-4 border-green-500">
+                    <h3 className="text-lg font-bold mb-2 text-green-600">수정된 방식 (수정 후)</h3>
+                    <label className="flex items-center space-x-3 cursor-pointer">
+                        <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={(e) => onChange(e.target.checked)}
+                            className="w-4 h-4 text-orange-600 border-2 border-gray-300 rounded"
+                        />
+                        <div className="flex-1 text-sm text-gray-800 font-medium">
+                            체크박스 텍스트 (자동으로 클릭 가능)
+                        </div>
+                    </label>
+                </div>
+            );
+        };
+
+        // 테스트 앱
+        const TestApp = () => {
+            const [problemChecked, setProblemChecked] = useState(false);
+            const [fixedChecked, setFixedChecked] = useState(false);
+
+            return (
+                <div className="p-8">
+                    <h1 className="text-2xl font-bold mb-6">체크박스 수정 테스트</h1>
+                    
+                    <div className="space-y-4">
+                        <div>
+                            <h2 className="text-lg">상태: 문제 방식 = {problemChecked ? '✅' : '❌'}, 수정된 방식 = {fixedChecked ? '✅' : '❌'}</h2>
+                        </div>
+                        
+                        <ProblemCheckbox 
+                            checked={problemChecked} 
+                            onChange={setProblemChecked} 
+                        />
+                        
+                        <FixedCheckbox 
+                            checked={fixedChecked} 
+                            onChange={setFixedChecked} 
+                        />
+                        
+                        <div className="mt-4 p-3 bg-gray-100 rounded">
+                            <h3 className="font-bold">테스트 방법:</h3>
+                            <p>1. 체크박스를 직접 클릭해보세요</p>
+                            <p>2. 텍스트를 클릭해보세요</p>
+                            <p>3. 두 방식의 동작 차이를 확인하세요</p>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        ReactDOM.render(<TestApp />, document.getElementById('root'));
+    </script>
+</body>
+</html>
