@@ -1,0 +1,95 @@
+<testsuites id="" name="" tests="6" failures="1" skipped="0" errors="0" time="34.153847999999996">
+<testsuite name="e2e/03-expert-fixed.spec.js" timestamp="2025-08-25T00:37:53.720Z" hostname="chromium" tests="6" failures="1" skipped="0" time="83.842" errors="0">
+<testcase name="전문가 시스템 E2E 테스트 (수정됨) › 전문가 상담 카드 접근 테스트" classname="e2e/03-expert-fixed.spec.js" time="11.067">
+<system-out>
+<![CDATA[
+=== 전문가 상담 기본 접근 테스트 시작 ===
+✅ 전문가 상담 카드 접근 성공
+현재 URL: http://localhost:8000/
+✅ 전문가 상담 페이지 내용 확인 완료
+]]>
+</system-out>
+</testcase>
+<testcase name="전문가 시스템 E2E 테스트 (수정됨) › 실시간 상담 카드 접근 테스트" classname="e2e/03-expert-fixed.spec.js" time="10.992">
+<system-out>
+<![CDATA[
+=== 실시간 상담 기본 접근 테스트 시작 ===
+✅ 실시간 상담 카드 접근 성공
+현재 URL: http://localhost:8000/
+✅ 실시간 상담 페이지 내용 확인 완료
+]]>
+</system-out>
+</testcase>
+<testcase name="전문가 시스템 E2E 테스트 (수정됨) › 전문가 등록 버튼 테스트" classname="e2e/03-expert-fixed.spec.js" time="7.895">
+<system-out>
+<![CDATA[
+=== 전문가 등록 테스트 시작 ===
+✅ 전문가 등록 버튼 클릭 성공
+현재 URL: http://localhost:8000/
+✅ 전문가 등록 페이지 접근 확인
+]]>
+</system-out>
+</testcase>
+<testcase name="전문가 시스템 E2E 테스트 (수정됨) › 마이페이지 접근 테스트" classname="e2e/03-expert-fixed.spec.js" time="11.019">
+<system-out>
+<![CDATA[
+=== 마이페이지 접근 테스트 시작 ===
+✅ 마이페이지 카드 접근 성공
+현재 URL: http://localhost:8000/
+✅ 마이페이지 관련 내용 확인
+]]>
+</system-out>
+</testcase>
+<testcase name="전문가 시스템 E2E 테스트 (수정됨) › 커뮤니티 접근 테스트" classname="e2e/03-expert-fixed.spec.js" time="10.91">
+<system-out>
+<![CDATA[
+=== 커뮤니티 접근 테스트 시작 ===
+✅ 커뮤니티 카드 접근 성공
+현재 URL: http://localhost:8000/
+✅ 커뮤니티 페이지 내용 확인
+]]>
+</system-out>
+</testcase>
+<testcase name="전문가 시스템 E2E 테스트 (수정됨) › 전문가 시스템 종합 플로우 테스트" classname="e2e/03-expert-fixed.spec.js" time="31.959">
+<failure message="03-expert-fixed.spec.js:157:3 전문가 시스템 종합 플로우 테스트" type="FAILURE">
+<![CDATA[  [chromium] › e2e/03-expert-fixed.spec.js:157:3 › 전문가 시스템 E2E 테스트 (수정됨) › 전문가 시스템 종합 플로우 테스트 ──────
+
+    Test timeout of 30000ms exceeded.
+
+    Error: page.click: Test timeout of 30000ms exceeded.
+    Call log:
+      - waiting for locator('h3:has-text("실시간 상담")')
+
+
+      171 |     await page.goBack();
+      172 |     await page.waitForTimeout(2000);
+    > 173 |     await page.click('h3:has-text("실시간 상담")');
+          |                ^
+      174 |     await page.waitForTimeout(2000);
+      175 |     console.log('✅ 3단계: 실시간 상담 페이지 접근');
+      176 |     
+        at /home/knoww/planb-2.0-project/calculator-app/tests/e2e/03-expert-fixed.spec.js:173:16
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../test-results/e2e-03-expert-fixed-전문가-시스템-E2E-테스트-수정됨-전문가-시스템-종합-플로우-테스트-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    ../test-results/e2e-03-expert-fixed-전문가-시스템-E2E-테스트-수정됨-전문가-시스템-종합-플로우-테스트-chromium/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+]]>
+</failure>
+<system-out>
+<![CDATA[
+=== 전문가 시스템 종합 플로우 테스트 시작 ===
+✅ 1단계: 게스트 모드 진입
+✅ 2단계: 전문가 상담 페이지 접근
+
+[[ATTACHMENT|e2e-03-expert-fixed-전문가-시스템-E2E-테스트-수정됨-전문가-시스템-종합-플로우-테스트-chromium/test-failed-1.png]]
+
+[[ATTACHMENT|e2e-03-expert-fixed-전문가-시스템-E2E-테스트-수정됨-전문가-시스템-종합-플로우-테스트-chromium/video.webm]]
+]]>
+</system-out>
+</testcase>
+</testsuite>
+</testsuites>

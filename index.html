@@ -809,18 +809,13 @@
                                     console.log('전문가 개인정보동의 체크:', isChecked);
                                     onChange(isChecked);
                                 }}
-                                onClick={(e) => {
-                                    console.log('체크박스 직접 클릭:', e.target.checked);
-                                }}
-                                className="w-4 h-4 rounded cursor-pointer"
+                                className="mt-1 w-4 h-4 text-orange-600 border-2 border-gray-300 rounded focus:ring-orange-500 focus:ring-2 cursor-pointer"
                                 style={{
-                                    accentColor: '#ea580c',
-                                    minWidth: '16px',
-                                    minHeight: '16px'
+                                    accentColor: '#ea580c'
                                 }}
                             />
                             <div 
-                                className="flex-1 text-xs text-gray-700 cursor-pointer select-none"
+                                className="flex-1 text-sm text-gray-800 font-medium cursor-pointer select-none"
                                 onClick={() => {
                                     const newChecked = !checked;
                                     console.log('텍스트 영역 클릭:', newChecked);

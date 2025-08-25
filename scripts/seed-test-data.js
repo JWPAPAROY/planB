@@ -23,67 +23,19 @@ class TestDataSeeder {
    */
   async seedUserProfiles() {
     const users = [
-      // 일반 회원들
+      // 일반 회원들 - 기본 컬럼만 사용
       {
-        user_id: `${this.testIdentifier}_user_1`,
         email: `testuser1.${this.timestamp}@planb-test.com`,
-        nickname: `테스트유저1_${this.timestamp}`,
-        role: 'member',
-        created_at: new Date().toISOString()
+        nickname: `테스트유저1_${this.timestamp}`
       },
       {
-        user_id: `${this.testIdentifier}_user_2`,
         email: `testuser2.${this.timestamp}@planb-test.com`,
-        nickname: `테스트유저2_${this.timestamp}`,
-        role: 'member',
-        created_at: new Date().toISOString()
+        nickname: `테스트유저2_${this.timestamp}`
       },
-      // 승인된 전문가
+      // 기본 회원 (전문가로 등록 예정)
       {
-        user_id: `${this.testIdentifier}_expert_approved`,
-        email: `expert.approved.${this.timestamp}@planb-test.com`,
-        nickname: `승인전문가_${this.timestamp}`,
-        role: 'expert',
-        expert_status: 'approved',
-        expert_type: 'legal',
-        expert_title: '공인회계사 • 세무사',
-        expert_specialties: ['세무상담', '자산관리', '상속세 절세'],
-        expert_credentials: ['공인회계사', '세무사', 'CFP'],
-        expert_experience_years: '15',
-        expert_hourly_rate: '150000',
-        expert_phone: '010-1111-1111',
-        expert_business_license: '123-45-67890',
-        expert_qualification_number: 'CPA-12345',
-        expert_bio: '15년 경력의 세무 전문가입니다. 개인 및 법인 세무상담을 전문으로 합니다.',
-        expert_available_types: ['phone', 'video'],
-        created_at: new Date().toISOString()
-      },
-      // 승인 대기 전문가
-      {
-        user_id: `${this.testIdentifier}_expert_pending`,
-        email: `expert.pending.${this.timestamp}@planb-test.com`,
-        nickname: `대기전문가_${this.timestamp}`,
-        role: 'expert',
-        expert_status: 'pending',
-        expert_type: 'travel',
-        expert_title: '시니어 여행 플래너',
-        expert_specialties: ['시니어여행', '국내여행', '해외여행'],
-        expert_credentials: ['관광통역안내사', '여행상품기획사'],
-        expert_experience_years: '8',
-        expert_hourly_rate: '80000',
-        expert_phone: '010-2222-2222',
-        expert_qualification_number: 'TG-67890',
-        expert_bio: '시니어 여행 전문 플래너로 안전하고 즐거운 여행을 기획합니다.',
-        expert_available_types: ['phone', 'video', 'chat'],
-        created_at: new Date().toISOString()
-      },
-      // 테스트 관리자
-      {
-        user_id: `${this.testIdentifier}_admin`,
-        email: `admin.${this.timestamp}@planb-test.com`,
-        nickname: `테스트관리자_${this.timestamp}`,
-        role: 'admin',
-        created_at: new Date().toISOString()
+        email: `expert.user.${this.timestamp}@planb-test.com`,
+        nickname: `전문가유저_${this.timestamp}`
       }
     ];
 
@@ -102,71 +54,106 @@ class TestDataSeeder {
   }
 
   /**
-   * 테스트용 계산 데이터 생성
+   * 테스트용 익명 세션 데이터 생성 (계산 데이터)
    */
-  async seedCalculations() {
-    const calculations = [
+  async seedAnonymousSessions() {
+    const sessions = [
       {
-        user_hash: `${this.testIdentifier}_calc_1`,
-        age_group: '50-54세',
-        health_status: '보통',
-        life_mode: '균형',
+        session_token: `${this.testIdentifier}_session_1`,
+        calculation_hash: `${this.testIdentifier}_calc_1`,
+        assigned_group: 'A',
+        nickname: `테스트계산자1_${this.timestamp}`,
+        monthly_budget: 3000000,
+        asset_years: 25,
         housing_type: 'owned_living',
-        housing_value: 800000000,
-        financial_assets: 500000000,
-        home_mortgage: 200000000,
-        home_mortgage_payment: 1200000,
-        severance_pay: 100000000,
-        national_pension: 1200000,
-        private_pension: 800000,
-        calculation_result: {
-          shortage: -50000000,
-          monthlySaving: 0,
-          dailyLiving: 67000,
-          retirementAge: 60,
-          lifeExpectancy: 85
-        },
+        created_at: new Date().toISOString(),
+        expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7일 후
+        last_active: new Date().toISOString(),
+        community_posts_count: 0
+      },
+      {
+        session_token: `${this.testIdentifier}_session_2`,
+        calculation_hash: `${this.testIdentifier}_calc_2`,
+        assigned_group: 'B',
+        nickname: `테스트계산자2_${this.timestamp}`,
+        monthly_budget: 2500000,
+        asset_years: 30,
+        housing_type: 'jeonse',
+        created_at: new Date().toISOString(),
+        expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+        last_active: new Date().toISOString(),
+        community_posts_count: 0
+      }
+    ];
+
+    const { data, error } = await supabase
+      .from('anonymous_sessions')
+      .insert(sessions)
+      .select();
+
+    if (error) {
+      console.error('❌ 익명 세션 데이터 생성 오류:', error);
+      return false;
+    }
+
+    console.log(`✅ ${sessions.length}개의 테스트 익명 세션 생성 완료`);
+    return data;
+  }
+
+  /**
+   * 테스트용 전문가 프로필 생성
+   */
+  async seedExpertProfiles() {
+    const expertProfiles = [
+      {
+        email: `expert.approved.${this.timestamp}@planb-test.com`,
+        name: `승인전문가_${this.timestamp}`,
+        phone: '010-1111-1111',
+        title: '공인회계사 • 세무사',
+        category: 'financial',
+        specialties: ['세무상담', '자산관리', '상속세 절세'],
+        bio: '15년 경력의 세무 전문가입니다. 개인 및 법인 세무상담을 전문으로 합니다.',
+        experience_years: '15',
+        credentials: ['공인회계사', '세무사', 'CFP'],
+        business_license: '123-45-67890',
+        qualification_number: 'CPA-12345',
+        available_types: ['phone', 'video'],
+        verification_status: 'approved',
         created_at: new Date().toISOString()
       },
       {
-        user_hash: `${this.testIdentifier}_calc_2`,
-        age_group: '55-59세',
-        health_status: '좋음',
-        life_mode: '절약',
-        housing_type: 'jeonse',
-        housing_value: 0,
-        financial_assets: 300000000,
-        jeonse_deposit: 400000000,
-        severance_pay: 80000000,
-        national_pension: 1000000,
-        private_pension: 600000,
-        calculation_result: {
-          shortage: 120000000,
-          monthlySaving: 2000000,
-          dailyLiving: 50000,
-          retirementAge: 62,
-          lifeExpectancy: 87
-        },
+        email: `expert.pending.${this.timestamp}@planb-test.com`,
+        name: `대기전문가_${this.timestamp}`,
+        phone: '010-2222-2222',
+        title: '시니어 여행 플래너',
+        category: 'travel',
+        specialties: ['시니어여행', '국내여행', '해외여행'],
+        bio: '시니어 여행 전문 플래너로 안전하고 즐거운 여행을 기획합니다.',
+        experience_years: '8',
+        credentials: ['관광통역안내사', '여행상품기획사'],
+        qualification_number: 'TG-67890',
+        available_types: ['phone', 'video', 'chat'],
+        verification_status: 'pending',
         created_at: new Date().toISOString()
       }
     ];
 
     const { data, error } = await supabase
-      .from('user_calculations')
-      .insert(calculations)
+      .from('expert_profiles')
+      .insert(expertProfiles)
       .select();
 
     if (error) {
-      console.error('❌ 계산 데이터 생성 오류:', error);
+      console.error('❌ 전문가 프로필 생성 오류:', error);
       return false;
     }
 
-    console.log(`✅ ${calculations.length}개의 테스트 계산 데이터 생성 완료`);
+    console.log(`✅ ${expertProfiles.length}개의 테스트 전문가 프로필 생성 완료`);
     return data;
   }
 
   /**
-   * 테스트용 커뮤니티 게시글 생성
+   * 테스트용 커뮤니티 게시글 생성 (현재 구현되지 않음)
    */
   async seedCommunityPosts() {
     const posts = [
@@ -406,42 +393,27 @@ class TestDataSeeder {
       const users = await this.seedUserProfiles();
       if (!users) throw new Error('사용자 프로필 생성 실패');
 
-      // 2. 계산 데이터 생성
-      const calculations = await this.seedCalculations();
-      if (!calculations) throw new Error('계산 데이터 생성 실패');
+      // 2. 전문가 프로필 생성
+      const expertProfiles = await this.seedExpertProfiles();
+      if (!expertProfiles) throw new Error('전문가 프로필 생성 실패');
 
-      // 3. 커뮤니티 게시글 생성
-      const posts = await this.seedCommunityPosts();
-      if (!posts) throw new Error('게시글 생성 실패');
-
-      // 4. 댓글 생성
-      const replies = await this.seedCommunityReplies(posts);
-
-      // 5. 공지사항 생성
-      const announcements = await this.seedAnnouncements();
-
-      // 6. 채팅 데이터 생성
-      const chatData = await this.seedChatData();
+      // 3. 익명 세션 데이터 생성 (계산 데이터)
+      const sessions = await this.seedAnonymousSessions();
+      if (!sessions) throw new Error('익명 세션 생성 실패');
 
       console.log('🎉 모든 테스트 데이터 생성 완료!');
       console.log('📊 생성된 데이터 요약:');
       console.log(`  - 사용자: ${users.length}명`);
-      console.log(`  - 계산: ${calculations.length}건`);
-      console.log(`  - 게시글: ${posts.length}건`);
-      console.log(`  - 댓글: ${replies ? replies.length : 0}건`);
-      console.log(`  - 공지사항: ${announcements ? announcements.length : 0}건`);
-      console.log(`  - 채팅방: ${chatData ? 1 : 0}개`);
+      console.log(`  - 전문가 프로필: ${expertProfiles.length}개`);
+      console.log(`  - 익명 세션: ${sessions.length}개`);
       console.log(`\n🔍 테스트 식별자: ${this.testIdentifier}`);
       console.log('   (데이터 정리시 이 식별자를 사용합니다)');
 
       return {
         testIdentifier: this.testIdentifier,
         users,
-        calculations,
-        posts,
-        replies,
-        announcements,
-        chatData
+        expertProfiles,
+        sessions
       };
 
     } catch (error) {

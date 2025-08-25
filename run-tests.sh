@@ -128,6 +128,9 @@ stop_test_server() {
 seed_test_data() {
     print_info "테스트 데이터 생성 중..."
     
+    # 환경변수 로드
+    set -a; source .env; set +a
+    
     if npm run test:seed; then
         print_success "테스트 데이터 생성 완료"
     else
@@ -139,6 +142,9 @@ seed_test_data() {
 # 테스트 데이터 정리
 cleanup_test_data() {
     print_info "테스트 데이터 정리 중..."
+    
+    # 환경변수 로드
+    set -a; source .env; set +a
     
     if npm run test:cleanup; then
         print_success "테스트 데이터 정리 완료"
@@ -199,10 +205,12 @@ show_report() {
 check_system_status() {
     print_info "시스템 상태 확인 중..."
     
+    # 환경변수 로드
+    set -a; source .env; set +a
+    
     # Supabase 연결 확인
     if node -e "
         const { createClient } = require('@supabase/supabase-js');
-        require('dotenv').config();
         const client = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY);
         client.from('user_profiles').select('count').limit(1).then(
             () => { console.log('✅ Supabase 연결 성공'); process.exit(0); }
