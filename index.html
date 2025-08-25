@@ -898,10 +898,10 @@
                                             name="expertType"
                                             value={key}
                                             checked={expertProfile.expertType === key}
-                                            onChange={(e) => {
-                                                console.log('전문분야 선택:', key);
-                                                updateExpertProfile('expertType', e.target.value);
+                                            onClick={() => {
+                                                updateExpertProfile('expertType', key);
                                             }}
+                                            onChange={() => {}}
                                             className="w-5 h-5 text-orange-600 border-2 border-gray-300 focus:ring-2 focus:ring-orange-500 cursor-pointer"
                                         />
                                         <div className="flex-1">
@@ -1046,13 +1046,14 @@
                                         <input
                                             type="checkbox"
                                             checked={expertProfile.availableTypes.includes(value)}
-                                            onChange={(e) => {
-                                                console.log('상담방식 체크:', value, e.target.checked);
-                                                const types = e.target.checked
-                                                    ? [...expertProfile.availableTypes, value]
-                                                    : expertProfile.availableTypes.filter(t => t !== value);
+                                            onClick={() => {
+                                                const isCurrentlyChecked = expertProfile.availableTypes.includes(value);
+                                                const types = isCurrentlyChecked
+                                                    ? expertProfile.availableTypes.filter(t => t !== value)
+                                                    : [...expertProfile.availableTypes, value];
                                                 updateExpertProfile('availableTypes', types);
                                             }}
+                                            onChange={() => {}}
                                             className="w-5 h-5 text-orange-600 border-2 border-gray-300 rounded focus:ring-2 focus:ring-orange-500 cursor-pointer"
                                         />
                                         <div className="flex-1">
