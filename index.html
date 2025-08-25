@@ -2883,7 +2883,7 @@
 
                         // 전문가 프로필 저장 (검토 대기 상태)
                         const { data: expertData, error: expertError } = await supabase
-                            .from('expert_profiles')
+                            .from('financial_experts')
                             .insert({
                                 email: email,
                                 name: expertProfile.name,
@@ -4353,7 +4353,7 @@
                     
                     // Supabase에 예약 정보 저장
                     const { error } = await supabase
-                        .from('expert_bookings')
+                        .from('consultation_sessions')
                         .insert({
                             expert_id: bookingResult.expertId,
                             client_id: currentUser.id,
@@ -4892,7 +4892,7 @@
                     } else {
                         // 일반 사용자는 전문가 프로필 확인
                         const { data: profile } = await supabase
-                            .from('expert_profiles')
+                            .from('financial_experts')
                             .select('*')
                             .eq('user_id', currentUser.id)
                             .eq('is_verified', true)
@@ -7202,7 +7202,7 @@
 
                     try {
                         const { data: expertProfile } = await supabase
-                            .from('expert_profiles')
+                            .from('financial_experts')
                             .select('is_verified, is_active')
                             .eq('user_id', currentUser.id)
                             .single();
@@ -9660,7 +9660,7 @@
                 // Supabase에서 expert_profiles 테이블 조회하여 전문가 여부 확인
                 try {
                     const { data: expertProfile, error } = await supabase
-                        .from('expert_profiles')
+                        .from('financial_experts')
                         .select('id, verification_status')
                         .eq('email', user.email)
                         .single();
@@ -9685,7 +9685,7 @@
                 
                 try {
                     const { data: expertProfile } = await supabase
-                        .from('expert_profiles')
+                        .from('financial_experts')
                         .select('verification_status')
                         .eq('email', user.email)
                         .single();
