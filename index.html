@@ -807,7 +807,7 @@
                                 onChange={(e) => {
                                     const isChecked = e.target.checked;
                                     console.log('전문가 개인정보동의 체크:', isChecked);
-                                    onChange(isChecked);
+                                    if (onChange) onChange(isChecked);
                                 }}
                                 className="mt-1 w-4 h-4 text-orange-600 border-2 border-gray-300 rounded focus:ring-orange-500 focus:ring-2 cursor-pointer"
                                 style={{
