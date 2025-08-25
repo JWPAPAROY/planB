@@ -3,7 +3,7 @@ const { createClient } = require('@supabase/supabase-js');
 
 // Supabase 클라이언트 설정
 const supabaseUrl = process.env.SUPABASE_URL || 'https://iopidkmpoxcctixchkmv.supabase.co';
-const supabaseKey = process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlvcGlka21wb3hjY3RpeGNoa212Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjQyMjE5NDUsImV4cCI6MjAzOTc5Nzk0NX0.YPJGb6Atk6IfLEDEn8jF11JL7qIcq7dGhPBSqgA_uf8';
+const supabaseKey = process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlvcGlka21wb3hjY3RpeGNoa212Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU2NTY0MDIsImV4cCI6MjA3MTIzMjQwMn0.M_bvNzXqPFxmyj4n5xGi3L_eV5yP_8ex-5z8rhjltrQ';
 
 const supabase = createClient(supabaseUrl, supabaseKey);
 
