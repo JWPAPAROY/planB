@@ -94,7 +94,14 @@
         /* 체크박스 스타일 개선 */
         input[type="checkbox"] {
             accent-color: #3b82f6;
-            transform: scale(1.2);
+            /* transform: scale(1.2); 클릭 문제로 임시 제거 */
+        }
+        
+        /* 전문가 등록 체크박스 강제 스타일 */
+        .expert-checkbox {
+            pointer-events: auto !important;
+            position: relative !important;
+            z-index: 999 !important;
         }
 
         /* 호버 효과 */
@@ -804,6 +811,12 @@
                             <input
                                 type="checkbox"
                                 checked={checked || false}
+                                onClick={(e) => {
+                                    console.log('🖱️ 체크박스 클릭됨!', e.target.checked);
+                                }}
+                                onMouseDown={(e) => {
+                                    console.log('🖱️ 마우스 다운!');
+                                }}
                                 onChange={(e) => {
                                     const isChecked = e.target.checked;
                                     console.log('전문가 개인정보동의 체크:', isChecked, 'checked prop:', checked);
@@ -814,7 +827,7 @@
                                         console.log('onChange 함수가 없음!');
                                     }
                                 }}
-                                className="mt-1 w-4 h-4 text-orange-600 border-2 border-gray-300 rounded focus:ring-orange-500 focus:ring-2 cursor-pointer"
+                                className="expert-checkbox mt-1 w-4 h-4 text-orange-600 border-2 border-gray-300 rounded focus:ring-orange-500 focus:ring-2 cursor-pointer"
                                 style={{
                                     accentColor: '#ea580c'
                                 }}
