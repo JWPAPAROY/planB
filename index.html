@@ -810,22 +810,22 @@
                         <label className="flex items-center space-x-3 cursor-pointer">
                             <input
                                 type="checkbox"
-                                checked={checked || false}
+                                checked={!!checked}
                                 onClick={(e) => {
                                     console.log('🖱️ 체크박스 클릭됨!', e.target.checked);
+                                    // React 제어 컴포넌트 우회: 직접 상태 변경
+                                    const newValue = !checked;
+                                    console.log('🔄 강제 상태 변경:', checked, '→', newValue);
+                                    if (onChange) {
+                                        onChange(newValue);
+                                    }
                                 }}
                                 onMouseDown={(e) => {
                                     console.log('🖱️ 마우스 다운!');
                                 }}
                                 onChange={(e) => {
-                                    const isChecked = e.target.checked;
-                                    console.log('전문가 개인정보동의 체크:', isChecked, 'checked prop:', checked);
-                                    if (onChange) {
-                                        console.log('onChange 호출:', isChecked);
-                                        onChange(isChecked);
-                                    } else {
-                                        console.log('onChange 함수가 없음!');
-                                    }
+                                    console.log('📝 onChange 이벤트:', e.target.checked, 'current checked:', checked);
+                                    // onChange는 이미 onClick에서 처리함
                                 }}
                                 className="expert-checkbox mt-1 w-4 h-4 text-orange-600 border-2 border-gray-300 rounded focus:ring-orange-500 focus:ring-2 cursor-pointer"
                                 style={{
