@@ -1472,7 +1472,16 @@
                         )}
                         {/* 게스트가 아니거나 전문가/관리자인 경우에만 표시 */}
                         {activeTab === 'activity' && !isCurrentUserGuest && (
-                            <ActivityTab currentUser={currentUser} userType={userType} />
+                            <ActivityTab 
+                                currentUser={currentUser} 
+                                userType={userType}
+                                setCurrentView={setCurrentView}
+                                setFormData={setFormData}
+                                setCalculatorResult={setCalculatorResult}
+                                setCalculatorStep={setCalculatorStep}
+                                showNotification={showNotification}
+                                onClose={onClose}
+                            />
                         )}
                         {activeTab === 'contact' && !isCurrentUserGuest && (
                             <ContactExchangeComponent currentUser={currentUser} isAdminUser={isAdminUser} />
@@ -1547,14 +1556,92 @@
         );
 
         // 활동 내역 탭
-        const ActivityTab = ({ currentUser, userType }) => {
+        const ActivityTab = ({ currentUser, userType, setCurrentView, setFormData, setCalculatorResult, setCalculatorStep, showNotification, onClose }) => {
             const [bookingHistory, setBookingHistory] = React.useState([]);
             const [paymentHistory, setPaymentHistory] = React.useState([]);
+            const [calculationHistory, setCalculationHistory] = React.useState([]);
             const [loading, setLoading] = React.useState(true);
-            const [activeSubTab, setActiveSubTab] = React.useState('overview');
+            const [activeSubTab, setActiveSubTab] = React.useState('calculations');
 
-            // 예시 데이터 (실제로는 API에서 가져와야 함)
+            // 저장된 계산 결과 불러오기 및 예시 데이터
             React.useEffect(() => {
+                const loadCalculationHistory = async () => {
+                    try {
+                        let calculations = [];
+                        
+                        // 1. localStorage에서 현재 계산 결과 불러오기
+                        const savedLocal = localStorage.getItem('planb_calculation_result');
+                        if (savedLocal) {
+                            try {
+                                const localData = JSON.parse(savedLocal);
+                                calculations.push({
+                                    id: 'local-' + Date.now(),
+                                    source: 'local',
+                                    created_at: localData.calculatedAt || new Date().toISOString(),
+                                    ...localData
+                                });
+                            } catch (error) {
+                                console.error('localStorage 계산 결과 파싱 실패:', error);
+                            }
+                        }
+                        
+                        // 2. Supabase에서 사용자의 모든 계산 결과 불러오기 (회원인 경우)
+                        if (currentUser && !currentUser.isGuest && supabase) {
+                            try {
+                                const { data, error } = await supabase
+                                    .from('user_calculations')
+                                    .select('*')
+                                    .eq('user_id', currentUser.id)
+                                    .order('created_at', { ascending: false });
+                                
+                                if (error) {
+                                    console.error('Supabase 계산 결과 조회 실패:', error);
+                                } else if (data) {
+                                    const supabaseCalculations = data.map(item => ({
+                                        id: item.id,
+                                        source: 'database',
+                                        created_at: item.created_at,
+                                        formData: {
+                                            age: item.age,
+                                            health: item.health_status,
+                                            lifeMode: item.life_mode,
+                                            housingType: item.housing_type,
+                                            housingValue: Math.floor(item.housing_value / 10000) || 0,
+                                            financialAssets: Math.floor(item.financial_assets / 10000) || 0,
+                                            severancePay: Math.floor(item.severance_pay / 10000) || 0,
+                                            debt: Math.floor(item.debt / 10000) || 0,
+                                            nationalPension: Math.floor(item.national_pension / 10000) || 0,
+                                            privatePension: Math.floor(item.private_pension / 10000) || 0
+                                        },
+                                        calculationResult: item.calculation_result,
+                                        totalAssets: item.calculation_result?.totalAssets || 0,
+                                        monthlyLivingCost: item.calculation_result?.monthlyLivingCost || 0,
+                                        assetSufficiencyYears: item.calculation_result?.assetSufficiencyYears || 0
+                                    }));
+                                    calculations = [...calculations, ...supabaseCalculations];
+                                }
+                            } catch (error) {
+                                console.error('데이터베이스 계산 결과 로딩 실패:', error);
+                            }
+                        }
+                        
+                        // 중복 제거 및 날짜순 정렬
+                        const uniqueCalculations = calculations
+                            .filter((calc, index, self) => 
+                                index === self.findIndex(c => 
+                                    Math.abs(new Date(c.created_at) - new Date(calc.created_at)) < 60000
+                                )
+                            )
+                            .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+                        
+                        setCalculationHistory(uniqueCalculations);
+                    } catch (error) {
+                        console.error('계산 이력 로딩 실패:', error);
+                    }
+                };
+                
+                loadCalculationHistory();
+                
                 // 모의 예약 내역 데이터
                 const mockBookings = [
                     {
@@ -1671,15 +1758,15 @@
                 <div className="space-y-6">
                     {/* 활동 통계 */}
                     <div className="bg-white rounded-lg shadow p-6">
-                        <h2 className="text-xl font-semibold mb-4">활동 통계</h2>
+                        <h2 className="text-xl font-semibold mb-4">내 활동 통계</h2>
                         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                             <div className="text-center p-4 bg-blue-50 rounded-lg">
-                                <div className="text-2xl font-bold text-blue-600">{bookingHistory.filter(b => b.status === 'completed').length}</div>
-                                <div className="text-sm text-gray-600">완료된 상담</div>
+                                <div className="text-2xl font-bold text-blue-600">{calculationHistory.length}</div>
+                                <div className="text-sm text-gray-600">계산 결과</div>
                             </div>
                             <div className="text-center p-4 bg-green-50 rounded-lg">
-                                <div className="text-2xl font-bold text-green-600">{bookingHistory.filter(b => b.status === 'scheduled').length}</div>
-                                <div className="text-sm text-gray-600">예정된 상담</div>
+                                <div className="text-2xl font-bold text-green-600">{bookingHistory.filter(b => b.status === 'completed').length}</div>
+                                <div className="text-sm text-gray-600">완료된 상담</div>
                             </div>
                             <div className="text-center p-4 bg-purple-50 rounded-lg">
                                 <div className="text-2xl font-bold text-purple-600">
@@ -1689,9 +1776,10 @@
                             </div>
                             <div className="text-center p-4 bg-orange-50 rounded-lg">
                                 <div className="text-2xl font-bold text-orange-600">
-                                    {bookingHistory.filter(b => b.rating).reduce((sum, b) => sum + b.rating, 0) / bookingHistory.filter(b => b.rating).length || 0}
+                                    {calculationHistory.length > 0 && calculationHistory[0].totalAssets ? 
+                                        Math.floor(calculationHistory[0].totalAssets / 100000000) : 0}억
                                 </div>
-                                <div className="text-sm text-gray-600">평균 평점</div>
+                                <div className="text-sm text-gray-600">최신 총 자산</div>
                             </div>
                         </div>
                     </div>
@@ -1701,9 +1789,9 @@
                         <div className="border-b border-gray-200">
                             <nav className="flex space-x-8 px-6">
                                 {[
-                                    { id: 'overview', label: '개요' },
-                                    { id: 'bookings', label: '상담 내역' },
-                                    { id: 'payments', label: '결제 내역' }
+                                    { id: 'calculations', label: '📊 내 계산 결과' },
+                                    { id: 'bookings', label: '💬 상담 내역' },
+                                    { id: 'payments', label: '💳 결제 내역' }
                                 ].map(tab => (
                                     <button
                                         key={tab.id}
@@ -1728,8 +1816,181 @@
                                 </div>
                             ) : (
                                 <>
-                                    {/* 개요 탭 */}
-                                    {activeSubTab === 'overview' && (
+                                    {/* 계산 결과 탭 */}
+                                    {activeSubTab === 'calculations' && (
+                                        <div className="space-y-6">
+                                            <div className="flex justify-between items-center">
+                                                <h3 className="text-lg font-semibold">저장된 계산 결과</h3>
+                                                <button
+                                                    onClick={() => {
+                                                        // 계산기로 이동
+                                                        setCurrentView('calculator');
+                                                        onClose();
+                                                    }}
+                                                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
+                                                >
+                                                    새 계산하기
+                                                </button>
+                                            </div>
+                                            
+                                            {calculationHistory.length === 0 ? (
+                                                <div className="text-center py-12">
+                                                    <div className="text-gray-400 text-6xl mb-4">📊</div>
+                                                    <h4 className="text-lg font-semibold text-gray-900 mb-2">계산 결과가 없습니다</h4>
+                                                    <p className="text-gray-600 mb-6">은퇴생활비를 계산해보세요!</p>
+                                                    <button
+                                                        onClick={() => {
+                                                            setCurrentView('calculator');
+                                                            onClose();
+                                                        }}
+                                                        className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                                                    >
+                                                        계산하러 가기
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                <div className="space-y-4">
+                                                    {calculationHistory.map((calculation, index) => (
+                                                        <div key={calculation.id} className="border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow">
+                                                            <div className="flex justify-between items-start mb-4">
+                                                                <div>
+                                                                    <div className="flex items-center space-x-2">
+                                                                        <h4 className="text-lg font-semibold">
+                                                                            {index === 0 ? '💫 최신' : `📋 ${index + 1}번째`} 계산
+                                                                        </h4>
+                                                                        {calculation.source === 'local' && (
+                                                                            <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">로컬</span>
+                                                                        )}
+                                                                        {calculation.source === 'database' && (
+                                                                            <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">클라우드</span>
+                                                                        )}
+                                                                    </div>
+                                                                    <p className="text-sm text-gray-600 mt-1">
+                                                                        계산일: {new Date(calculation.created_at).toLocaleDateString('ko-KR', {
+                                                                            year: 'numeric',
+                                                                            month: 'long',
+                                                                            day: 'numeric',
+                                                                            hour: '2-digit',
+                                                                            minute: '2-digit'
+                                                                        })}
+                                                                    </p>
+                                                                </div>
+                                                                <div className="text-right">
+                                                                    <div className="text-2xl font-bold text-blue-600">
+                                                                        {calculation.formData?.age || 0}세
+                                                                    </div>
+                                                                    <div className="text-xs text-gray-500">
+                                                                        {calculation.formData?.health || '정보없음'} 
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            
+                                                            {/* 주요 결과 요약 */}
+                                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                                                                <div className="bg-blue-50 p-4 rounded-lg">
+                                                                    <div className="text-sm text-blue-600 font-medium">총 자산</div>
+                                                                    <div className="text-xl font-bold text-blue-900">
+                                                                        {Math.floor((calculation.totalAssets || 0) / 10000).toLocaleString()}억원
+                                                                    </div>
+                                                                </div>
+                                                                <div className="bg-green-50 p-4 rounded-lg">
+                                                                    <div className="text-sm text-green-600 font-medium">월 생활비</div>
+                                                                    <div className="text-xl font-bold text-green-900">
+                                                                        {(calculation.monthlyLivingCost || 0).toLocaleString()}만원
+                                                                    </div>
+                                                                </div>
+                                                                <div className="bg-purple-50 p-4 rounded-lg">
+                                                                    <div className="text-sm text-purple-600 font-medium">자산 지속 기간</div>
+                                                                    <div className="text-xl font-bold text-purple-900">
+                                                                        {Math.round(calculation.assetSufficiencyYears || 0)}년
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            
+                                                            {/* 상세 자산 정보 */}
+                                                            {calculation.formData && (
+                                                                <div className="bg-gray-50 p-4 rounded-lg mb-4">
+                                                                    <h5 className="font-medium text-gray-900 mb-3">입력한 자산 정보</h5>
+                                                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                                                                        <div>
+                                                                            <span className="text-gray-600">주택:</span>
+                                                                            <span className="ml-1 font-medium">{(calculation.formData.housingValue || 0).toLocaleString()}만원</span>
+                                                                        </div>
+                                                                        <div>
+                                                                            <span className="text-gray-600">금융자산:</span>
+                                                                            <span className="ml-1 font-medium">{(calculation.formData.financialAssets || 0).toLocaleString()}만원</span>
+                                                                        </div>
+                                                                        <div>
+                                                                            <span className="text-gray-600">퇴직금:</span>
+                                                                            <span className="ml-1 font-medium">{(calculation.formData.severancePay || 0).toLocaleString()}만원</span>
+                                                                        </div>
+                                                                        <div>
+                                                                            <span className="text-gray-600">부채:</span>
+                                                                            <span className="ml-1 font-medium">{(calculation.formData.debt || 0).toLocaleString()}만원</span>
+                                                                        </div>
+                                                                        <div>
+                                                                            <span className="text-gray-600">국민연금:</span>
+                                                                            <span className="ml-1 font-medium">{(calculation.formData.nationalPension || 0).toLocaleString()}만원/월</span>
+                                                                        </div>
+                                                                        <div>
+                                                                            <span className="text-gray-600">사적연금:</span>
+                                                                            <span className="ml-1 font-medium">{(calculation.formData.privatePension || 0).toLocaleString()}만원/월</span>
+                                                                        </div>
+                                                                        <div>
+                                                                            <span className="text-gray-600">주거형태:</span>
+                                                                            <span className="ml-1 font-medium">{calculation.formData.housingType || '정보없음'}</span>
+                                                                        </div>
+                                                                        <div>
+                                                                            <span className="text-gray-600">라이프스타일:</span>
+                                                                            <span className="ml-1 font-medium">{calculation.formData.lifeMode || '정보없음'}</span>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            )}
+                                                            
+                                                            {/* 액션 버튼들 */}
+                                                            <div className="flex space-x-3 pt-4 border-t border-gray-100">
+                                                                <button
+                                                                    onClick={() => {
+                                                                        // 이 계산 결과로 계산기 복원
+                                                                        if (calculation.formData) {
+                                                                            setFormData(calculation.formData);
+                                                                            setCalculatorResult(calculation);
+                                                                            setCalculatorStep(4);
+                                                                            setCurrentView('calculator');
+                                                                            onClose();
+                                                                            showNotification('계산 결과 복원', '선택한 계산 결과로 이동했습니다!', 'success');
+                                                                        }
+                                                                    }}
+                                                                    className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+                                                                >
+                                                                    📊 이 계산으로 이동
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => {
+                                                                        // 이 계산 결과를 기반으로 새 계산 시작
+                                                                        if (calculation.formData) {
+                                                                            setFormData(calculation.formData);
+                                                                            setCalculatorStep(1);
+                                                                            setCurrentView('calculator');
+                                                                            onClose();
+                                                                            showNotification('새 계산 시작', '이전 정보로 새 계산을 시작합니다!', 'info');
+                                                                        }
+                                                                    }}
+                                                                    className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium"
+                                                                >
+                                                                    🔄 이 정보로 새 계산
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+                                    
+                                    {/* 상담 내역 탭 */}
+                                    {activeSubTab === 'bookings' && (
                                         <div className="space-y-4">
                                             <h3 className="text-lg font-semibold">최근 활동</h3>
                                             <div className="space-y-3">
