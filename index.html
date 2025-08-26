@@ -7812,7 +7812,7 @@
         };
 
         // 원본 계산기 완전 통합 (planb-calculator.html에서 추출)
-        const OriginalCalculator = ({ savedCalculations = [], onCalculationComplete, setCurrentView, currentUser, showNotification }) => {
+        const OriginalCalculator = ({ savedCalculations = [], onCalculationComplete, setCurrentView, currentUser, showNotification, setAuthMode }) => {
             const [calculatorStep, setCalculatorStep] = useState(1);
             const [formData, setFormData] = useState({
                 age: '', health: '보통', mode: '균형',
@@ -8195,17 +8195,10 @@
             const saveCalculationResult = () => {
                 if (!calculatorResult) return;
                 
-                // 게스트 사용자인 경우 회원가입 안내 후 로그인 화면으로 이동
+                // 게스트 사용자인 경우 회원가입 화면으로 이동
                 if (currentUser?.isGuest) {
-                    showNotification(
-                        '계산 결과를 안전하게 저장하시겠어요? 😊', 
-                        '회원가입하면 계산 결과가 영구 보관됩니다!\n\n• 언제든 다시 확인 가능\n• 커뮤니티에서 비슷한 분들과 소통\n• 전문가 상담 예약 가능', 
-                        'info'
-                    );
-                    // 3초 후 로그인 화면으로 이동
-                    setTimeout(() => {
-                        setCurrentView('login');
-                    }, 3000);
+                    setAuthMode('signup'); // 회원가입 모드로 설정
+                    setCurrentView('login'); // 로그인 화면으로 이동
                     return;
                 }
                 
@@ -10305,7 +10298,7 @@
                             </div>
                         )}
                         
-                        {currentView === 'calculator' && <OriginalCalculator savedCalculations={savedCalculations} onCalculationComplete={handleCalculationComplete} setCurrentView={setCurrentView} currentUser={currentUser} showNotification={showNotification} />}
+                        {currentView === 'calculator' && <OriginalCalculator savedCalculations={savedCalculations} onCalculationComplete={handleCalculationComplete} setCurrentView={setCurrentView} currentUser={currentUser} showNotification={showNotification} setAuthMode={setAuthMode} />}
                         
                         
                         {currentView === 'community' && <CommunityApp setCurrentView={setCurrentView} currentUser={currentUser} checkCalculationForInteraction={checkCalculationForInteraction} handlePostClick={handlePostClick} isAdminUser={isAdminUser} />}
@@ -10533,7 +10526,7 @@
                                         계산 결과를 안전하게<br/>저장하시겠어요? 😊
                                     </h3>
                                     <p className="text-sm text-gray-600 mb-6 leading-relaxed">
-                                        <strong>회원가입하면 계산 결과가 영구 보관됩니다!</strong><br/><br/>
+                                        <strong>회원가입하면 계산 결과가 안전하게 보관됩니다!</strong><br/><br/>
                                         • 언제든 다시 확인 가능<br/>
                                         • 커뮤니티에서 비슷한 분들과 소통<br/>
                                         • 전문가 상담 예약 가능<br/>
