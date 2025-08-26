@@ -7240,7 +7240,7 @@
         };
 
         // 전문가 찾기 컴포넌트
-        const ExpertFinderComponent = ({ currentUser, isAdminUser }) => {
+        const ExpertFinderComponent = ({ currentUser, isAdminUser, setShowSignupModal }) => {
             const [activeCategory, setActiveCategory] = useState('travel');
             const [showBookingModal, setShowBookingModal] = useState(false);
             const [selectedExpert, setSelectedExpert] = useState(null);
@@ -9084,7 +9084,7 @@
 
                                     {/* 전문가 찾기 탭 */}
                                     {activeTab === 'expert' && (
-                                        <ExpertFinderComponent currentUser={currentUser} isAdminUser={isAdminUser} />
+                                        <ExpertFinderComponent currentUser={currentUser} isAdminUser={isAdminUser} setShowSignupModal={setShowSignupModal} />
                                     )}
                                 </div>
                             )}
@@ -10347,7 +10347,7 @@
                             ) : (
                                 <div className="max-w-6xl mx-auto">
                                     <div className="card">
-                                        <ExpertFinderComponent currentUser={currentUser} isAdminUser={isAdminUser} />
+                                        <ExpertFinderComponent currentUser={currentUser} isAdminUser={isAdminUser} setShowSignupModal={setShowSignupModal} />
                                     </div>
                                 </div>
                             )
