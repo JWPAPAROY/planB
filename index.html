@@ -8141,11 +8141,17 @@
             const [expenseComparison, setExpenseComparison] = useState(null);
             const [showComparisonModal, setShowComparisonModal] = useState(false);
             
-            // 계산결과 저장 함수 (익명)
+            // 계산결과 저장 함수 
             const saveCalculationResult = () => {
                 if (!calculatorResult) return;
                 
-                // localStorage에 익명으로 저장
+                // 게스트 사용자인 경우 회원가입 모달 표시
+                if (currentUser?.isGuest) {
+                    setShowSaveResultSignupModal(true);
+                    return;
+                }
+                
+                // 회원 사용자인 경우 직접 저장
                 const savedResult = {
                     ...calculatorResult,
                     formData: formData,
@@ -8157,7 +8163,7 @@
                 localStorage.setItem('planb_calculation_result', JSON.stringify(savedResult));
                 setIsResultSaved(true);
                 
-                showNotification('저장 완료', '계산결과가 저장되었습니다! 💾\n브라우저에 저장되어 언제든 다시 확인할 수 있습니다.', 'success');
+                showNotification('저장 완료', '계산결과가 저장되었습니다! 💾\n언제든 다시 확인할 수 있습니다.', 'success');
             };
             
             // 저장된 계산결과 불러오기 (localStorage)
@@ -9455,6 +9461,7 @@
             const [notificationContent, setNotificationContent] = useState({ title: '', message: '', type: 'info' });
             const [showMobileMenu, setShowMobileMenu] = useState(false);
             const [showSignupModal, setShowSignupModal] = useState(false);
+            const [showSaveResultSignupModal, setShowSaveResultSignupModal] = useState(false);
             const [lastActivity, setLastActivity] = useState(Date.now());
 
             // 외부 클릭시 메뉴 닫기
@@ -9573,7 +9580,7 @@
             };
             
             // 인증 성공 핸들러
-            const handleAuthSuccess = (user) => {
+            const handleAuthSuccess = async (user) => {
                 // 로그인 성공시 로그아웃 플래그 제거
                 localStorage.removeItem('planb_user_logged_out');
                 
@@ -9592,15 +9599,58 @@
                 // 게스트 데이터 정리
                 localStorage.removeItem('planb_guest_user');
                 
-                // 게스트 계산 결과가 있었다면 안내
+                // 게스트 계산 결과가 있었다면 실제로 DB에 저장
                 if (guestCalculation) {
-                    setTimeout(() => {
-                        showNotification(
-                            '회원가입 완료!', 
-                            '게스트로 작성한 계산 결과가\n회원 계정에 저장되었습니다.', 
-                            'success'
-                        );
-                    }, 1000);
+                    try {
+                        const calculationData = JSON.parse(guestCalculation);
+                        
+                        // Supabase에 실제 저장
+                        if (supabase) {
+                            const { error } = await supabase
+                                .from('user_calculations')
+                                .upsert({
+                                    user_id: user.id,
+                                    user_hash: null, // 회원은 user_hash 불필요
+                                    age: calculationData.formData?.age,
+                                    age_group: calculationData.formData?.ageGroup,
+                                    health_status: calculationData.formData?.health,
+                                    life_mode: calculationData.formData?.lifeMode,
+                                    housing_type: calculationData.formData?.housingType,
+                                    housing_value: calculationData.formData?.homeValue ? parseInt(calculationData.formData.homeValue) * 10000 : 0,
+                                    financial_assets: calculationData.formData?.financialAssets ? parseInt(calculationData.formData.financialAssets) * 10000 : 0,
+                                    severance_pay: calculationData.formData?.severancePay ? parseInt(calculationData.formData.severancePay) * 10000 : 0,
+                                    debt: calculationData.formData?.debt ? parseInt(calculationData.formData.debt) * 10000 : 0,
+                                    national_pension: calculationData.formData?.nationalPension ? parseInt(calculationData.formData.nationalPension) * 10000 : 0,
+                                    private_pension: calculationData.formData?.privatePension ? parseInt(calculationData.formData.privatePension) * 10000 : 0,
+                                    calculation_result: calculationData,
+                                    updated_at: new Date().toISOString()
+                                });
+                            
+                            if (error) {
+                                console.error('계산 결과 DB 저장 실패:', error);
+                            } else {
+                                console.log('게스트 계산 결과 DB 저장 성공');
+                            }
+                        }
+                        
+                        setTimeout(() => {
+                            showNotification(
+                                '회원가입 완료!', 
+                                '계산 결과가 회원 계정에 안전하게 저장되었습니다!\n언제든 다시 확인하실 수 있어요 💾', 
+                                'success'
+                            );
+                        }, 1000);
+                        
+                    } catch (error) {
+                        console.error('게스트 계산 결과 처리 실패:', error);
+                        setTimeout(() => {
+                            showNotification(
+                                '회원가입 완료!', 
+                                '회원가입이 완료되었습니다. 계산 결과 저장 중 오류가 발생했지만 언제든 다시 계산하실 수 있어요.', 
+                                'success'
+                            );
+                        }, 1000);
+                    }
                 }
             };
             
@@ -10398,6 +10448,50 @@
                                             className="w-full px-4 py-3 border-2 border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-colors text-sm"
                                         >
                                             다음에 하기
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                    
+                    {/* 계산 결과 저장용 회원가입 모달 */}
+                    {showSaveResultSignupModal && (
+                        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 px-4">
+                            <div className="bg-white rounded-xl p-6 max-w-md w-full mx-4 shadow-xl relative">
+                                <button
+                                    onClick={() => setShowSaveResultSignupModal(false)}
+                                    className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 text-2xl font-bold"
+                                >
+                                    ×
+                                </button>
+                                <div className="text-center">
+                                    <div className="text-4xl mb-4">💾</div>
+                                    <h3 className="text-lg font-bold text-gray-900 mb-3">
+                                        계산 결과를 안전하게<br/>저장하시겠어요? 😊
+                                    </h3>
+                                    <p className="text-sm text-gray-600 mb-6 leading-relaxed">
+                                        <strong>회원가입하면 계산 결과가 영구 보관됩니다!</strong><br/><br/>
+                                        • 언제든 다시 확인 가능<br/>
+                                        • 커뮤니티에서 비슷한 분들과 소통<br/>
+                                        • 전문가 상담 예약 가능<br/>
+                                    </p>
+                                    <div className="space-y-3">
+                                        <button
+                                            onClick={() => {
+                                                setShowSaveResultSignupModal(false);
+                                                setCurrentView('login');
+                                                setAuthMode('signup');
+                                            }}
+                                            className="w-full px-4 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg font-medium hover:from-blue-700 hover:to-purple-700 transition-colors text-sm"
+                                        >
+                                            💾 회원가입하고 저장하기
+                                        </button>
+                                        <button
+                                            onClick={() => setShowSaveResultSignupModal(false)}
+                                            className="w-full px-4 py-3 border-2 border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-colors text-sm"
+                                        >
+                                            나중에 하기
                                         </button>
                                     </div>
                                 </div>
