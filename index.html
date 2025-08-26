@@ -705,6 +705,10 @@
                         type="checkbox"
                         checked={checked}
                         onChange={(e) => onChange(e.target.checked)}
+                        onClick={(e) => {
+                            const newValue = !checked;
+                            onChange(newValue);
+                        }}
                         className="mt-1 h-4 w-4 text-blue-600 border-2 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
                     />
                     <div className="flex-1">
@@ -3281,6 +3285,7 @@
                                                         name="nicknameOption"
                                                         checked={!useCustomNickname}
                                                         onChange={() => setUseCustomNickname(false)}
+                                                        onClick={() => setUseCustomNickname(false)}
                                                         className="h-4 w-4 text-blue-600 border-2 border-gray-300 focus:ring-blue-500"
                                                     />
                                                     <div className="flex-1">
@@ -3307,6 +3312,7 @@
                                                         name="nicknameOption"
                                                         checked={useCustomNickname}
                                                         onChange={() => setUseCustomNickname(true)}
+                                                        onClick={() => setUseCustomNickname(true)}
                                                         className="mt-1 h-4 w-4 text-blue-600 border-2 border-gray-300 focus:ring-blue-500"
                                                     />
                                                     <div className="flex-1">
@@ -7812,7 +7818,7 @@
         };
 
         // 원본 계산기 완전 통합 (planb-calculator.html에서 추출)
-        const OriginalCalculator = ({ savedCalculations = [], onCalculationComplete, setCurrentView, currentUser, showNotification, setAuthMode }) => {
+        const OriginalCalculator = ({ savedCalculations = [], onCalculationComplete, setCurrentView, currentUser, showNotification, setAuthMode, setShowSaveResultSignupModal }) => {
             const [calculatorStep, setCalculatorStep] = useState(1);
             const [formData, setFormData] = useState({
                 age: '', health: '보통', mode: '균형',
@@ -8195,10 +8201,9 @@
             const saveCalculationResult = () => {
                 if (!calculatorResult) return;
                 
-                // 게스트 사용자인 경우 회원가입 화면으로 이동
+                // 게스트 사용자인 경우 저장용 회원가입 모달 표시
                 if (currentUser?.isGuest) {
-                    setAuthMode('signup'); // 회원가입 모드로 설정
-                    setCurrentView('login'); // 로그인 화면으로 이동
+                    setShowSaveResultSignupModal(true);
                     return;
                 }
                 
@@ -10298,7 +10303,7 @@
                             </div>
                         )}
                         
-                        {currentView === 'calculator' && <OriginalCalculator savedCalculations={savedCalculations} onCalculationComplete={handleCalculationComplete} setCurrentView={setCurrentView} currentUser={currentUser} showNotification={showNotification} setAuthMode={setAuthMode} />}
+                        {currentView === 'calculator' && <OriginalCalculator savedCalculations={savedCalculations} onCalculationComplete={handleCalculationComplete} setCurrentView={setCurrentView} currentUser={currentUser} showNotification={showNotification} setAuthMode={setAuthMode} setShowSaveResultSignupModal={setShowSaveResultSignupModal} />}
                         
                         
                         {currentView === 'community' && <CommunityApp setCurrentView={setCurrentView} currentUser={currentUser} checkCalculationForInteraction={checkCalculationForInteraction} handlePostClick={handlePostClick} isAdminUser={isAdminUser} />}
