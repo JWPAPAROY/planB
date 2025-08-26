@@ -9090,7 +9090,7 @@
                             )}
 
                             <div className="card mb-6">
-                                <h3 className="text-xl font-bold mb-4">💰 수입 구성</h3>
+                                <h3 className="text-xl font-bold mb-4">📊 세부 계산결과</h3>
                                 <div className="space-y-3">
                                     <div className="flex justify-between items-center">
                                         <span>자산을 활용한 생활비:</span>
@@ -9917,7 +9917,7 @@
                 return (
                     <AuthComponent 
                         onAuthSuccess={handleAuthSuccess} 
-                        initialMode="login"
+                        initialMode={authMode}
                         generateGuestUser={createGuestUser}
                     />
                 );
