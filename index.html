@@ -8193,14 +8193,23 @@
             
             // 계산결과 저장 함수 
             const saveCalculationResult = () => {
-                if (!calculatorResult) return;
+                console.log('saveCalculationResult 함수 호출됨');
+                console.log('calculatorResult:', calculatorResult);
+                console.log('currentUser:', currentUser);
+                
+                if (!calculatorResult) {
+                    console.log('calculatorResult가 없어서 함수 종료');
+                    return;
+                }
                 
                 // 게스트 사용자인 경우 회원가입 모달 표시
                 if (currentUser?.isGuest) {
+                    console.log('게스트 사용자 - 회원가입 모달 표시');
                     setShowSaveResultSignupModal(true);
                     return;
                 }
                 
+                console.log('회원 사용자 - 직접 저장 진행');
                 // 회원 사용자인 경우 직접 저장
                 const savedResult = {
                     ...calculatorResult,
@@ -8467,6 +8476,10 @@
                                                                 id="knowLoanEndYear"
                                                                 checked={formData.knowLoanEndYear || false}
                                                                 onChange={(e) => handleInputChange('knowLoanEndYear', e.target.checked)}
+                                                                onClick={(e) => {
+                                                                    const newValue = !formData.knowLoanEndYear;
+                                                                    handleInputChange('knowLoanEndYear', newValue);
+                                                                }}
                                                                 className="mr-2 scale-125"
                                                             />
                                                             <label htmlFor="knowLoanEndYear" className="text-blue-800 font-semibold">
@@ -8927,7 +8940,12 @@
                                     {!isResultSaved ? (
                                         <div className="text-center mb-6">
                                             <button
-                                                onClick={saveCalculationResult}
+                                                onClick={(e) => {
+                                                    console.log('저장 버튼 클릭됨', e);
+                                                    e.preventDefault();
+                                                    e.stopPropagation();
+                                                    saveCalculationResult();
+                                                }}
                                                 className="px-8 py-4 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-lg font-bold text-lg shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300"
                                             >
                                                 💾 내 계산결과 저장하기
