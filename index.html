@@ -7812,7 +7812,7 @@
         };
 
         // 원본 계산기 완전 통합 (planb-calculator.html에서 추출)
-        const OriginalCalculator = ({ savedCalculations = [], onCalculationComplete, setCurrentView }) => {
+        const OriginalCalculator = ({ savedCalculations = [], onCalculationComplete, setCurrentView, currentUser, showNotification }) => {
             const [calculatorStep, setCalculatorStep] = useState(1);
             const [formData, setFormData] = useState({
                 age: '', health: '보통', mode: '균형',
@@ -8193,23 +8193,22 @@
             
             // 계산결과 저장 함수 
             const saveCalculationResult = () => {
-                console.log('saveCalculationResult 함수 호출됨');
-                console.log('calculatorResult:', calculatorResult);
-                console.log('currentUser:', currentUser);
+                if (!calculatorResult) return;
                 
-                if (!calculatorResult) {
-                    console.log('calculatorResult가 없어서 함수 종료');
-                    return;
-                }
-                
-                // 게스트 사용자인 경우 회원가입 모달 표시
+                // 게스트 사용자인 경우 회원가입 안내 후 로그인 화면으로 이동
                 if (currentUser?.isGuest) {
-                    console.log('게스트 사용자 - 회원가입 모달 표시');
-                    setShowSaveResultSignupModal(true);
+                    showNotification(
+                        '계산 결과를 안전하게 저장하시겠어요? 😊', 
+                        '회원가입하면 계산 결과가 영구 보관됩니다!\n\n• 언제든 다시 확인 가능\n• 커뮤니티에서 비슷한 분들과 소통\n• 전문가 상담 예약 가능', 
+                        'info'
+                    );
+                    // 3초 후 로그인 화면으로 이동
+                    setTimeout(() => {
+                        setCurrentView('login');
+                    }, 3000);
                     return;
                 }
                 
-                console.log('회원 사용자 - 직접 저장 진행');
                 // 회원 사용자인 경우 직접 저장
                 const savedResult = {
                     ...calculatorResult,
@@ -8940,12 +8939,7 @@
                                     {!isResultSaved ? (
                                         <div className="text-center mb-6">
                                             <button
-                                                onClick={(e) => {
-                                                    console.log('저장 버튼 클릭됨', e);
-                                                    e.preventDefault();
-                                                    e.stopPropagation();
-                                                    saveCalculationResult();
-                                                }}
+                                                onClick={saveCalculationResult}
                                                 className="px-8 py-4 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-lg font-bold text-lg shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300"
                                             >
                                                 💾 내 계산결과 저장하기
@@ -10311,7 +10305,7 @@
                             </div>
                         )}
                         
-                        {currentView === 'calculator' && <OriginalCalculator savedCalculations={savedCalculations} onCalculationComplete={handleCalculationComplete} setCurrentView={setCurrentView} />}
+                        {currentView === 'calculator' && <OriginalCalculator savedCalculations={savedCalculations} onCalculationComplete={handleCalculationComplete} setCurrentView={setCurrentView} currentUser={currentUser} showNotification={showNotification} />}
                         
                         
                         {currentView === 'community' && <CommunityApp setCurrentView={setCurrentView} currentUser={currentUser} checkCalculationForInteraction={checkCalculationForInteraction} handlePostClick={handlePostClick} isAdminUser={isAdminUser} />}
