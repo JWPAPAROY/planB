@@ -3155,7 +3155,7 @@
                                 return;
                             }
                         }
-                        if (!expertPrivacyConsent) {
+                        if (!privacyConsent) {
                             setError('개인정보 수집·이용에 동의해주세요');
                             return;
                         }
@@ -10125,7 +10125,18 @@
                             .from('user_calculations')
                             .upsert({
                                 user_id: currentUser.id,
-                                calculation_data: calculationResult,
+                                age: calculationResult.formData?.age,
+                                age_group: calculationResult.formData?.age >= 60 ? '60대' : '50대',
+                                health_status: calculationResult.formData?.health,
+                                life_mode: calculationResult.formData?.lifeMode,
+                                housing_type: calculationResult.formData?.housingType,
+                                housing_value: (calculationResult.formData?.housingValue || 0) * 10000,
+                                financial_assets: (calculationResult.formData?.financialAssets || 0) * 10000,
+                                severance_pay: (calculationResult.formData?.severancePay || 0) * 10000,
+                                debt: (calculationResult.formData?.debt || 0) * 10000,
+                                national_pension: (calculationResult.formData?.nationalPension || 0) * 10000,
+                                private_pension: (calculationResult.formData?.privatePension || 0) * 10000,
+                                calculation_result: calculationResult,
                                 updated_at: new Date().toISOString()
                             });
                         
