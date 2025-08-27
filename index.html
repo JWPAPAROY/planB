@@ -1792,27 +1792,50 @@
                                 } else if (data) {
                                     console.log('📊 Supabase 계산 결과 개수:', data.length);
                                     console.log('📄 Supabase 원본 데이터:', data.length > 0 ? data[0] : 'No data');
-                                    const supabaseCalculations = data.map(item => ({
-                                        id: item.id,
-                                        source: 'database',
-                                        created_at: item.created_at,
-                                        formData: {
-                                            age: item.age,
-                                            health: item.health_status,
-                                            lifeMode: item.life_mode,
-                                            housingType: item.housing_type,
-                                            housingValue: Math.floor(item.housing_value / 10000) || 0,
-                                            financialAssets: Math.floor(item.financial_assets / 10000) || 0,
-                                            severancePay: Math.floor(item.severance_pay / 10000) || 0,
-                                            debt: Math.floor(item.debt / 10000) || 0,
-                                            nationalPension: Math.floor(item.national_pension / 10000) || 0,
-                                            privatePension: Math.floor(item.private_pension / 10000) || 0
-                                        },
-                                        calculationResult: item.calculation_result,
-                                        totalAssets: item.calculation_result?.totalAssets || 0,
-                                        monthlyLivingCost: item.calculation_result?.monthlyLivingCost || 0,
-                                        assetSufficiencyYears: item.calculation_result?.assetSufficiencyYears || 0
-                                    }));
+                                    const supabaseCalculations = data.map(item => {
+                                        console.log('📄 처리 중인 계산 데이터:', {
+                                            id: item.id,
+                                            form_data: item.form_data,
+                                            calculation_result: item.calculation_result,
+                                            created_at: item.created_at
+                                        });
+                                        
+                                        // JSONB 데이터 안전한 파싱
+                                        let formData = {};
+                                        let calculationResult = {};
+                                        
+                                        try {
+                                            formData = typeof item.form_data === 'string' 
+                                                ? JSON.parse(item.form_data) 
+                                                : (item.form_data || {});
+                                                
+                                            calculationResult = typeof item.calculation_result === 'string' 
+                                                ? JSON.parse(item.calculation_result) 
+                                                : (item.calculation_result || {});
+                                        } catch (error) {
+                                            console.error('🚨 JSONB 파싱 오류:', error, { item });
+                                            formData = item.form_data || {};
+                                            calculationResult = item.calculation_result || {};
+                                        }
+                                        
+                                        console.log('✅ 변환된 데이터:', { 
+                                            formData, 
+                                            calculationResult,
+                                            totalAssets: calculationResult.totalAssets,
+                                            monthlyLivingCost: calculationResult.monthlyLivingCost 
+                                        });
+                                        
+                                        return {
+                                            id: item.id,
+                                            source: 'database',
+                                            created_at: item.created_at || item.saved_at,
+                                            formData: formData,
+                                            calculationResult: calculationResult,
+                                            totalAssets: calculationResult.totalAssets || 0,
+                                            monthlyLivingCost: calculationResult.monthlyLivingCost || 0,
+                                            assetSufficiencyYears: calculationResult.assetSufficiencyYears || 0
+                                        };
+                                    });
                                     calculations = [...calculations, ...supabaseCalculations];
                                     console.log('🎯 변환된 Supabase 계산 결과:', supabaseCalculations.length);
                                 } else {
@@ -9287,14 +9310,60 @@
             const currentCategory = expertCategories[activeCategory];
 
             return (
-                <div className={`bg-gradient-to-r ${currentCategory.bgColor} p-6 rounded-lg`}>
-                    {/* 헤더 */}
-                    <div className="mb-6">
-                        <div className="text-center mb-4">
-                            <h3 className="text-lg md:text-xl font-bold text-gray-800 no-break-korean">
-                                🎯 관심있는 분야의 전문가에게 정보를 얻으세요!
-                            </h3>
+                <div className="space-y-6">
+                    {/* 서비스 설명 섹션 */}
+                    <div className="bg-white rounded-xl shadow-md p-6 border border-gray-100">
+                        <div className="text-center mb-6">
+                            <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-4">
+                                🎯 전문가 상담 서비스
+                            </h2>
+                            <p className="text-gray-600 text-lg leading-relaxed">
+                                은퇴 준비의 다양한 분야에서 <strong className="text-blue-600">검증된 전문가</strong>들이<br/>
+                                개인 맞춤형 상담을 제공합니다
+                            </p>
                         </div>
+
+                        {/* 서비스 특징 */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                            <div className="text-center p-4 bg-blue-50 rounded-lg">
+                                <div className="text-3xl mb-2">🛡️</div>
+                                <h4 className="font-semibold text-gray-800 mb-1">안전한 플랫폼</h4>
+                                <p className="text-sm text-gray-600">모든 전문가 자격 검증 완료</p>
+                            </div>
+                            <div className="text-center p-4 bg-green-50 rounded-lg">
+                                <div className="text-3xl mb-2">💬</div>
+                                <h4 className="font-semibold text-gray-800 mb-1">1:1 맞춤 상담</h4>
+                                <p className="text-sm text-gray-600">개인 상황에 딱 맞는 조언</p>
+                            </div>
+                            <div className="text-center p-4 bg-purple-50 rounded-lg">
+                                <div className="text-3xl mb-2">🎲</div>
+                                <h4 className="font-semibold text-gray-800 mb-1">투명한 후기</h4>
+                                <p className="text-sm text-gray-600">실제 상담 후기 및 평점 공개</p>
+                            </div>
+                        </div>
+
+                        {/* 상담 분야 안내 */}
+                        <div className="bg-gray-50 rounded-lg p-4">
+                            <h4 className="font-semibold text-gray-800 mb-3 text-center">💼 상담 가능 분야</h4>
+                            <div className="flex flex-wrap justify-center gap-2">
+                                <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">✈️ 여행/취미</span>
+                                <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm">🏠 주거/이주</span>
+                                <span className="px-3 py-1 bg-red-100 text-red-800 rounded-full text-sm">🩺 건강/의료</span>
+                                <span className="px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-sm">💰 투자/재무</span>
+                                <span className="px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-sm">⚖️ 법무/세무</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* 전문가 목록 섹션 */}
+                    <div className={`bg-gradient-to-r ${currentCategory.bgColor} p-6 rounded-lg`}>
+                        {/* 헤더 */}
+                        <div className="mb-6">
+                            <div className="text-center mb-4">
+                                <h3 className="text-lg md:text-xl font-bold text-gray-800 no-break-korean">
+                                    🎯 관심있는 분야의 전문가에게 정보를 얻으세요!
+                                </h3>
+                            </div>
                         
                         {/* 전문가 전용 서비스 게시 섹션 */}
                         {isExpert && (
@@ -9445,16 +9514,17 @@
                         />
                     )}
 
-                    {/* 전문가 글쓰기 모달 */}
-                    {showWriteModal && (
-                        <ExpertPostWriteModal
-                            isOpen={showWriteModal}
-                            onClose={() => setShowWriteModal(false)}
-                            currentUser={currentUser}
-                            onSuccess={handleWriteSuccess}
-                            isAdminUser={isAdminUser}
-                        />
-                    )}
+                        {/* 전문가 글쓰기 모달 */}
+                        {showWriteModal && (
+                            <ExpertPostWriteModal
+                                isOpen={showWriteModal}
+                                onClose={() => setShowWriteModal(false)}
+                                currentUser={currentUser}
+                                onSuccess={handleWriteSuccess}
+                                isAdminUser={isAdminUser}
+                            />
+                        )}
+                    </div>
                 </div>
             );
         };
@@ -9982,18 +10052,18 @@
 
                 return (
                     <div>
-                        <label className="block text-xl font-semibold text-gray-800 mb-3">{label}</label>
+                        <label className="block text-base md:text-xl font-semibold text-gray-800 mb-3 break-keep">{label}</label>
                         <input
                             type="text"
                             inputMode="numeric"
                             pattern="[0-9]*"
                             value={value}
                             onChange={handleInputChange}
-                            className="w-full p-4 border-2 border-gray-200 rounded-lg text-lg focus:border-blue-500 focus:outline-none"
+                            className="w-full p-3 md:p-4 border-2 border-gray-200 rounded-lg text-base md:text-lg focus:border-blue-500 focus:outline-none"
                             placeholder={placeholder}
                             autoComplete="off"
                         />
-                        <div className="text-green-600 font-semibold text-lg mt-1">
+                        <div className="text-green-600 font-semibold text-sm md:text-lg mt-1 break-keep">
                             {formatAmount(value)}
                         </div>
                     </div>
