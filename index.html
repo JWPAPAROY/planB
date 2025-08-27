@@ -689,7 +689,26 @@
                     
                     return { success: true, user: data.user };
                 } catch (error) {
-                    return { success: false, error: error.message };
+                    // 영문 에러 메시지를 한글로 변환
+                    let koreanErrorMessage = error.message;
+                    
+                    if (error.message.includes('User already registered')) {
+                        koreanErrorMessage = '이미 가입된 이메일입니다.';
+                    } else if (error.message.includes('Password should be at least')) {
+                        koreanErrorMessage = '비밀번호는 최소 6자 이상이어야 합니다.';
+                    } else if (error.message.includes('Invalid email')) {
+                        koreanErrorMessage = '올바른 이메일 형식이 아닙니다.';
+                    } else if (error.message.includes('Signup is disabled')) {
+                        koreanErrorMessage = '회원가입이 일시적으로 중단되었습니다.';
+                    } else if (error.message.includes('Network error') || error.message.includes('fetch')) {
+                        koreanErrorMessage = '네트워크 연결을 확인해주세요.';
+                    } else if (error.message.includes('duplicate key value violates unique constraint')) {
+                        koreanErrorMessage = '이미 사용중인 이메일입니다.';
+                    } else if (error.message.includes('permission denied')) {
+                        koreanErrorMessage = '권한이 없습니다. 관리자에게 문의하세요.';
+                    }
+                    
+                    return { success: false, error: koreanErrorMessage };
                 }
             }
             
@@ -707,7 +726,26 @@
                     this.currentUser = data.user;
                     return { success: true, user: data.user };
                 } catch (error) {
-                    return { success: false, error: error.message };
+                    // 영문 에러 메시지를 한글로 변환
+                    let koreanErrorMessage = error.message;
+                    
+                    if (error.message.includes('Invalid login credentials')) {
+                        koreanErrorMessage = '이메일 또는 비밀번호가 올바르지 않습니다.';
+                    } else if (error.message.includes('Email not confirmed')) {
+                        koreanErrorMessage = '이메일 인증이 완료되지 않았습니다. 이메일을 확인해주세요.';
+                    } else if (error.message.includes('Too many requests')) {
+                        koreanErrorMessage = '너무 많은 로그인 시도가 있었습니다. 잠시 후 다시 시도해주세요.';
+                    } else if (error.message.includes('User not found')) {
+                        koreanErrorMessage = '등록되지 않은 이메일입니다.';
+                    } else if (error.message.includes('Invalid email')) {
+                        koreanErrorMessage = '올바른 이메일 형식이 아닙니다.';
+                    } else if (error.message.includes('Password should be at least')) {
+                        koreanErrorMessage = '비밀번호는 최소 6자 이상이어야 합니다.';
+                    } else if (error.message.includes('Network error') || error.message.includes('fetch')) {
+                        koreanErrorMessage = '네트워크 연결을 확인해주세요.';
+                    }
+                    
+                    return { success: false, error: koreanErrorMessage };
                 }
             }
             
@@ -1373,7 +1411,7 @@
 
 
         // 마이페이지 컴포넌트
-        const MyPageComponent = ({ currentUser, onClose, getUserType, getUserTypeName, isAdminUser, isGuest }) => {
+        const MyPageComponent = ({ currentUser, onClose, getUserType, getUserTypeName, isAdminUser, isGuest, setCurrentView, setFormData, setCalculatorResult, setCalculatorStep, showNotification }) => {
             const [userType, setUserType] = useState('member');
             const [userTypeName, setUserTypeName] = useState('일반회원');
             const [activeTab, setActiveTab] = useState('profile');
@@ -5906,7 +5944,35 @@
                         <div className="text-center py-12">
                             <div className="text-4xl mb-4">📭</div>
                             <h3 className="text-lg font-medium text-gray-800 mb-2">연락처 교환 요청이 없습니다</h3>
-                            <p className="text-gray-600">전문가 상담을 예약하고 결제를 완료하면 연락처 교환이 가능합니다.</p>
+                            <p className="text-gray-600 mb-6">전문가 상담을 예약하고 결제를 완료하면 연락처 교환이 가능합니다.</p>
+                            
+                            {/* 연락처 교환 안내 */}
+                            <div className="max-w-md mx-auto bg-blue-50 border border-blue-200 rounded-lg p-6 text-left">
+                                <h4 className="font-semibold text-blue-900 mb-3">💡 연락처 교환 기능이란?</h4>
+                                <div className="space-y-2 text-sm text-blue-800">
+                                    <div className="flex items-start gap-2">
+                                        <span>1️⃣</span>
+                                        <span>전문가 상담 예약 및 결제 완료</span>
+                                    </div>
+                                    <div className="flex items-start gap-2">
+                                        <span>2️⃣</span>
+                                        <span>상담 후 추가 연락이 필요한 경우</span>
+                                    </div>
+                                    <div className="flex items-start gap-2">
+                                        <span>3️⃣</span>
+                                        <span>양쪽 동의 하에 안전한 연락처 교환</span>
+                                    </div>
+                                    <div className="flex items-start gap-2">
+                                        <span>4️⃣</span>
+                                        <span>지속적인 재무 관리 파트너십 구축</span>
+                                    </div>
+                                </div>
+                                <div className="mt-4 pt-3 border-t border-blue-200">
+                                    <p className="text-xs text-blue-700">
+                                        💡 개인정보보호를 위해 플랫폼에서 안전하게 관리됩니다
+                                    </p>
+                                </div>
+                            </div>
                         </div>
                     ) : (
                         <div className="space-y-4">
@@ -10503,6 +10569,11 @@
                         getUserTypeName={getUserTypeName}
                         isAdminUser={isAdminUser}
                         isGuest={isGuest}
+                        setCurrentView={setCurrentView}
+                        setFormData={setFormData}
+                        setCalculatorResult={setCalculatorResult}
+                        setCalculatorStep={setCalculatorStep}
+                        showNotification={showNotification}
                     />
                 );
             }
@@ -10777,7 +10848,7 @@
                                     {/* 사용자 환영 메시지 */}
                                     {currentUser && (
                                         <div className="text-lg text-blue-700 font-medium mb-6">
-                                            안녕하세요, {currentUser.nickname || currentUser.email.split('@')[0]}님! 👋
+                                            안녕하세요, {currentUser.nickname || (currentUser.email ? currentUser.email.split('@')[0] + '(회원)' : '사용자')}님! 👋
                                             {isAdminUser(currentUser) && (
                                                 <span className="ml-2 text-red-600 text-sm">
                                                     👑 슈퍼관리자
