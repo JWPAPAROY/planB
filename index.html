@@ -8,9 +8,9 @@
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- React 18 CDN -->
-    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
-    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <!-- React 18 CDN (Production) -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     
     <!-- Babel Standalone for JSX -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -1437,7 +1437,7 @@
                 // 게스트가 아니거나 전문가/관리자인 경우에만 표시
                 ...(!isCurrentUserGuest ? [
                     { id: 'activity', name: '활동 내역', icon: '📊' },
-                    { id: 'contact', name: '연락처 교환', icon: '📞' }
+                    { id: 'chat', name: '채팅 내역', icon: '💬' }
                 ] : []),
                 // 관리자는 모든 탭 접근 가능, 전문가는 전문가 탭만
                 ...(userType === 'expert' || userType === 'admin' ? [{ id: 'expert', name: '전문가 관리', icon: '🎯' }] : []),
@@ -1521,8 +1521,8 @@
                                 onClose={onClose}
                             />
                         )}
-                        {activeTab === 'contact' && !isCurrentUserGuest && (
-                            <ContactExchangeComponent currentUser={currentUser} isAdminUser={isAdminUser} />
+                        {activeTab === 'chat' && !isCurrentUserGuest && (
+                            <ChatHistoryComponent currentUser={currentUser} />
                         )}
                         {activeTab === 'expert' && userType === 'expert' && (
                             <ExpertTab currentUser={currentUser} />
@@ -1532,7 +1532,7 @@
                         )}
                         
                         {/* 게스트가 제한된 탭에 접근한 경우 안내 메시지 */}
-                        {isCurrentUserGuest && (activeTab === 'activity' || activeTab === 'contact') && (
+                        {isCurrentUserGuest && (activeTab === 'activity' || activeTab === 'chat') && (
                             <div className="text-center py-12">
                                 <div className="bg-amber-50 border border-amber-200 rounded-lg p-8 max-w-md mx-auto">
                                     <div className="text-4xl mb-4">🚫</div>
@@ -1557,41 +1557,180 @@
         };
 
         // 내 정보 탭
-        const ProfileTab = ({ currentUser, userType, userTypeName }) => (
-            <div className="space-y-6">
-                <div className="bg-white rounded-lg shadow p-6">
-                    <h2 className="text-xl font-semibold mb-4">기본 정보</h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">이메일</label>
-                            <div className="p-3 bg-gray-50 rounded-lg text-gray-800">{currentUser?.email}</div>
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">닉네임</label>
-                            <div className="p-3 bg-gray-50 rounded-lg text-gray-800">{currentUser?.nickname || '설정되지 않음'}</div>
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">회원 유형</label>
-                            <div className="p-3 bg-gray-50 rounded-lg">
-                                <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                    userType === 'admin' ? 'bg-red-100 text-red-800' :
-                                    userType === 'expert' ? 'bg-orange-100 text-orange-800' :
-                                    'bg-blue-100 text-blue-800'
-                                }`}>
-                                    {userTypeName}
-                                </span>
+        const ProfileTab = ({ currentUser, userType, userTypeName }) => {
+            const [isEditingNickname, setIsEditingNickname] = useState(false);
+            const [newNickname, setNewNickname] = useState(currentUser?.nickname || '');
+            const [nicknameError, setNicknameError] = useState('');
+            const [isCheckingDuplicate, setIsCheckingDuplicate] = useState(false);
+            const [isSavingNickname, setIsSavingNickname] = useState(false);
+
+            // 닉네임 중복 체크
+            const checkNicknameDuplicate = async (nickname) => {
+                if (!nickname.trim()) {
+                    setNicknameError('닉네임을 입력해주세요.');
+                    return false;
+                }
+
+                if (nickname.length < 2 || nickname.length > 20) {
+                    setNicknameError('닉네임은 2-20자 사이여야 합니다.');
+                    return false;
+                }
+
+                if (nickname === currentUser?.nickname) {
+                    setNicknameError('현재 닉네임과 동일합니다.');
+                    return false;
+                }
+
+                try {
+                    setIsCheckingDuplicate(true);
+                    setNicknameError('');
+
+                    const { data, error } = await supabase
+                        .from('user_profiles')
+                        .select('id')
+                        .eq('nickname', nickname.trim())
+                        .neq('id', currentUser.id);
+
+                    if (error) throw error;
+
+                    if (data && data.length > 0) {
+                        setNicknameError('이미 사용 중인 닉네임입니다.');
+                        return false;
+                    }
+
+                    setNicknameError('');
+                    return true;
+                } catch (error) {
+                    console.error('닉네임 중복 체크 오류:', error);
+                    setNicknameError('중복 체크 중 오류가 발생했습니다.');
+                    return false;
+                } finally {
+                    setIsCheckingDuplicate(false);
+                }
+            };
+
+            // 닉네임 저장
+            const saveNickname = async () => {
+                if (!await checkNicknameDuplicate(newNickname)) {
+                    return;
+                }
+
+                try {
+                    setIsSavingNickname(true);
+
+                    const { error } = await supabase
+                        .from('user_profiles')
+                        .update({ nickname: newNickname.trim() })
+                        .eq('id', currentUser.id);
+
+                    if (error) throw error;
+
+                    // currentUser 객체 업데이트
+                    currentUser.nickname = newNickname.trim();
+                    
+                    setIsEditingNickname(false);
+                    setNicknameError('');
+                    
+                    showToast('닉네임이 성공적으로 변경되었습니다.', 'success');
+                } catch (error) {
+                    console.error('닉네임 저장 오류:', error);
+                    setNicknameError('닉네임 저장 중 오류가 발생했습니다.');
+                } finally {
+                    setIsSavingNickname(false);
+                }
+            };
+
+            // 닉네임 편집 취소
+            const cancelEditNickname = () => {
+                setNewNickname(currentUser?.nickname || '');
+                setNicknameError('');
+                setIsEditingNickname(false);
+            };
+
+            return (
+                <div className="space-y-6">
+                    <div className="bg-white rounded-lg shadow p-6">
+                        <h2 className="text-xl font-semibold mb-4">기본 정보</h2>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">이메일</label>
+                                <div className="p-3 bg-gray-50 rounded-lg text-gray-800">{currentUser?.email}</div>
                             </div>
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">가입일</label>
-                            <div className="p-3 bg-gray-50 rounded-lg text-gray-800">
-                                {currentUser?.created_at ? new Date(currentUser.created_at).toLocaleDateString() : '정보 없음'}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">닉네임</label>
+                                {isEditingNickname ? (
+                                    <div className="space-y-2">
+                                        <div className="flex gap-2">
+                                            <input
+                                                type="text"
+                                                value={newNickname}
+                                                onChange={(e) => {
+                                                    setNewNickname(e.target.value);
+                                                    setNicknameError('');
+                                                }}
+                                                placeholder="새 닉네임을 입력하세요"
+                                                className={`flex-1 p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                                                    nicknameError ? 'border-red-300' : 'border-gray-300'
+                                                }`}
+                                                maxLength={20}
+                                                disabled={isCheckingDuplicate || isSavingNickname}
+                                            />
+                                        </div>
+                                        {nicknameError && (
+                                            <p className="text-red-600 text-sm">{nicknameError}</p>
+                                        )}
+                                        <div className="flex gap-2">
+                                            <button
+                                                onClick={saveNickname}
+                                                disabled={isCheckingDuplicate || isSavingNickname || !newNickname.trim()}
+                                                className="px-3 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                                            >
+                                                {isSavingNickname ? '저장 중...' : isCheckingDuplicate ? '확인 중...' : '저장'}
+                                            </button>
+                                            <button
+                                                onClick={cancelEditNickname}
+                                                disabled={isCheckingDuplicate || isSavingNickname}
+                                                className="px-3 py-2 bg-gray-300 text-gray-700 rounded-lg text-sm hover:bg-gray-400 disabled:opacity-50 disabled:cursor-not-allowed"
+                                            >
+                                                취소
+                                            </button>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                        <span className="text-gray-800">{currentUser?.nickname || '설정되지 않음'}</span>
+                                        <button
+                                            onClick={() => setIsEditingNickname(true)}
+                                            className="px-3 py-1 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors"
+                                        >
+                                            수정
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">회원 유형</label>
+                                <div className="p-3 bg-gray-50 rounded-lg">
+                                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                        userType === 'admin' ? 'bg-red-100 text-red-800' :
+                                        userType === 'expert' ? 'bg-orange-100 text-orange-800' :
+                                        'bg-blue-100 text-blue-800'
+                                    }`}>
+                                        {userTypeName}
+                                    </span>
+                                </div>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">가입일</label>
+                                <div className="p-3 bg-gray-50 rounded-lg text-gray-800">
+                                    {currentUser?.created_at ? new Date(currentUser.created_at).toLocaleDateString() : '정보 없음'}
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
-            </div>
-        );
+            );
+        };
 
         // 활동 내역 탭
         const ActivityTab = ({ currentUser, userType, setCurrentView, setFormData, setCalculatorResult, setCalculatorStep, showNotification, onClose }) => {
@@ -1889,13 +2028,6 @@
                                 </div>
                                 <div className="text-sm text-gray-600">총 결제 금액</div>
                             </div>
-                            <div className="text-center p-4 bg-orange-50 rounded-lg">
-                                <div className="text-2xl font-bold text-orange-600">
-                                    {calculationHistory.length > 0 && calculationHistory[0].totalAssets ? 
-                                        Math.floor(calculationHistory[0].totalAssets / 100000000) : 0}억
-                                </div>
-                                <div className="text-sm text-gray-600">최신 총 자산</div>
-                            </div>
                         </div>
                     </div>
 
@@ -2060,16 +2192,7 @@
                                                             </div>
                                                             
                                                             {/* 주요 결과 요약 */}
-                                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                                                                <div className="bg-blue-50 p-4 rounded-lg">
-                                                                    <div className="text-sm text-blue-600 font-medium">총 자산</div>
-                                                                    <div className="text-xl font-bold text-blue-900">
-                                                                        {calculation.totalAssets ? 
-                                                                            `${Math.floor(calculation.totalAssets / 100000000)}억 ${Math.floor((calculation.totalAssets % 100000000) / 10000).toLocaleString()}만원` :
-                                                                            '계산 필요'
-                                                                        }
-                                                                    </div>
-                                                                </div>
+                                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                                                                 <div className="bg-green-50 p-4 rounded-lg">
                                                                     <div className="text-sm text-green-600 font-medium">월 생활비</div>
                                                                     <div className="text-xl font-bold text-green-900">
@@ -2174,84 +2297,26 @@
                                     
                                     {/* 상담 내역 탭 */}
                                     {activeSubTab === 'bookings' && (
-                                        <div className="space-y-4">
-                                            <h3 className="text-lg font-semibold">최근 활동</h3>
-                                            <div className="space-y-3">
-                                                {bookingHistory.slice(0, 3).map(booking => (
-                                                    <div key={booking.id} className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
-                                                        <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                                                        <div className="flex-1">
-                                                            <div className="text-sm font-medium">{booking.consultationType} - {booking.expertName}</div>
-                                                            <div className="text-xs text-gray-500">{booking.date} {booking.time}</div>
-                                                        </div>
-                                                        {getStatusBadge(booking.status)}
-                                                    </div>
-                                                ))}
-                                                {bookingHistory.length === 0 && (
-                                                    <div className="text-center text-gray-500 py-4">
-                                                        아직 상담 내역이 없습니다
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
+                                        <ExpertBookingManagementComponent currentUser={currentUser} userType="client" />
                                     )}
 
-                                    {/* 상담 내역 탭 */}
-                                    {activeSubTab === 'bookings' && (
-                                        <div className="space-y-4">
-                                            <h3 className="text-lg font-semibold">전체 상담 내역</h3>
-                                            <div className="space-y-4">
-                                                {bookingHistory.map(booking => (
-                                                    <div key={booking.id} className="border border-gray-200 rounded-lg p-4">
-                                                        <div className="flex justify-between items-start mb-3">
-                                                            <div>
-                                                                <h4 className="font-semibold text-lg">{booking.consultationType}</h4>
-                                                                <p className="text-gray-600">전문가: {booking.expertName}</p>
-                                                                <p className="text-sm text-gray-500">
-                                                                    {booking.date} {booking.time} ({booking.duration}분)
-                                                                </p>
-                                                            </div>
-                                                            <div className="text-right">
-                                                                {getStatusBadge(booking.status)}
-                                                                <p className="text-lg font-bold text-gray-900 mt-1">
-                                                                    {booking.price.toLocaleString()}원
-                                                                </p>
-                                                            </div>
-                                                        </div>
-                                                        {booking.rating && (
-                                                            <div className="mt-3 pt-3 border-t border-gray-100">
-                                                                <div className="flex items-center justify-between">
-                                                                    <div>
-                                                                        <p className="text-sm font-medium">내 평가:</p>
-                                                                        {renderStars(booking.rating)}
-                                                                    </div>
-                                                                </div>
-                                                                {booking.review && (
-                                                                    <p className="mt-2 text-sm text-gray-700 italic">"{booking.review}"</p>
-                                                                )}
-                                                            </div>
-                                                        )}
-                                                        {booking.status === 'scheduled' && (
-                                                            <div className="mt-3 pt-3 border-t border-gray-100 flex space-x-2">
-                                                                <button className="px-4 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700">
-                                                                    상담 준비하기
-                                                                </button>
-                                                                <button className="px-4 py-2 border border-gray-300 text-gray-700 text-sm rounded-md hover:bg-gray-50">
-                                                                    일정 변경
-                                                                </button>
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                ))}
-                                                {bookingHistory.length === 0 && (
-                                                    <div className="text-center text-gray-500 py-8">
-                                                        <p>아직 상담 내역이 없습니다</p>
-                                                        <button className="mt-4 px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
-                                                            첫 상담 예약하기
-                                                        </button>
-                                                    </div>
-                                                )}
-                                            </div>
+                                    {/* 전체 상담이 없는 경우 */}
+                                            {bookingHistory.length === 0 && (
+                                                <div className="text-center text-gray-500 py-12">
+                                                    <div className="text-4xl mb-4">💬</div>
+                                                    <h3 className="text-lg font-medium text-gray-800 mb-2">아직 상담 내역이 없습니다</h3>
+                                                    <p className="text-gray-600 mb-6">전문가 상담을 통해 개인 맞춤형 은퇴 설계를 받아보세요.</p>
+                                                    <button 
+                                                        onClick={() => {
+                                                            setCurrentView('calculator');
+                                                            onClose();
+                                                        }}
+                                                        className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                                                    >
+                                                        전문가 찾기
+                                                    </button>
+                                                </div>
+                                            )}
                                         </div>
                                     )}
 
@@ -2310,34 +2375,129 @@
         };
 
         // 전문가 관리 탭
-        const ExpertTab = ({ currentUser }) => (
-            <div className="space-y-6">
-                <div className="bg-white rounded-lg shadow p-6">
-                    <h2 className="text-xl font-semibold mb-4">전문가 대시보드</h2>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <div className="text-center p-4 bg-orange-50 rounded-lg">
-                            <div className="text-2xl font-bold text-orange-600">8</div>
-                            <div className="text-sm text-gray-600">총 상담 건수</div>
-                        </div>
-                        <div className="text-center p-4 bg-green-50 rounded-lg">
-                            <div className="text-2xl font-bold text-green-600">4.8</div>
-                            <div className="text-sm text-gray-600">평균 평점</div>
-                        </div>
-                        <div className="text-center p-4 bg-blue-50 rounded-lg">
-                            <div className="text-2xl font-bold text-blue-600">95%</div>
-                            <div className="text-sm text-gray-600">응답률</div>
+        const ExpertTab = ({ currentUser }) => {
+            const [stats, setStats] = useState({
+                totalConsultations: 0,
+                avgRating: 0,
+                responseRate: 0,
+                totalRevenue: 0,
+                pendingBookings: 0,
+                completedBookings: 0
+            });
+            const [loading, setLoading] = useState(true);
+
+            // 전문가 통계 로드
+            useEffect(() => {
+                const loadExpertStats = async () => {
+                    try {
+                        if (!supabase) {
+                            // 데모 데이터
+                            setStats({
+                                totalConsultations: 8,
+                                avgRating: 4.8,
+                                responseRate: 95,
+                                totalRevenue: 640000,
+                                pendingBookings: 2,
+                                completedBookings: 6
+                            });
+                            setLoading(false);
+                            return;
+                        }
+
+                        // 실제 통계 조회
+                        const { data: consultations, error } = await supabase
+                            .from('consultation_sessions')
+                            .select('*')
+                            .eq('expert_id', currentUser.id);
+
+                        if (error) throw error;
+
+                        const totalConsultations = consultations?.length || 0;
+                        const completedBookings = consultations?.filter(c => c.status === 'completed').length || 0;
+                        const pendingBookings = consultations?.filter(c => c.status === 'pending').length || 0;
+                        const totalRevenue = consultations?.reduce((sum, c) => sum + (c.expert_payout || 0), 0) || 0;
+
+                        // 평점 조회 (향후 구현)
+                        const avgRating = 4.8; // 임시값
+                        const responseRate = totalConsultations > 0 ? Math.round((completedBookings / totalConsultations) * 100) : 0;
+
+                        setStats({
+                            totalConsultations,
+                            avgRating,
+                            responseRate,
+                            totalRevenue,
+                            pendingBookings,
+                            completedBookings
+                        });
+                    } catch (error) {
+                        console.error('전문가 통계 로딩 오류:', error);
+                    } finally {
+                        setLoading(false);
+                    }
+                };
+
+                loadExpertStats();
+            }, [currentUser.id]);
+
+            if (loading) {
+                return (
+                    <div className="flex justify-center items-center h-64">
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+                    </div>
+                );
+            }
+
+            return (
+                <div className="space-y-6">
+                    {/* 전문가 대시보드 */}
+                    <div className="bg-white rounded-lg shadow p-6">
+                        <h2 className="text-xl font-semibold mb-4">📊 나의 전문가 대시보드</h2>
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                            <div className="text-center p-4 bg-orange-50 rounded-lg">
+                                <div className="text-2xl font-bold text-orange-600">{stats.totalConsultations}</div>
+                                <div className="text-sm text-gray-600">총 상담 건수</div>
+                            </div>
+                            <div className="text-center p-4 bg-green-50 rounded-lg">
+                                <div className="text-2xl font-bold text-green-600">{stats.avgRating}</div>
+                                <div className="text-sm text-gray-600">평균 평점</div>
+                            </div>
+                            <div className="text-center p-4 bg-blue-50 rounded-lg">
+                                <div className="text-2xl font-bold text-blue-600">{stats.responseRate}%</div>
+                                <div className="text-sm text-gray-600">완료율</div>
+                            </div>
+                            <div className="text-center p-4 bg-purple-50 rounded-lg">
+                                <div className="text-2xl font-bold text-purple-600">{(stats.totalRevenue).toLocaleString()}원</div>
+                                <div className="text-sm text-gray-600">총 수익</div>
+                            </div>
                         </div>
                     </div>
-                </div>
-                
-                <div className="bg-white rounded-lg shadow p-6">
-                    <h2 className="text-xl font-semibold mb-4">예약 관리</h2>
-                    <div className="text-center text-gray-500 py-8">
-                        예약 관리 기능은 준비 중입니다
+                    
+                    {/* 빠른 액션 버튼들 */}
+                    <div className="bg-white rounded-lg shadow p-6">
+                        <h3 className="text-lg font-semibold mb-4">⚡ 빠른 액세스</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                                <div className="text-2xl mr-3">⏰</div>
+                                <div>
+                                    <div className="font-medium">대기 중인 예약</div>
+                                    <div className="text-sm text-gray-600">{stats.pendingBookings}개의 새로운 요청</div>
+                                </div>
+                            </div>
+                            <div className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                                <div className="text-2xl mr-3">💰</div>
+                                <div>
+                                    <div className="font-medium">이번 달 수익</div>
+                                    <div className="text-sm text-gray-600">{Math.round(stats.totalRevenue * 0.3).toLocaleString()}원 예상</div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
+
+                    {/* 예약 관리 시스템 */}
+                    <ExpertBookingManagementComponent currentUser={currentUser} userType="expert" />
                 </div>
-            </div>
-        );
+            );
+        };
 
         // 관리자 탭
         const AdminTab = ({ currentUser }) => {
@@ -4663,6 +4823,511 @@
             );
         };
 
+        // 전문가 실시간 채팅 시스템 컴포넌트
+        const ExpertChatComponent = ({ consultation, currentUser, onClose, userType }) => {
+            const [messages, setMessages] = useState([]);
+            const [newMessage, setNewMessage] = useState('');
+            const [chatStatus, setChatStatus] = useState('active'); // active, paused, completed
+            const [chatTimer, setChatTimer] = useState(0);
+            const [isTyping, setIsTyping] = useState(false);
+            const [showFileUpload, setShowFileUpload] = useState(false);
+            const [connectionStatus, setConnectionStatus] = useState('connecting');
+            const messagesEndRef = useRef(null);
+
+            // 채팅 초기화
+            useEffect(() => {
+                const initializeChat = async () => {
+                    try {
+                        // 기존 메시지 로드
+                        const { data, error } = await supabase
+                            .from('consultation_messages')
+                            .select('*')
+                            .eq('consultation_id', consultation.id)
+                            .order('created_at', { ascending: true });
+
+                        if (error) throw error;
+                        setMessages(data || []);
+                        setConnectionStatus('connected');
+
+                        // 실시간 구독 설정
+                        const subscription = supabase
+                            .channel(`consultation_${consultation.id}`)
+                            .on('postgres_changes', {
+                                event: 'INSERT',
+                                schema: 'public',
+                                table: 'consultation_messages',
+                                filter: `consultation_id=eq.${consultation.id}`
+                            }, (payload) => {
+                                setMessages(prev => [...prev, payload.new]);
+                                scrollToBottom();
+                            })
+                            .subscribe();
+
+                        return () => {
+                            subscription.unsubscribe();
+                        };
+                    } catch (error) {
+                        console.error('채팅 초기화 오류:', error);
+                        setConnectionStatus('error');
+                    }
+                };
+
+                initializeChat();
+            }, [consultation.id]);
+
+            // 타이머 관리
+            useEffect(() => {
+                let interval;
+                if (chatStatus === 'active') {
+                    interval = setInterval(() => {
+                        setChatTimer(prev => prev + 1);
+                    }, 1000);
+                }
+                return () => clearInterval(interval);
+            }, [chatStatus]);
+
+            // 스크롤 자동 이동
+            const scrollToBottom = () => {
+                messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+            };
+
+            useEffect(() => {
+                scrollToBottom();
+            }, [messages]);
+
+            // 메시지 전송
+            const sendMessage = async () => {
+                if (!newMessage.trim()) return;
+
+                const messageData = {
+                    consultation_id: consultation.id,
+                    sender_id: currentUser.id,
+                    sender_type: userType,
+                    message_text: newMessage.trim(),
+                    message_type: 'text',
+                    created_at: new Date().toISOString()
+                };
+
+                try {
+                    const { error } = await supabase
+                        .from('consultation_messages')
+                        .insert(messageData);
+
+                    if (error) throw error;
+
+                    setNewMessage('');
+                } catch (error) {
+                    console.error('메시지 전송 오류:', error);
+                    alert('메시지 전송에 실패했습니다.');
+                }
+            };
+
+            // 시간 포맷팅
+            const formatTimer = (seconds) => {
+                const hours = Math.floor(seconds / 3600);
+                const minutes = Math.floor((seconds % 3600) / 60);
+                const secs = seconds % 60;
+                return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+            };
+
+            // 메시지 시간 포맷팅
+            const formatMessageTime = (timestamp) => {
+                const date = new Date(timestamp);
+                return date.toLocaleTimeString('ko-KR', { 
+                    hour: '2-digit', 
+                    minute: '2-digit' 
+                });
+            };
+
+            return (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-xl w-full max-w-4xl h-[80vh] flex flex-col shadow-xl">
+                        {/* 헤더 */}
+                        <div className="p-4 border-b border-gray-200 bg-blue-50 rounded-t-xl">
+                            <div className="flex justify-between items-center">
+                                <div>
+                                    <h3 className="text-lg font-bold text-gray-900">
+                                        💬 {userType === 'expert' ? '고객' : '전문가'}과의 상담
+                                    </h3>
+                                    <div className="flex items-center space-x-4 text-sm text-gray-600 mt-1">
+                                        <span className="flex items-center">
+                                            <div className={`w-2 h-2 rounded-full mr-2 ${
+                                                connectionStatus === 'connected' ? 'bg-green-500' : 
+                                                connectionStatus === 'connecting' ? 'bg-yellow-500' : 'bg-red-500'
+                                            }`}></div>
+                                            {connectionStatus === 'connected' ? '연결됨' : 
+                                             connectionStatus === 'connecting' ? '연결 중' : '연결 오류'}
+                                        </span>
+                                        <span>⏰ {formatTimer(chatTimer)}</span>
+                                        <span className={`px-2 py-1 rounded-full text-xs ${
+                                            chatStatus === 'active' ? 'bg-green-100 text-green-800' :
+                                            chatStatus === 'paused' ? 'bg-yellow-100 text-yellow-800' :
+                                            'bg-gray-100 text-gray-800'
+                                        }`}>
+                                            {chatStatus === 'active' ? '상담 진행 중' :
+                                             chatStatus === 'paused' ? '잠시 대기' : '상담 완료'}
+                                        </span>
+                                    </div>
+                                </div>
+                                <div className="flex space-x-2">
+                                    <button
+                                        onClick={() => setChatStatus(chatStatus === 'active' ? 'paused' : 'active')}
+                                        className={`px-3 py-1 rounded text-sm font-medium ${
+                                            chatStatus === 'active' 
+                                                ? 'bg-yellow-500 text-white hover:bg-yellow-600'
+                                                : 'bg-green-500 text-white hover:bg-green-600'
+                                        }`}
+                                    >
+                                        {chatStatus === 'active' ? '⏸️ 일시정지' : '▶️ 재시작'}
+                                    </button>
+                                    <button 
+                                        onClick={onClose}
+                                        className="text-gray-500 hover:text-gray-700 text-xl px-2"
+                                    >
+                                        ✕
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* 메시지 영역 */}
+                        <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50">
+                            {messages.length === 0 ? (
+                                <div className="text-center text-gray-500 mt-8">
+                                    <p className="text-lg">💬 상담을 시작해보세요!</p>
+                                    <p className="text-sm mt-2">편안하게 궁금한 점을 물어보세요.</p>
+                                </div>
+                            ) : (
+                                messages.map((message, index) => {
+                                    const isMyMessage = message.sender_id === currentUser.id;
+                                    return (
+                                        <div key={index} className={`flex ${isMyMessage ? 'justify-end' : 'justify-start'}`}>
+                                            <div className={`max-w-[70%] ${isMyMessage ? 'order-2' : 'order-1'}`}>
+                                                <div className={`p-3 rounded-lg ${
+                                                    isMyMessage 
+                                                        ? 'bg-blue-500 text-white rounded-br-sm' 
+                                                        : 'bg-white text-gray-900 rounded-bl-sm shadow-sm border'
+                                                }`}>
+                                                    <p className="whitespace-pre-wrap">{message.message_text}</p>
+                                                </div>
+                                                <div className={`text-xs text-gray-500 mt-1 ${isMyMessage ? 'text-right' : 'text-left'}`}>
+                                                    {formatMessageTime(message.created_at)}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                })
+                            )}
+                            {isTyping && (
+                                <div className="flex justify-start">
+                                    <div className="bg-white text-gray-500 p-3 rounded-lg rounded-bl-sm shadow-sm border max-w-[70%]">
+                                        <div className="flex space-x-1">
+                                            <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
+                                            <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
+                                            <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                            <div ref={messagesEndRef} />
+                        </div>
+
+                        {/* 입력 영역 */}
+                        <div className="p-4 border-t border-gray-200 bg-white rounded-b-xl">
+                            <div className="flex space-x-2">
+                                <button
+                                    onClick={() => setShowFileUpload(!showFileUpload)}
+                                    className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                                    title="파일 첨부"
+                                >
+                                    📎
+                                </button>
+                                <input
+                                    type="text"
+                                    value={newMessage}
+                                    onChange={(e) => setNewMessage(e.target.value)}
+                                    onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && sendMessage()}
+                                    placeholder="메시지를 입력하세요... (Enter: 전송, Shift+Enter: 줄바꿈)"
+                                    className="flex-1 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                                    disabled={chatStatus !== 'active'}
+                                />
+                                <button
+                                    onClick={sendMessage}
+                                    disabled={!newMessage.trim() || chatStatus !== 'active'}
+                                    className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed font-medium transition-colors"
+                                >
+                                    전송
+                                </button>
+                            </div>
+                            {showFileUpload && (
+                                <div className="mt-2 p-3 bg-gray-50 rounded-lg">
+                                    <input
+                                        type="file"
+                                        className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                                        accept="image/*,application/pdf,.doc,.docx,.txt"
+                                    />
+                                    <p className="text-xs text-gray-500 mt-1">이미지, PDF, 문서 파일 업로드 가능 (최대 10MB)</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // 전문가 예약 관리 시스템 컴포넌트
+        const ExpertBookingManagementComponent = ({ currentUser, userType = 'expert' }) => {
+            const [bookings, setBookings] = useState([]);
+            const [activeTab, setActiveTab] = useState('upcoming'); // upcoming, completed, cancelled
+            const [loading, setLoading] = useState(true);
+            const [showChatModal, setShowChatModal] = useState(false);
+            const [selectedConsultation, setSelectedConsultation] = useState(null);
+
+            // 예약 목록 로드
+            useEffect(() => {
+                const loadBookings = async () => {
+                    try {
+                        setLoading(true);
+                        
+                        const query = supabase
+                            .from('consultation_sessions')
+                            .select(`
+                                *,
+                                expert:financial_experts!consultation_sessions_expert_id_fkey(name, title, specialties),
+                                client:user_profiles!consultation_sessions_client_id_fkey(nickname, email)
+                            `);
+
+                        // 전문가인 경우 자신의 예약만, 고객인 경우 자신이 예약한 것만
+                        if (userType === 'expert') {
+                            query.eq('expert_id', currentUser.id);
+                        } else {
+                            query.eq('client_id', currentUser.id);
+                        }
+
+                        const { data, error } = await query.order('scheduled_time', { ascending: false });
+
+                        if (error) throw error;
+                        setBookings(data || []);
+                    } catch (error) {
+                        console.error('예약 목록 로딩 오류:', error);
+                        setBookings([]);
+                    } finally {
+                        setLoading(false);
+                    }
+                };
+
+                loadBookings();
+            }, [currentUser.id, userType]);
+
+            // 예약 상태 업데이트
+            const updateBookingStatus = async (bookingId, newStatus) => {
+                try {
+                    const { error } = await supabase
+                        .from('consultation_sessions')
+                        .update({ status: newStatus, updated_at: new Date().toISOString() })
+                        .eq('id', bookingId);
+
+                    if (error) throw error;
+
+                    // 로컬 상태 업데이트
+                    setBookings(prev => prev.map(booking => 
+                        booking.id === bookingId 
+                            ? { ...booking, status: newStatus } 
+                            : booking
+                    ));
+
+                    alert(`예약이 ${newStatus === 'confirmed' ? '승인' : newStatus === 'cancelled' ? '취소' : '완료'}되었습니다.`);
+                } catch (error) {
+                    console.error('예약 상태 업데이트 오류:', error);
+                    alert('상태 업데이트에 실패했습니다.');
+                }
+            };
+
+            // 채팅 시작
+            const startChat = (booking) => {
+                setSelectedConsultation(booking);
+                setShowChatModal(true);
+            };
+
+            // 예약 필터링
+            const filteredBookings = bookings.filter(booking => {
+                const now = new Date();
+                const scheduledTime = new Date(booking.scheduled_time);
+                
+                switch (activeTab) {
+                    case 'upcoming':
+                        return ['pending', 'confirmed'].includes(booking.status) && scheduledTime >= now;
+                    case 'completed':
+                        return booking.status === 'completed' || scheduledTime < now;
+                    case 'cancelled':
+                        return booking.status === 'cancelled';
+                    default:
+                        return true;
+                }
+            });
+
+            // 시간 포맷팅
+            const formatDateTime = (dateTime) => {
+                const date = new Date(dateTime);
+                return date.toLocaleString('ko-KR', {
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+            };
+
+            // 상태 뱃지 스타일
+            const getStatusBadge = (status) => {
+                const styles = {
+                    pending: 'bg-yellow-100 text-yellow-800',
+                    confirmed: 'bg-green-100 text-green-800',
+                    completed: 'bg-blue-100 text-blue-800',
+                    cancelled: 'bg-red-100 text-red-800'
+                };
+                
+                const labels = {
+                    pending: '대기중',
+                    confirmed: '확정',
+                    completed: '완료',
+                    cancelled: '취소'
+                };
+
+                return (
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${styles[status] || styles.pending}`}>
+                        {labels[status] || status}
+                    </span>
+                );
+            };
+
+            if (loading) {
+                return (
+                    <div className="bg-white rounded-lg p-8 text-center">
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+                        <p className="text-gray-600">예약 정보를 불러오는 중...</p>
+                    </div>
+                );
+            }
+
+            return (
+                <div className="bg-white rounded-lg shadow-md overflow-hidden">
+                    <div className="p-6">
+                        <h3 className="text-xl font-bold text-gray-900 mb-6">
+                            {userType === 'expert' ? '📋 상담 예약 관리' : '📅 나의 상담 예약'}
+                        </h3>
+
+                        {/* 탭 메뉴 */}
+                        <div className="flex space-x-1 mb-6 bg-gray-100 p-1 rounded-lg">
+                            {[
+                                { id: 'upcoming', label: '예정된 상담', count: bookings.filter(b => ['pending', 'confirmed'].includes(b.status)).length },
+                                { id: 'completed', label: '완료된 상담', count: bookings.filter(b => b.status === 'completed').length },
+                                { id: 'cancelled', label: '취소된 상담', count: bookings.filter(b => b.status === 'cancelled').length }
+                            ].map(tab => (
+                                <button
+                                    key={tab.id}
+                                    onClick={() => setActiveTab(tab.id)}
+                                    className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+                                        activeTab === tab.id
+                                            ? 'bg-white text-blue-600 shadow-sm'
+                                            : 'text-gray-600 hover:text-gray-800'
+                                    }`}
+                                >
+                                    {tab.label} ({tab.count})
+                                </button>
+                            ))}
+                        </div>
+
+                        {/* 예약 목록 */}
+                        <div className="space-y-4">
+                            {filteredBookings.length === 0 ? (
+                                <div className="text-center py-8 text-gray-500">
+                                    <p className="text-lg">📅 {activeTab === 'upcoming' ? '예정된' : activeTab === 'completed' ? '완료된' : '취소된'} 상담이 없습니다</p>
+                                    <p className="text-sm mt-2">
+                                        {userType === 'expert' 
+                                            ? '고객들의 상담 요청을 기다리고 있습니다.' 
+                                            : '전문가와 상담을 예약해보세요.'}
+                                    </p>
+                                </div>
+                            ) : (
+                                filteredBookings.map(booking => (
+                                    <div key={booking.id} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50">
+                                        <div className="flex justify-between items-start mb-3">
+                                            <div className="flex-1">
+                                                <h4 className="font-semibold text-gray-900">
+                                                    {userType === 'expert' 
+                                                        ? `${booking.client?.nickname || '익명'} 님과의 상담`
+                                                        : `${booking.expert?.name || '전문가'} 님과의 상담`
+                                                    }
+                                                </h4>
+                                                <p className="text-sm text-gray-600 mt-1">📅 {formatDateTime(booking.scheduled_time)}</p>
+                                                <p className="text-sm text-gray-600">💬 {booking.consultation_topic}</p>
+                                                <p className="text-sm text-gray-600">💰 상담료: {booking.payment_amount?.toLocaleString()}원</p>
+                                            </div>
+                                            <div className="flex items-center space-x-2">
+                                                {getStatusBadge(booking.status)}
+                                            </div>
+                                        </div>
+
+                                        {/* 액션 버튼들 */}
+                                        <div className="flex space-x-2 pt-3 border-t border-gray-100">
+                                            {booking.status === 'confirmed' && (
+                                                <button
+                                                    onClick={() => startChat(booking)}
+                                                    className="px-3 py-1 bg-blue-500 text-white rounded text-sm hover:bg-blue-600"
+                                                >
+                                                    💬 채팅 시작
+                                                </button>
+                                            )}
+                                            
+                                            {userType === 'expert' && booking.status === 'pending' && (
+                                                <>
+                                                    <button
+                                                        onClick={() => updateBookingStatus(booking.id, 'confirmed')}
+                                                        className="px-3 py-1 bg-green-500 text-white rounded text-sm hover:bg-green-600"
+                                                    >
+                                                        ✅ 승인
+                                                    </button>
+                                                    <button
+                                                        onClick={() => updateBookingStatus(booking.id, 'cancelled')}
+                                                        className="px-3 py-1 bg-red-500 text-white rounded text-sm hover:bg-red-600"
+                                                    >
+                                                        ❌ 거절
+                                                    </button>
+                                                </>
+                                            )}
+                                            
+                                            {booking.status === 'confirmed' && (
+                                                <button
+                                                    onClick={() => updateBookingStatus(booking.id, 'completed')}
+                                                    className="px-3 py-1 bg-purple-500 text-white rounded text-sm hover:bg-purple-600"
+                                                >
+                                                    ✅ 완료
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+                    </div>
+
+                    {/* 채팅 모달 */}
+                    {showChatModal && selectedConsultation && (
+                        <ExpertChatComponent
+                            consultation={selectedConsultation}
+                            currentUser={currentUser}
+                            onClose={() => {
+                                setShowChatModal(false);
+                                setSelectedConsultation(null);
+                            }}
+                            userType={userType}
+                        />
+                    )}
+                </div>
+            );
+        };
+
         // 상담 완료 확인 시스템 컴포넌트
         const ConsultationCompletionComponent = ({ consultation, onClose, userType }) => {
             const [isCompleting, setIsCompleting] = useState(false);
@@ -4705,20 +5370,64 @@
 
             const handleReviewSubmit = async () => {
                 try {
-                    // TODO: Supabase에 후기 저장
-                    const reviewData = {
-                        consultationId: consultation.id,
-                        ...review,
-                        createdAt: new Date().toISOString()
-                    };
-                    
-                    console.log('후기 저장:', reviewData);
+                    if (!supabase) {
+                        console.log('데모 모드: 후기 저장:', review);
+                        alert('후기가 등록되었습니다. 감사합니다! (데모 모드)');
+                        onClose();
+                        return;
+                    }
+
+                    // 후기 데이터 저장
+                    const { error: reviewError } = await supabase
+                        .from('consultation_reviews')
+                        .insert({
+                            consultation_id: consultation.id,
+                            client_id: consultation.client_id,
+                            expert_id: consultation.expert_id,
+                            overall_rating: review.rating,
+                            professionalism_rating: review.professionalismRating,
+                            communication_rating: review.communicationRating,
+                            satisfaction_rating: review.satisfactionRating,
+                            review_title: review.reviewTitle,
+                            review_content: review.reviewContent,
+                            would_recommend: review.wouldRecommend,
+                            created_at: new Date().toISOString()
+                        });
+
+                    if (reviewError) throw reviewError;
+
+                    // 전문가 평점 업데이트
+                    const { data: reviews, error: avgError } = await supabase
+                        .from('consultation_reviews')
+                        .select('overall_rating')
+                        .eq('expert_id', consultation.expert_id);
+
+                    if (!avgError && reviews?.length > 0) {
+                        const avgRating = reviews.reduce((sum, r) => sum + r.overall_rating, 0) / reviews.length;
+                        
+                        await supabase
+                            .from('financial_experts')
+                            .update({
+                                average_rating: Math.round(avgRating * 10) / 10,
+                                total_reviews: reviews.length
+                            })
+                            .eq('id', consultation.expert_id);
+                    }
+
+                    // 상담 세션 완료 처리
+                    await supabase
+                        .from('consultation_sessions')
+                        .update({ 
+                            status: 'completed',
+                            completed_at: new Date().toISOString()
+                        })
+                        .eq('id', consultation.id);
                     
                     alert('후기가 등록되었습니다. 감사합니다!');
                     onClose();
                 } catch (error) {
                     console.error('후기 저장 오류:', error);
-                    alert('후기 저장 중 오류가 발생했습니다');
+                    alert('후기 저장 중 오류가 발생했습니다: ' + error.message);
                 }
             };
 
@@ -4884,8 +5593,50 @@
             const [phoneNumber, setPhoneNumber] = useState('');
             const [currentStep, setCurrentStep] = useState(1);
             const [bookingResult, setBookingResult] = useState(null);
+            const [paymentLoading, setPaymentLoading] = useState(false);
+            const [showCalendar, setShowCalendar] = useState(false);
+            
+            // 현재 월 달력 표시를 위한 상태
+            const [currentMonth, setCurrentMonth] = useState(new Date());
+            const [selectedDateInfo, setSelectedDateInfo] = useState(null);
 
-            // 예약 가능한 날짜 생성 (오늘부터 30일간)
+            // 캘린더 생성 함수 (월별 뷰)
+            const generateCalendarDays = (date) => {
+                const year = date.getFullYear();
+                const month = date.getMonth();
+                const firstDay = new Date(year, month, 1);
+                const lastDay = new Date(year, month + 1, 0);
+                const startDate = new Date(firstDay);
+                startDate.setDate(startDate.getDate() - firstDay.getDay());
+                
+                const days = [];
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                
+                for (let i = 0; i < 42; i++) { // 6주 * 7일
+                    const currentDate = new Date(startDate);
+                    currentDate.setDate(startDate.getDate() + i);
+                    
+                    const isCurrentMonth = currentDate.getMonth() === month;
+                    const isToday = currentDate.getTime() === today.getTime();
+                    const isPast = currentDate < today;
+                    const isWeekend = currentDate.getDay() === 0 || currentDate.getDay() === 6;
+                    const isAvailable = !isPast && !isWeekend && isCurrentMonth;
+                    
+                    days.push({
+                        date: currentDate,
+                        isCurrentMonth,
+                        isToday,
+                        isPast,
+                        isWeekend,
+                        isAvailable,
+                        dateString: currentDate.toISOString().split('T')[0]
+                    });
+                }
+                return days;
+            };
+
+            // 예약 가능한 날짜 생성 (기존 호환성)
             const getAvailableDates = () => {
                 const dates = [];
                 const today = new Date();
@@ -4936,16 +5687,39 @@
                 setCurrentStep(3); // 결제 단계
             };
 
+            // Mock 결제 처리 함수
             const handlePayment = async (paymentMethod) => {
                 try {
-                    // 결제 처리 시뮬레이션
-                    console.log('결제 처리:', { 
+                    setPaymentLoading(true);
+                    
+                    // Mock 결제 프로세스 시뮬레이션
+                    console.log('📱 Mock 결제 시작:', { 
                         method: paymentMethod, 
-                        amount: bookingResult.paymentAmount 
+                        amount: bookingResult.paymentAmount,
+                        expert: expert.name
                     });
                     
-                    // TODO: 실제 결제 API 연동
-                    // await processPayment(paymentMethod, bookingResult.paymentAmount);
+                    // 결제 로딩 시뮬레이션 (3초)
+                    await new Promise(resolve => setTimeout(resolve, 3000));
+                    
+                    // 90% 성공률 시뮬레이션
+                    const paymentSuccess = Math.random() > 0.1;
+                    
+                    if (!paymentSuccess) {
+                        throw new Error('결제가 실패했습니다. 카드 정보를 확인하거나 다른 결제 방법을 시도해주세요.');
+                    }
+                    
+                    // Mock 결제 결과
+                    const mockPaymentResult = {
+                        paymentId: `mock_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                        transactionId: `TXN${Date.now()}`,
+                        amount: bookingResult.paymentAmount,
+                        method: paymentMethod,
+                        paidAt: new Date().toISOString(),
+                        status: 'completed'
+                    };
+                    
+                    console.log('💳 Mock 결제 완료:', mockPaymentResult);
                     
                     // Supabase에 예약 정보 저장
                     const { error } = await supabase
@@ -4961,15 +5735,28 @@
                             platform_fee: bookingResult.platformFee,
                             expert_payout: bookingResult.expertPayout,
                             payment_method: paymentMethod,
+                            payment_id: mockPaymentResult.paymentId,
+                            transaction_id: mockPaymentResult.transactionId,
                             status: 'confirmed'
                         });
 
                     if (error) throw error;
                     
+                    // 결제 결과를 bookingResult에 추가
+                    setBookingResult(prev => ({
+                        ...prev,
+                        paymentResult: mockPaymentResult
+                    }));
+                    
                     setCurrentStep(4); // 완료 단계
+                    
+                    showToast('🎉 상담 예약이 완료되었습니다!', 'success');
+                    
                 } catch (error) {
-                    console.error('결제 처리 오류:', error);
-                    alert('결제 처리 중 오류가 발생했습니다');
+                    console.error('💥 결제 처리 오류:', error);
+                    showToast(error.message || '결제 처리 중 오류가 발생했습니다.', 'error');
+                } finally {
+                    setPaymentLoading(false);
                 }
             };
 
@@ -5019,7 +5806,12 @@
                                 
                                 <button
                                     onClick={() => handlePayment('card')}
-                                    className="w-full p-4 border-2 border-blue-200 rounded-lg hover:border-blue-400 hover:bg-blue-50 transition-colors text-left"
+                                    disabled={paymentLoading}
+                                    className={`w-full p-4 border-2 rounded-lg transition-colors text-left ${
+                                        paymentLoading 
+                                            ? 'border-gray-200 bg-gray-50 cursor-not-allowed' 
+                                            : 'border-blue-200 hover:border-blue-400 hover:bg-blue-50'
+                                    }`}
                                 >
                                     <div className="flex items-center justify-between">
                                         <div className="flex items-center">
@@ -5029,13 +5821,24 @@
                                                 <div className="text-sm text-gray-500">일반적인 신용카드 결제</div>
                                             </div>
                                         </div>
-                                        <div className="text-blue-600 font-medium">선택</div>
+                                        <div className="text-blue-600 font-medium">
+                                            {paymentLoading ? (
+                                                <div className="inline-block animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
+                                            ) : (
+                                                '선택'
+                                            )}
+                                        </div>
                                     </div>
                                 </button>
 
                                 <button
                                     onClick={() => handlePayment('kakaopay')}
-                                    className="w-full p-4 border-2 border-yellow-200 rounded-lg hover:border-yellow-400 hover:bg-yellow-50 transition-colors text-left"
+                                    disabled={paymentLoading}
+                                    className={`w-full p-4 border-2 rounded-lg transition-colors text-left ${
+                                        paymentLoading 
+                                            ? 'border-gray-200 bg-gray-50 cursor-not-allowed' 
+                                            : 'border-yellow-200 hover:border-yellow-400 hover:bg-yellow-50'
+                                    }`}
                                 >
                                     <div className="flex items-center justify-between">
                                         <div className="flex items-center">
@@ -5045,13 +5848,24 @@
                                                 <div className="text-sm text-gray-500">간편하고 안전한 결제</div>
                                             </div>
                                         </div>
-                                        <div className="text-yellow-600 font-medium">선택</div>
+                                        <div className="text-yellow-600 font-medium">
+                                            {paymentLoading ? (
+                                                <div className="inline-block animate-spin rounded-full h-5 w-5 border-b-2 border-yellow-600"></div>
+                                            ) : (
+                                                '선택'
+                                            )}
+                                        </div>
                                     </div>
                                 </button>
 
                                 <button
                                     onClick={() => handlePayment('toss')}
-                                    className="w-full p-4 border-2 border-blue-200 rounded-lg hover:border-blue-400 hover:bg-blue-50 transition-colors text-left"
+                                    disabled={paymentLoading}
+                                    className={`w-full p-4 border-2 rounded-lg transition-colors text-left ${
+                                        paymentLoading 
+                                            ? 'border-gray-200 bg-gray-50 cursor-not-allowed' 
+                                            : 'border-blue-200 hover:border-blue-400 hover:bg-blue-50'
+                                    }`}
                                 >
                                     <div className="flex items-center justify-between">
                                         <div className="flex items-center">
@@ -6242,6 +7056,256 @@
             );
         };
 
+        // 채팅 내역 컴포넌트 (마이페이지용)
+        const ChatHistoryComponent = ({ currentUser }) => {
+            const [chatHistory, setChatHistory] = useState([]);
+            const [loading, setLoading] = useState(true);
+            const [showDeleteModal, setShowDeleteModal] = useState(false);
+            const [selectedChatToDelete, setSelectedChatToDelete] = useState(null);
+
+            // 채팅 내역 로드
+            const loadChatHistory = async () => {
+                try {
+                    setLoading(true);
+                    const { data, error } = await supabase
+                        .from('chat_rooms')
+                        .select(`
+                            *,
+                            chat_participants!inner(user_id),
+                            chat_messages(
+                                id,
+                                content,
+                                sender_id,
+                                created_at,
+                                message_type
+                            )
+                        `)
+                        .eq('chat_participants.user_id', currentUser.id)
+                        .eq('is_active', true)
+                        .order('updated_at', { ascending: false });
+
+                    if (error) throw error;
+                    
+                    // 마지막 메시지와 함께 채팅방 정보 정리
+                    const processedHistory = data.map(room => {
+                        const messages = room.chat_messages || [];
+                        const lastMessage = messages.length > 0 ? messages[messages.length - 1] : null;
+                        
+                        return {
+                            id: room.id,
+                            title: room.title,
+                            room_type: room.room_type,
+                            created_at: room.created_at,
+                            updated_at: room.updated_at,
+                            messageCount: messages.length,
+                            lastMessage: lastMessage ? {
+                                content: lastMessage.content,
+                                created_at: lastMessage.created_at,
+                                isFromMe: lastMessage.sender_id === currentUser.id
+                            } : null
+                        };
+                    });
+
+                    setChatHistory(processedHistory);
+                } catch (error) {
+                    console.error('채팅 내역 로드 오류:', error);
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            // 채팅 내역 삭제
+            const deleteChatHistory = async (chatRoomId) => {
+                try {
+                    // 실제로는 채팅방을 비활성화하거나 사용자 참여만 제거
+                    const { error } = await supabase
+                        .from('chat_participants')
+                        .delete()
+                        .eq('room_id', chatRoomId)
+                        .eq('user_id', currentUser.id);
+
+                    if (error) throw error;
+
+                    // 로컬 상태에서 제거
+                    setChatHistory(prev => prev.filter(chat => chat.id !== chatRoomId));
+                    setShowDeleteModal(false);
+                    setSelectedChatToDelete(null);
+                    
+                    showToast('채팅 내역이 삭제되었습니다.', 'success');
+                } catch (error) {
+                    console.error('채팅 내역 삭제 오류:', error);
+                    showToast('채팅 내역 삭제에 실패했습니다.', 'error');
+                }
+            };
+
+            // 채팅방 유형별 아이콘
+            const getRoomTypeIcon = (roomType) => {
+                switch (roomType) {
+                    case 'expert_consultation':
+                        return '🎯';
+                    case 'community':
+                        return '💬';
+                    case 'support':
+                        return '🎧';
+                    default:
+                        return '💬';
+                }
+            };
+
+            // 날짜 포맷팅
+            const formatDate = (dateString) => {
+                const date = new Date(dateString);
+                const now = new Date();
+                const diffTime = now - date;
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+                if (diffDays === 1) return '어제';
+                if (diffDays < 7) return `${diffDays}일 전`;
+                if (diffDays < 30) return `${Math.ceil(diffDays / 7)}주 전`;
+                return date.toLocaleDateString('ko-KR');
+            };
+
+            useEffect(() => {
+                if (currentUser) {
+                    loadChatHistory();
+                }
+            }, [currentUser]);
+
+            if (loading) {
+                return (
+                    <div className="flex items-center justify-center py-12">
+                        <div className="text-center">
+                            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                            <p className="mt-2 text-gray-600">채팅 내역을 불러오는 중...</p>
+                        </div>
+                    </div>
+                );
+            }
+
+            return (
+                <div className="space-y-6">
+                    <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-6 rounded-xl">
+                        <h2 className="text-xl font-bold mb-2">💬 채팅 내역</h2>
+                        <p className="text-blue-100">전문가 상담 및 커뮤니티 채팅 내역을 관리하세요</p>
+                    </div>
+
+                    {chatHistory.length === 0 ? (
+                        <div className="text-center py-12">
+                            <div className="text-4xl mb-4">💭</div>
+                            <h3 className="text-lg font-medium text-gray-800 mb-2">아직 채팅 내역이 없습니다</h3>
+                            <p className="text-gray-600 mb-6">전문가 상담을 시작하거나 커뮤니티에 참여해보세요.</p>
+                            
+                            <div className="max-w-md mx-auto bg-blue-50 border border-blue-200 rounded-lg p-6 text-left">
+                                <h4 className="font-semibold text-blue-900 mb-3">💡 채팅 기능 안내</h4>
+                                <div className="space-y-2 text-sm text-blue-800">
+                                    <div className="flex items-start gap-2">
+                                        <span>🎯</span>
+                                        <span>전문가 1:1 상담 채팅</span>
+                                    </div>
+                                    <div className="flex items-start gap-2">
+                                        <span>💬</span>
+                                        <span>커뮤니티 그룹 채팅</span>
+                                    </div>
+                                    <div className="flex items-start gap-2">
+                                        <span>🎧</span>
+                                        <span>고객 지원 채팅</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="space-y-4">
+                            {chatHistory.map((chat) => (
+                                <div key={chat.id} className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow">
+                                    <div className="flex justify-between items-start mb-4">
+                                        <div className="flex-1">
+                                            <div className="flex items-center gap-3 mb-2">
+                                                <span className="text-2xl">{getRoomTypeIcon(chat.room_type)}</span>
+                                                <h3 className="font-semibold text-gray-800 text-lg">
+                                                    {chat.title || '채팅방'}
+                                                </h3>
+                                                <span className="px-2 py-1 bg-gray-100 text-gray-600 rounded-full text-xs">
+                                                    {chat.room_type === 'expert_consultation' ? '전문가 상담' :
+                                                     chat.room_type === 'community' ? '커뮤니티' : '지원'}
+                                                </span>
+                                            </div>
+                                            
+                                            <div className="text-sm text-gray-600 space-y-1">
+                                                <div>💬 메시지: {chat.messageCount}개</div>
+                                                <div>📅 생성일: {formatDate(chat.created_at)}</div>
+                                                {chat.lastMessage && (
+                                                    <div className="bg-gray-50 p-3 rounded-lg mt-2">
+                                                        <div className="text-xs text-gray-500 mb-1">
+                                                            {chat.lastMessage.isFromMe ? '나' : '상대방'} • {formatDate(chat.lastMessage.created_at)}
+                                                        </div>
+                                                        <div className="text-sm text-gray-700">
+                                                            {chat.lastMessage.content.length > 50 
+                                                                ? chat.lastMessage.content.substring(0, 50) + '...'
+                                                                : chat.lastMessage.content
+                                                            }
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="flex gap-2 ml-4">
+                                            <button
+                                                onClick={() => {
+                                                    setSelectedChatToDelete(chat);
+                                                    setShowDeleteModal(true);
+                                                }}
+                                                className="px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors text-sm"
+                                                title="채팅 내역 삭제"
+                                            >
+                                                🗑️ 삭제
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+
+                    {/* 채팅 삭제 확인 모달 */}
+                    {showDeleteModal && selectedChatToDelete && (
+                        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                            <div className="bg-white rounded-lg p-6 max-w-md mx-4">
+                                <div className="text-center mb-6">
+                                    <div className="text-4xl mb-4">⚠️</div>
+                                    <h3 className="text-lg font-semibold text-gray-800 mb-2">채팅 내역 삭제</h3>
+                                    <p className="text-gray-600">
+                                        "{selectedChatToDelete.title}" 채팅 내역을 정말 삭제하시겠습니까?
+                                    </p>
+                                    <p className="text-sm text-red-600 mt-2">
+                                        ⚠️ 삭제된 채팅은 복구할 수 없습니다.
+                                    </p>
+                                </div>
+                                
+                                <div className="flex gap-3">
+                                    <button
+                                        onClick={() => {
+                                            setShowDeleteModal(false);
+                                            setSelectedChatToDelete(null);
+                                        }}
+                                        className="flex-1 py-3 px-4 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                                    >
+                                        취소
+                                    </button>
+                                    <button
+                                        onClick={() => deleteChatHistory(selectedChatToDelete.id)}
+                                        className="flex-1 py-3 px-4 bg-red-600 text-white rounded-lg hover:bg-red-700"
+                                    >
+                                        삭제
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
         // 실시간 채팅 컴포넌트 - 전문가-고객 상담용 개선 + WebRTC
         const ChatComponent = ({ currentUser, isAdminUser }) => {
             const [chatRooms, setChatRooms] = useState([]);
@@ -6266,12 +7330,80 @@
             const [showFileUpload, setShowFileUpload] = useState(false);
             const [uploadingFile, setUploadingFile] = useState(false);
             
+            // 상담 타이머 관련 상태
+            const [isConsultationActive, setIsConsultationActive] = useState(false);
+            const [consultationStartTime, setConsultationStartTime] = useState(null);
+            const [consultationDuration, setConsultationDuration] = useState(0); // 초 단위
+            const [consultationTimeLimit, setConsultationTimeLimit] = useState(60 * 60); // 1시간 기본
+            const [showTimeWarning, setShowTimeWarning] = useState(false);
+            
             const messagesEndRef = useRef(null);
             const messageSubscription = useRef(null);
             const localVideoRef = useRef(null);
             const remoteVideoRef = useRef(null);
             const fileInputRef = useRef(null);
             const callSubscription = useRef(null);
+            const consultationTimerRef = useRef(null);
+
+            // 상담 타이머 시작
+            const startConsultation = () => {
+                const startTime = new Date();
+                setIsConsultationActive(true);
+                setConsultationStartTime(startTime);
+                setConsultationDuration(0);
+                setShowTimeWarning(false);
+                
+                // 1초마다 타이머 업데이트
+                consultationTimerRef.current = setInterval(() => {
+                    const now = new Date();
+                    const elapsed = Math.floor((now - startTime) / 1000);
+                    setConsultationDuration(elapsed);
+                    
+                    // 시간 경고 (5분 남았을 때)
+                    if (elapsed >= consultationTimeLimit - 300 && !showTimeWarning) {
+                        setShowTimeWarning(true);
+                        showToast('⏰ 상담 시간이 5분 남았습니다.', 'warning');
+                    }
+                    
+                    // 시간 초과
+                    if (elapsed >= consultationTimeLimit) {
+                        endConsultation();
+                        showToast('⏰ 상담 시간이 종료되었습니다.', 'info');
+                    }
+                }, 1000);
+                
+                showToast('▶️ 상담이 시작되었습니다!', 'success');
+            };
+            
+            // 상담 타이머 종료
+            const endConsultation = () => {
+                setIsConsultationActive(false);
+                if (consultationTimerRef.current) {
+                    clearInterval(consultationTimerRef.current);
+                    consultationTimerRef.current = null;
+                }
+                showToast('⏹️ 상담이 종료되었습니다.', 'info');
+            };
+            
+            // 상담 시간 연장 (10분)
+            const extendConsultation = () => {
+                setConsultationTimeLimit(prev => prev + 600); // 10분 추가
+                setShowTimeWarning(false);
+                showToast('⏰ 상담 시간이 10분 연장되었습니다.', 'success');
+            };
+            
+            // 시간 포맷팅 (00:00:00)
+            const formatTime = (seconds) => {
+                const hours = Math.floor(seconds / 3600);
+                const minutes = Math.floor((seconds % 3600) / 60);
+                const secs = seconds % 60;
+                return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+            };
+            
+            // 남은 시간 계산
+            const getRemainingTime = () => {
+                return Math.max(0, consultationTimeLimit - consultationDuration);
+            };
 
             // 채팅방 목록 로드
             const loadChatRooms = async () => {
@@ -7432,6 +8564,109 @@
             );
         };
 
+        // 상담 타이머 컴포넌트
+        const ConsultationTimerComponent = ({ 
+            isActive, 
+            duration, 
+            timeLimit, 
+            onStart, 
+            onEnd, 
+            onExtend, 
+            showWarning 
+        }) => {
+            const formatTime = (seconds) => {
+                const hours = Math.floor(seconds / 3600);
+                const minutes = Math.floor((seconds % 3600) / 60);
+                const secs = seconds % 60;
+                return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+            };
+            
+            const getRemainingTime = () => Math.max(0, timeLimit - duration);
+            const remainingTime = getRemainingTime();
+            const isNearEnd = remainingTime <= 300; // 5분 이하
+            
+            if (!isActive) {
+                return (
+                    <div className="bg-white border border-gray-200 rounded-lg p-4 mb-4">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <div className="text-2xl">⏰</div>
+                                <div>
+                                    <div className="font-medium text-gray-800">상담 대기 중</div>
+                                    <div className="text-sm text-gray-600">상담을 시작하려면 타이머를 활성화하세요</div>
+                                </div>
+                            </div>
+                            <button
+                                onClick={onStart}
+                                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                            >
+                                ▶️ 상담 시작
+                            </button>
+                        </div>
+                    </div>
+                );
+            }
+            
+            return (
+                <div className={`border rounded-lg p-4 mb-4 ${
+                    isNearEnd ? 'bg-red-50 border-red-300' : 'bg-green-50 border-green-300'
+                }`}>
+                    <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-3">
+                            <div className={`text-2xl ${isNearEnd ? 'animate-pulse' : ''}`}>
+                                {isNearEnd ? '🚨' : '⏰'}
+                            </div>
+                            <div>
+                                <div className="font-medium text-gray-800">
+                                    상담 진행 중 ({formatTime(duration)})
+                                </div>
+                                <div className={`text-sm ${isNearEnd ? 'text-red-600 font-medium' : 'text-gray-600'}`}>
+                                    남은 시간: {formatTime(remainingTime)}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div className="flex gap-2">
+                            <button
+                                onClick={onExtend}
+                                className="px-3 py-1 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors"
+                                title="10분 연장"
+                            >
+                                ⏱️ +10분
+                            </button>
+                            <button
+                                onClick={onEnd}
+                                className="px-3 py-1 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 transition-colors"
+                            >
+                                ⏹️ 종료
+                            </button>
+                        </div>
+                    </div>
+                    
+                    {/* 진행률 바 */}
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div 
+                            className={`h-2 rounded-full transition-all duration-1000 ${
+                                isNearEnd ? 'bg-red-500' : 'bg-green-500'
+                            }`}
+                            style={{ width: `${Math.min(100, (duration / timeLimit) * 100)}%` }}
+                        ></div>
+                    </div>
+                    
+                    {showWarning && isNearEnd && (
+                        <div className="mt-3 p-2 bg-red-100 border border-red-300 rounded-lg">
+                            <div className="flex items-center gap-2">
+                                <span className="text-red-600">⚠️</span>
+                                <span className="text-sm text-red-800 font-medium">
+                                    상담 시간이 곧 종료됩니다. 연장이 필요하면 +10분 버튼을 눌러주세요.
+                                </span>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
         // 공지사항 컴포넌트
         const AnnouncementComponent = ({ currentUser, isAdminUser }) => {
             const [announcements, setAnnouncements] = useState([]);
@@ -7871,8 +9106,8 @@
                 }
             };
 
-            // 더미 전문가 데이터
-            const expertData = {
+            // 전문가 데이터 상태 관리
+            const [expertData, setExpertData] = useState({
                 'travel': [
                     {
                         id: 1,
@@ -7987,7 +9222,86 @@
                         profileImage: '🏠'
                     }
                 ]
-            };
+            });
+            const [loading, setLoading] = useState(true);
+
+            // 전문가 데이터 로드
+            useEffect(() => {
+                const loadExperts = async () => {
+                    try {
+                        setLoading(true);
+                        
+                        if (!supabase) {
+                            // 데모 모드에서는 기존 데이터 사용
+                            setLoading(false);
+                            return;
+                        }
+
+                        // Supabase에서 전문가 데이터 로드
+                        const { data: experts, error } = await supabase
+                            .from('financial_experts')
+                            .select(`
+                                *,
+                                user_profiles!financial_experts_user_id_fkey(nickname, email)
+                            `)
+                            .eq('is_verified', true)
+                            .eq('is_active', true);
+
+                        if (error) throw error;
+
+                        // 카테고리별로 전문가 분류
+                        const categorizedExperts = {
+                            travel: [],
+                            housing: [],
+                            health: [],
+                            finance: [],
+                            legal: []
+                        };
+
+                        experts?.forEach(expert => {
+                            const category = expert.specialties?.[0]?.toLowerCase() || 'finance';
+                            const mappedCategory = {
+                                'investment': 'finance',
+                                'real_estate': 'housing',
+                                'tax': 'legal',
+                                'insurance': 'legal',
+                                'retirement_planning': 'finance'
+                            }[category] || category;
+
+                            if (categorizedExperts[mappedCategory]) {
+                                categorizedExperts[mappedCategory].push({
+                                    id: expert.id,
+                                    name: expert.name || expert.user_profiles?.nickname || '전문가',
+                                    title: expert.title || '재무 전문가',
+                                    experience: `${expert.experience_years || 5}년 경력`,
+                                    rating: expert.average_rating || 4.5,
+                                    reviews: expert.total_reviews || 0,
+                                    specialties: expert.specialties || ['전문상담'],
+                                    price: `${(expert.hourly_rate || 50000).toLocaleString()}원/60분`,
+                                    responseRate: expert.response_rate || 95,
+                                    profileImage: expert.profile_image || '👨‍💼'
+                                });
+                            }
+                        });
+
+                        // 빈 카테고리에 기본 전문가 추가 (데모용)
+                        Object.keys(categorizedExperts).forEach(category => {
+                            if (categorizedExperts[category].length === 0) {
+                                categorizedExperts[category] = expertData[category] || [];
+                            }
+                        });
+
+                        setExpertData(categorizedExperts);
+                    } catch (error) {
+                        console.error('전문가 데이터 로딩 오류:', error);
+                        // 에러 시 기본 데이터 유지
+                    } finally {
+                        setLoading(false);
+                    }
+                };
+
+                loadExperts();
+            }, []);
 
             const currentExperts = expertData[activeCategory] || [];
             const currentCategory = expertCategories[activeCategory];
@@ -8046,7 +9360,32 @@
 
                     {/* 전문가 목록 */}
                     <div className="space-y-4 mb-6">
-                        {currentExperts.map(expert => (
+                        {loading ? (
+                            // 로딩 상태
+                            <>
+                                {[1, 2, 3, 4].map(i => (
+                                    <div key={i} className="bg-white rounded-lg p-4 shadow-md animate-pulse">
+                                        <div className="flex items-start gap-4">
+                                            <div className="w-12 h-12 bg-gray-200 rounded-full"></div>
+                                            <div className="flex-1">
+                                                <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+                                                <div className="h-3 bg-gray-200 rounded w-1/2 mb-2"></div>
+                                                <div className="h-3 bg-gray-200 rounded w-2/3 mb-3"></div>
+                                                <div className="h-8 bg-gray-200 rounded w-20"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </>
+                        ) : currentExperts.length === 0 ? (
+                            // 전문가가 없는 경우
+                            <div className="text-center py-8 bg-white rounded-lg">
+                                <div className="text-4xl mb-4">🔍</div>
+                                <p className="text-gray-600 mb-2">현재 이 분야 전문가가 등록 대기 중입니다</p>
+                                <p className="text-sm text-gray-500">곧 전문가들을 만나보실 수 있습니다!</p>
+                            </div>
+                        ) : (
+                            currentExperts.map(expert => (
                             <div key={expert.id} className="bg-white rounded-lg p-4 shadow-md">
                                 <div className="flex items-start gap-4">
                                     {/* 프로필 */}
@@ -8098,7 +9437,8 @@
                                     </div>
                                 </div>
                             </div>
-                        ))}
+                            ))
+                        )}
                     </div>
 
                     {/* 안내 메시지 */}
