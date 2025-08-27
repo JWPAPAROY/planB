@@ -10894,7 +10894,7 @@
                                     {/* 사용자 환영 메시지 */}
                                     {currentUser && (
                                         <div className="text-lg text-blue-700 font-medium mb-6">
-                                            안녕하세요, {currentUser.nickname || (currentUser.email ? currentUser.email.split('@')[0] + '(회원)' : '사용자')}님! 👋
+                                            안녕하세요, {currentUser.nickname || (currentUser.email ? currentUser.email.split('@')[0] : '사용자')}님! 👋
                                             {isAdminUser(currentUser) && (
                                                 <span className="ml-2 text-red-600 text-sm">
                                                     👑 슈퍼관리자
