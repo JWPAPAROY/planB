@@ -8567,6 +8567,463 @@
             );
         };
 
+        // 쪽지 시스템 컴포넌트
+        const MessagesComponent = ({ currentUser, isAdminUser }) => {
+            const [messages, setMessages] = useState([]);
+            const [selectedConversation, setSelectedConversation] = useState(null);
+            const [conversations, setConversations] = useState([]);
+            const [newMessage, setNewMessage] = useState('');
+            const [loading, setLoading] = useState(true);
+            const [sending, setSending] = useState(false);
+            const [showNewMessageModal, setShowNewMessageModal] = useState(false);
+            const [newRecipientEmail, setNewRecipientEmail] = useState('');
+            const [newMessageSubject, setNewMessageSubject] = useState('');
+            const [newMessageContent, setNewMessageContent] = useState('');
+
+            // 쪽지함 로드
+            const loadConversations = async () => {
+                try {
+                    setLoading(true);
+                    console.log('💌 쪽지함 로딩 시작...');
+                    
+                    // 발신/수신 쪽지를 모두 불러와서 대화별로 그룹화
+                    const { data: sentMessages, error: sentError } = await supabase
+                        .from('private_messages')
+                        .select(`
+                            *,
+                            recipient:recipient_id(nickname, email),
+                            sender:sender_id(nickname, email)
+                        `)
+                        .eq('sender_id', currentUser.id)
+                        .order('created_at', { ascending: false });
+
+                    const { data: receivedMessages, error: receivedError } = await supabase
+                        .from('private_messages')
+                        .select(`
+                            *,
+                            recipient:recipient_id(nickname, email), 
+                            sender:sender_id(nickname, email)
+                        `)
+                        .eq('recipient_id', currentUser.id)
+                        .order('created_at', { ascending: false });
+
+                    if (sentError) throw sentError;
+                    if (receivedError) throw receivedError;
+
+                    // 대화 상대별로 그룹화
+                    const allMessages = [...(sentMessages || []), ...(receivedMessages || [])];
+                    const conversationMap = new Map();
+
+                    allMessages.forEach(message => {
+                        const isFromMe = message.sender_id === currentUser.id;
+                        const partnerId = isFromMe ? message.recipient_id : message.sender_id;
+                        const partnerInfo = isFromMe ? message.recipient : message.sender;
+                        
+                        if (!conversationMap.has(partnerId)) {
+                            conversationMap.set(partnerId, {
+                                partnerId,
+                                partnerInfo,
+                                messages: [],
+                                lastMessage: null,
+                                unreadCount: 0
+                            });
+                        }
+                        
+                        const conversation = conversationMap.get(partnerId);
+                        conversation.messages.push(message);
+                        
+                        if (!conversation.lastMessage || new Date(message.created_at) > new Date(conversation.lastMessage.created_at)) {
+                            conversation.lastMessage = message;
+                        }
+                        
+                        if (!isFromMe && !message.is_read) {
+                            conversation.unreadCount++;
+                        }
+                    });
+
+                    const conversationsList = Array.from(conversationMap.values())
+                        .sort((a, b) => new Date(b.lastMessage.created_at) - new Date(a.lastMessage.created_at));
+
+                    setConversations(conversationsList);
+                    console.log('✅ 쪽지함 로딩 완료:', conversationsList.length, '개 대화');
+                    
+                } catch (error) {
+                    console.error('❌ 쪽지함 로딩 실패:', error);
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            // 특정 대화의 메시지들 로드
+            const loadMessages = async (partnerId) => {
+                try {
+                    const { data, error } = await supabase
+                        .from('private_messages')
+                        .select(`
+                            *,
+                            sender:sender_id(nickname, email),
+                            recipient:recipient_id(nickname, email)
+                        `)
+                        .or(`and(sender_id.eq.${currentUser.id},recipient_id.eq.${partnerId}),and(sender_id.eq.${partnerId},recipient_id.eq.${currentUser.id})`)
+                        .order('created_at', { ascending: true });
+
+                    if (error) throw error;
+                    
+                    setMessages(data || []);
+                    
+                    // 읽지 않은 메시지들을 읽음 처리
+                    const unreadMessages = data?.filter(msg => 
+                        msg.recipient_id === currentUser.id && !msg.is_read
+                    );
+                    
+                    if (unreadMessages?.length > 0) {
+                        const { error: markReadError } = await supabase
+                            .from('private_messages')
+                            .update({ is_read: true, read_at: new Date().toISOString() })
+                            .in('id', unreadMessages.map(msg => msg.id));
+                            
+                        if (markReadError) {
+                            console.error('메시지 읽음 처리 실패:', markReadError);
+                        }
+                    }
+                    
+                } catch (error) {
+                    console.error('메시지 로딩 실패:', error);
+                }
+            };
+
+            // 새 쪽지 발송
+            const sendMessage = async () => {
+                if (!newMessage.trim() || !selectedConversation) return;
+                
+                try {
+                    setSending(true);
+                    
+                    const { error } = await supabase
+                        .from('private_messages')
+                        .insert({
+                            sender_id: currentUser.id,
+                            recipient_id: selectedConversation.partnerId,
+                            subject: '답장',
+                            content: newMessage.trim(),
+                            is_read: false
+                        });
+                    
+                    if (error) throw error;
+                    
+                    setNewMessage('');
+                    await loadMessages(selectedConversation.partnerId);
+                    await loadConversations(); // 대화 목록 새로고침
+                    
+                } catch (error) {
+                    console.error('쪽지 발송 실패:', error);
+                    alert('쪽지 발송에 실패했습니다.');
+                } finally {
+                    setSending(false);
+                }
+            };
+
+            // 새 대화 시작
+            const startNewConversation = async () => {
+                if (!newRecipientEmail.trim() || !newMessageSubject.trim() || !newMessageContent.trim()) {
+                    alert('모든 필드를 입력해주세요.');
+                    return;
+                }
+                
+                try {
+                    setSending(true);
+                    
+                    // 수신자 확인
+                    const { data: recipientData, error: recipientError } = await supabase
+                        .from('user_profiles')
+                        .select('id, nickname, email')
+                        .eq('email', newRecipientEmail.trim())
+                        .single();
+                    
+                    if (recipientError) {
+                        alert('존재하지 않는 사용자입니다.');
+                        return;
+                    }
+                    
+                    const { error } = await supabase
+                        .from('private_messages')
+                        .insert({
+                            sender_id: currentUser.id,
+                            recipient_id: recipientData.id,
+                            subject: newMessageSubject.trim(),
+                            content: newMessageContent.trim(),
+                            is_read: false
+                        });
+                    
+                    if (error) throw error;
+                    
+                    setShowNewMessageModal(false);
+                    setNewRecipientEmail('');
+                    setNewMessageSubject('');
+                    setNewMessageContent('');
+                    
+                    await loadConversations();
+                    
+                } catch (error) {
+                    console.error('새 쪽지 발송 실패:', error);
+                    alert('쪽지 발송에 실패했습니다.');
+                } finally {
+                    setSending(false);
+                }
+            };
+
+            // 컴포넌트 마운트 시 대화 목록 로드
+            useEffect(() => {
+                if (currentUser?.id) {
+                    loadConversations();
+                }
+            }, [currentUser]);
+
+            // 대화 선택 시 해당 메시지들 로드
+            useEffect(() => {
+                if (selectedConversation) {
+                    loadMessages(selectedConversation.partnerId);
+                }
+            }, [selectedConversation]);
+
+            return (
+                <div className="max-w-6xl mx-auto p-4">
+                    <div className="bg-white rounded-lg shadow-sm border min-h-[600px]">
+                        <div className="border-b border-gray-200 p-4 flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <span className="text-2xl">💌</span>
+                                <h2 className="text-xl font-semibold text-gray-800">쪽지</h2>
+                            </div>
+                            <button
+                                onClick={() => setShowNewMessageModal(true)}
+                                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+                            >
+                                <span>✍️</span> 새 쪽지
+                            </button>
+                        </div>
+
+                        <div className="flex h-[calc(600px-73px)]">
+                            {/* 대화 목록 */}
+                            <div className="w-1/3 border-r border-gray-200 overflow-y-auto">
+                                {loading ? (
+                                    <div className="flex items-center justify-center h-full">
+                                        <div className="text-gray-500">로딩 중...</div>
+                                    </div>
+                                ) : conversations.length === 0 ? (
+                                    <div className="flex flex-col items-center justify-center h-full text-gray-500 p-4">
+                                        <div className="text-4xl mb-2">💭</div>
+                                        <p className="text-center">아직 주고받은 쪽지가 없습니다.</p>
+                                        <p className="text-sm text-center mt-1">새 쪽지 버튼을 눌러 대화를 시작해보세요!</p>
+                                    </div>
+                                ) : (
+                                    <div className="divide-y divide-gray-100">
+                                        {conversations.map((conversation) => (
+                                            <div
+                                                key={conversation.partnerId}
+                                                className={`p-4 cursor-pointer hover:bg-gray-50 transition-colors ${
+                                                    selectedConversation?.partnerId === conversation.partnerId 
+                                                        ? 'bg-blue-50 border-r-2 border-blue-500' 
+                                                        : ''
+                                                }`}
+                                                onClick={() => setSelectedConversation(conversation)}
+                                            >
+                                                <div className="flex items-start justify-between">
+                                                    <div className="flex-1">
+                                                        <div className="flex items-center gap-2 mb-1">
+                                                            <div className="font-medium text-gray-900">
+                                                                {conversation.partnerInfo?.nickname || 
+                                                                 conversation.partnerInfo?.email || '알 수 없음'}
+                                                            </div>
+                                                            {conversation.unreadCount > 0 && (
+                                                                <div className="bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                                                                    {conversation.unreadCount}
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                        <div className="text-sm text-gray-600 line-clamp-2">
+                                                            {conversation.lastMessage?.content || '메시지 없음'}
+                                                        </div>
+                                                        <div className="text-xs text-gray-400 mt-1">
+                                                            {conversation.lastMessage && 
+                                                             new Date(conversation.lastMessage.created_at).toLocaleDateString('ko-KR', {
+                                                                month: 'short',
+                                                                day: 'numeric',
+                                                                hour: '2-digit',
+                                                                minute: '2-digit'
+                                                             })
+                                                            }
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* 메시지 영역 */}
+                            <div className="flex-1 flex flex-col">
+                                {selectedConversation ? (
+                                    <>
+                                        {/* 대화 헤더 */}
+                                        <div className="border-b border-gray-200 p-4">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-medium">
+                                                    {selectedConversation.partnerInfo?.nickname?.[0] || 
+                                                     selectedConversation.partnerInfo?.email?.[0] || '?'}
+                                                </div>
+                                                <div>
+                                                    <div className="font-medium text-gray-900">
+                                                        {selectedConversation.partnerInfo?.nickname || 
+                                                         selectedConversation.partnerInfo?.email || '알 수 없음'}
+                                                    </div>
+                                                    <div className="text-sm text-gray-500">
+                                                        {selectedConversation.partnerInfo?.email}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* 메시지 목록 */}
+                                        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                                            {messages.map((message) => {
+                                                const isFromMe = message.sender_id === currentUser.id;
+                                                return (
+                                                    <div key={message.id} className={`flex ${isFromMe ? 'justify-end' : 'justify-start'}`}>
+                                                        <div className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
+                                                            isFromMe 
+                                                                ? 'bg-blue-600 text-white' 
+                                                                : 'bg-gray-100 text-gray-900'
+                                                        }`}>
+                                                            {message.subject && message.subject !== '답장' && (
+                                                                <div className={`text-sm font-medium mb-1 ${
+                                                                    isFromMe ? 'text-blue-100' : 'text-gray-700'
+                                                                }`}>
+                                                                    제목: {message.subject}
+                                                                </div>
+                                                            )}
+                                                            <div className="whitespace-pre-wrap">
+                                                                {message.content}
+                                                            </div>
+                                                            <div className={`text-xs mt-1 ${
+                                                                isFromMe ? 'text-blue-100' : 'text-gray-500'
+                                                            }`}>
+                                                                {new Date(message.created_at).toLocaleString('ko-KR')}
+                                                                {isFromMe && (
+                                                                    <span className="ml-2">
+                                                                        {message.is_read ? '읽음' : '보냄'}
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+
+                                        {/* 메시지 입력 */}
+                                        <div className="border-t border-gray-200 p-4">
+                                            <div className="flex gap-2">
+                                                <textarea
+                                                    value={newMessage}
+                                                    onChange={(e) => setNewMessage(e.target.value)}
+                                                    className="flex-1 p-3 border border-gray-300 rounded-lg resize-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                                    rows="3"
+                                                    placeholder="답장을 입력하세요..."
+                                                    onKeyPress={(e) => {
+                                                        if (e.key === 'Enter' && !e.shiftKey) {
+                                                            e.preventDefault();
+                                                            sendMessage();
+                                                        }
+                                                    }}
+                                                />
+                                                <button
+                                                    onClick={sendMessage}
+                                                    disabled={sending || !newMessage.trim()}
+                                                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+                                                >
+                                                    {sending ? '발송 중...' : '발송'}
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </>
+                                ) : (
+                                    <div className="flex-1 flex items-center justify-center text-gray-500">
+                                        <div className="text-center">
+                                            <div className="text-4xl mb-2">💬</div>
+                                            <p>대화를 선택하여 쪽지를 확인하세요</p>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* 새 쪽지 작성 모달 */}
+                    {showNewMessageModal && (
+                        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                            <div className="bg-white rounded-lg max-w-md w-full">
+                                <div className="border-b border-gray-200 p-4">
+                                    <h3 className="text-lg font-semibold text-gray-900">새 쪽지 보내기</h3>
+                                </div>
+                                
+                                <div className="p-4 space-y-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">받는 사람 (이메일)</label>
+                                        <input
+                                            type="email"
+                                            value={newRecipientEmail}
+                                            onChange={(e) => setNewRecipientEmail(e.target.value)}
+                                            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                            placeholder="example@email.com"
+                                        />
+                                    </div>
+                                    
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">제목</label>
+                                        <input
+                                            type="text"
+                                            value={newMessageSubject}
+                                            onChange={(e) => setNewMessageSubject(e.target.value)}
+                                            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                            placeholder="쪽지 제목을 입력하세요"
+                                        />
+                                    </div>
+                                    
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">내용</label>
+                                        <textarea
+                                            value={newMessageContent}
+                                            onChange={(e) => setNewMessageContent(e.target.value)}
+                                            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                            rows="5"
+                                            placeholder="쪽지 내용을 입력하세요"
+                                        />
+                                    </div>
+                                </div>
+                                
+                                <div className="border-t border-gray-200 p-4 flex gap-3">
+                                    <button
+                                        onClick={() => setShowNewMessageModal(false)}
+                                        className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                                    >
+                                        취소
+                                    </button>
+                                    <button
+                                        onClick={startNewConversation}
+                                        disabled={sending}
+                                        className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+                                    >
+                                        {sending ? '발송 중...' : '발송'}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
         // 상담 타이머 컴포넌트
         const ConsultationTimerComponent = ({ 
             isActive, 
@@ -12230,21 +12687,21 @@
                                                     
                                                     <button
                                                         className={`w-full text-left px-3 py-2 rounded-md transition-colors flex items-center text-sm ${
-                                                            currentView === 'chat' 
+                                                            currentView === 'messages' 
                                                                 ? 'bg-blue-100 text-blue-700 font-medium shadow-sm' 
                                                                 : 'text-gray-700 hover:bg-gray-50 hover:text-blue-600'
                                                         }`}
                                                         onClick={() => {
-                                                            // 채팅은 회원만 가능 
-                                                            if (!checkCalculationForInteraction('chat_access')) {
+                                                            // 쪽지는 회원만 가능 
+                                                            if (!checkCalculationForInteraction('message_access')) {
                                                                 return;
                                                             }
-                                                            setCurrentView('chat');
+                                                            setCurrentView('messages');
                                                             setShowMobileMenu(false);
                                                         }}
                                                     >
-                                                        <span className="mr-3 text-base">💬</span>
-                                                        실시간 채팅
+                                                        <span className="mr-3 text-base">💌</span>
+                                                        쪽지
                                                     </button>
                                                 </>
                                             )}
@@ -12438,10 +12895,10 @@
                             </div>
                         )}
 
-                        {/* 실시간 채팅 페이지 - 회원만 접근 가능 */}
-                        {currentView === 'chat' && (
+                        {/* 쪽지 시스템 페이지 - 회원만 접근 가능 */}
+                        {currentView === 'messages' && (
                             <div className="max-w-6xl mx-auto">
-                                <ChatComponent currentUser={currentUser} isAdminUser={isAdminUser} />
+                                <MessagesComponent currentUser={currentUser} isAdminUser={isAdminUser} />
                             </div>
                         )}
                     </main>
