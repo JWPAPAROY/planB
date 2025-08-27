@@ -10159,6 +10159,11 @@
             const [showSignupModal, setShowSignupModal] = useState(false);
             const [showSaveResultSignupModal, setShowSaveResultSignupModal] = useState(false);
             const [lastActivity, setLastActivity] = useState(Date.now());
+            
+            // 계산기 관련 state
+            const [formData, setFormData] = useState({});
+            const [calculatorResult, setCalculatorResult] = useState(null);
+            const [calculatorStep, setCalculatorStep] = useState(1);
 
             // 외부 클릭시 메뉴 닫기
             useEffect(() => {
