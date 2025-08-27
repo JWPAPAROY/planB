@@ -1561,11 +1561,11 @@
             const [paymentHistory, setPaymentHistory] = React.useState([]);
             const [calculationHistory, setCalculationHistory] = React.useState([]);
             const [loading, setLoading] = React.useState(true);
+            const [error, setError] = React.useState(null);
             const [activeSubTab, setActiveSubTab] = React.useState('calculations');
 
             // 저장된 계산 결과 불러오기 및 예시 데이터
-            React.useEffect(() => {
-                const loadCalculationHistory = async () => {
+            const loadCalculationHistory = React.useCallback(async () => {
                     try {
                         let calculations = [];
                         
@@ -1578,15 +1578,24 @@
                         if (savedLocal) {
                             try {
                                 const localData = JSON.parse(savedLocal);
-                                calculations.push({
-                                    id: 'local-' + Date.now(),
-                                    source: 'local',
-                                    created_at: localData.calculatedAt || new Date().toISOString(),
-                                    ...localData
-                                });
-                                console.log('✅ localStorage 계산 결과 추가:', localData.formData?.age);
+                                // 데이터 유효성 검증
+                                if (localData && localData.formData && localData.calculationResult) {
+                                    calculations.push({
+                                        id: 'local-' + Date.now(),
+                                        source: 'local',
+                                        created_at: localData.calculatedAt || localData.savedAt || new Date().toISOString(),
+                                        formData: localData.formData,
+                                        calculationResult: localData.calculationResult,
+                                        totalAssets: localData.calculationResult.totalAssets || localData.totalAssets || 0,
+                                        monthlyLivingCost: localData.calculationResult.monthlyLivingCost || localData.monthlyLivingCost || 0,
+                                        assetSufficiencyYears: localData.calculationResult.assetSufficiencyYears || localData.assetSufficiencyYears || 0
+                                    });
+                                    console.log('✅ localStorage 계산 결과 추가:', localData.formData?.age, '세');
+                                } else {
+                                    console.warn('⚠️ localStorage 데이터가 불완전합니다:', localData);
+                                }
                             } catch (error) {
-                                console.error('localStorage 계산 결과 파싱 실패:', error);
+                                console.error('❌ localStorage 계산 결과 파싱 실패:', error);
                             }
                         }
                         
@@ -1602,8 +1611,10 @@
                                 
                                 if (error) {
                                     console.error('❌ Supabase 계산 결과 조회 실패:', error);
+                                    console.error('🔍 오류 상세:', JSON.stringify(error, null, 2));
                                 } else if (data) {
                                     console.log('📊 Supabase 계산 결과 개수:', data.length);
+                                    console.log('📄 Supabase 원본 데이터:', data.length > 0 ? data[0] : 'No data');
                                     const supabaseCalculations = data.map(item => ({
                                         id: item.id,
                                         source: 'database',
@@ -1626,10 +1637,20 @@
                                         assetSufficiencyYears: item.calculation_result?.assetSufficiencyYears || 0
                                     }));
                                     calculations = [...calculations, ...supabaseCalculations];
+                                    console.log('🎯 변환된 Supabase 계산 결과:', supabaseCalculations.length);
+                                } else {
+                                    console.log('📭 Supabase 데이터가 null입니다');
                                 }
                             } catch (error) {
                                 console.error('❌ 데이터베이스 계산 결과 로딩 실패:', error);
+                                console.error('🔍 상세 오류 정보:', JSON.stringify(error, null, 2));
                             }
+                        } else {
+                            console.log('⚠️ Supabase 조회 건너뛰기:', {
+                                hasCurrentUser: !!currentUser,
+                                isGuest: currentUser?.isGuest,
+                                hasSupabase: !!supabase
+                            });
                         }
                         
                         // 중복 제거 및 날짜순 정렬
@@ -1642,16 +1663,62 @@
                             .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
                         
                         console.log('📈 최종 계산 결과 개수:', uniqueCalculations.length);
+                        console.log('📋 최종 계산 결과 배열:', uniqueCalculations.map(c => ({
+                            id: c.id,
+                            source: c.source,
+                            age: c.formData?.age,
+                            hasData: !!c.calculationResult
+                        })));
+                        
+                        // 테스트용 예시 데이터 추가 (계산 결과가 없는 경우)
+                        if (uniqueCalculations.length === 0 && currentUser?.email?.includes('test')) {
+                            console.log('🧪 테스트 사용자를 위한 예시 계산 결과 추가 중...');
+                            const testCalculation = {
+                                id: 'test-example-' + Date.now(),
+                                source: 'example',
+                                created_at: new Date().toISOString(),
+                                formData: {
+                                    age: 55,
+                                    health: '양호',
+                                    lifeMode: '균형',
+                                    housingType: '자가',
+                                    housingValue: 30000,
+                                    financialAssets: 15000,
+                                    severancePay: 8000,
+                                    debt: 5000,
+                                    nationalPension: 150,
+                                    privatePension: 80
+                                },
+                                calculationResult: {
+                                    totalAssets: 480000000,
+                                    monthlyLivingCost: 250,
+                                    assetSufficiencyYears: 25.5
+                                },
+                                totalAssets: 480000000,
+                                monthlyLivingCost: 250,
+                                assetSufficiencyYears: 25.5
+                            };
+                            uniqueCalculations.push(testCalculation);
+                            console.log('✅ 테스트 계산 결과 추가됨');
+                        }
+                        
                         setCalculationHistory(uniqueCalculations);
+                        setError(null);
                     } catch (error) {
                         console.error('❌ 계산 이력 로딩 실패:', error);
+                        setError(error.message || '계산 결과를 불러오는 중 문제가 발생했습니다');
                         // 오류 발생 시에도 빈 배열을 설정하여 UI가 표시되도록 함
                         setCalculationHistory([]);
+                    } finally {
+                        setLoading(false);
                     }
-                };
-                
+                }, [currentUser, supabase]);
+
+            React.useEffect(() => {
                 loadCalculationHistory();
+            }, [loadCalculationHistory]);
                 
+            React.useEffect(() => {
                 // 모의 예약 내역 데이터
                 const mockBookings = [
                     {
@@ -1822,7 +1889,20 @@
                             {loading ? (
                                 <div className="text-center py-8">
                                     <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                                    <p className="mt-2 text-gray-600">로딩 중...</p>
+                                    <p className="mt-2 text-gray-600">계산 결과를 불러오는 중...</p>
+                                    <p className="text-xs text-gray-400 mt-1">로컬 저장소와 클라우드에서 데이터 검색 중</p>
+                                </div>
+                            ) : error ? (
+                                <div className="text-center py-8">
+                                    <div className="text-red-400 text-6xl mb-4">⚠️</div>
+                                    <h4 className="text-lg font-semibold text-red-600 mb-2">로딩 중 문제가 발생했습니다</h4>
+                                    <p className="text-gray-600 mb-4">{error}</p>
+                                    <button
+                                        onClick={() => window.location.reload()}
+                                        className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                                    >
+                                        새로고침
+                                    </button>
                                 </div>
                             ) : (
                                 <>
@@ -1830,33 +1910,76 @@
                                     {activeSubTab === 'calculations' && (
                                         <div className="space-y-6">
                                             <div className="flex justify-between items-center">
-                                                <h3 className="text-lg font-semibold">저장된 계산 결과</h3>
-                                                <button
-                                                    onClick={() => {
-                                                        // 계산기로 이동
-                                                        setCurrentView('calculator');
-                                                        onClose();
-                                                    }}
-                                                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
-                                                >
-                                                    새 계산하기
-                                                </button>
+                                                <div>
+                                                    <h3 className="text-lg font-semibold">저장된 계산 결과</h3>
+                                                    <p className="text-sm text-gray-500 mt-1">
+                                                        총 {calculationHistory.length}개의 계산 기록
+                                                        {calculationHistory.length > 0 && (
+                                                            <span className="ml-2 px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
+                                                                최신: {new Date(calculationHistory[0]?.created_at).toLocaleDateString()}
+                                                            </span>
+                                                        )}
+                                                    </p>
+                                                </div>
+                                                <div className="flex gap-2">
+                                                    <button
+                                                        onClick={() => {
+                                                            console.log('🔄 계산 결과 새로고침 시작...');
+                                                            setLoading(true);
+                                                            setError(null);
+                                                            loadCalculationHistory();
+                                                        }}
+                                                        className="px-3 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm"
+                                                        title="계산 결과 다시 불러오기"
+                                                    >
+                                                        🔄 새로고침
+                                                    </button>
+                                                    <button
+                                                        onClick={() => {
+                                                            // 계산기로 이동
+                                                            setCurrentView('calculator');
+                                                            onClose();
+                                                        }}
+                                                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
+                                                    >
+                                                        새 계산하기
+                                                    </button>
+                                                </div>
                                             </div>
                                             
                                             {calculationHistory.length === 0 ? (
                                                 <div className="text-center py-12">
                                                     <div className="text-gray-400 text-6xl mb-4">📊</div>
                                                     <h4 className="text-lg font-semibold text-gray-900 mb-2">계산 결과가 없습니다</h4>
-                                                    <p className="text-gray-600 mb-6">은퇴생활비를 계산해보세요!</p>
-                                                    <button
-                                                        onClick={() => {
-                                                            setCurrentView('calculator');
-                                                            onClose();
-                                                        }}
-                                                        className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                                                    >
-                                                        계산하러 가기
-                                                    </button>
+                                                    <p className="text-gray-600 mb-4">은퇴생활비를 계산해보세요!</p>
+                                                    
+                                                    {/* 디버깅 정보 (개발자용) */}
+                                                    {process.env.NODE_ENV === 'development' && (
+                                                        <div className="bg-gray-100 p-3 rounded-lg mb-4 text-xs text-left">
+                                                            <div><strong>디버그 정보:</strong></div>
+                                                            <div>사용자: {currentUser?.email || '게스트'}</div>
+                                                            <div>사용자 타입: {currentUser?.isGuest ? '게스트' : '회원'}</div>
+                                                            <div>Supabase 연결: {supabase ? '연결됨' : '연결 안됨'}</div>
+                                                            <div>localStorage: {localStorage.getItem('planb_calculation_result') ? '데이터 있음' : '데이터 없음'}</div>
+                                                        </div>
+                                                    )}
+                                                    
+                                                    <div className="space-y-3">
+                                                        <button
+                                                            onClick={() => {
+                                                                setCurrentView('calculator');
+                                                                onClose();
+                                                            }}
+                                                            className="block w-full max-w-xs mx-auto px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                                                        >
+                                                            📊 계산하러 가기
+                                                        </button>
+                                                        
+                                                        <p className="text-xs text-gray-500">
+                                                            계산 완료 후 '결과 저장하기'를 누르시면<br/>
+                                                            이곳에서 언제든 다시 확인하실 수 있습니다
+                                                        </p>
+                                                    </div>
                                                 </div>
                                             ) : (
                                                 <div className="space-y-4">
@@ -1873,6 +1996,9 @@
                                                                         )}
                                                                         {calculation.source === 'database' && (
                                                                             <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">클라우드</span>
+                                                                        )}
+                                                                        {calculation.source === 'example' && (
+                                                                            <span className="px-2 py-1 bg-orange-100 text-orange-800 text-xs rounded-full">예시</span>
                                                                         )}
                                                                     </div>
                                                                     <p className="text-sm text-gray-600 mt-1">
@@ -1900,19 +2026,28 @@
                                                                 <div className="bg-blue-50 p-4 rounded-lg">
                                                                     <div className="text-sm text-blue-600 font-medium">총 자산</div>
                                                                     <div className="text-xl font-bold text-blue-900">
-                                                                        {Math.floor((calculation.totalAssets || 0) / 10000).toLocaleString()}억원
+                                                                        {calculation.totalAssets ? 
+                                                                            `${Math.floor(calculation.totalAssets / 100000000)}억 ${Math.floor((calculation.totalAssets % 100000000) / 10000).toLocaleString()}만원` :
+                                                                            '계산 필요'
+                                                                        }
                                                                     </div>
                                                                 </div>
                                                                 <div className="bg-green-50 p-4 rounded-lg">
                                                                     <div className="text-sm text-green-600 font-medium">월 생활비</div>
                                                                     <div className="text-xl font-bold text-green-900">
-                                                                        {(calculation.monthlyLivingCost || 0).toLocaleString()}만원
+                                                                        {calculation.monthlyLivingCost ? 
+                                                                            `${calculation.monthlyLivingCost.toLocaleString()}만원` :
+                                                                            '계산 필요'
+                                                                        }
                                                                     </div>
                                                                 </div>
                                                                 <div className="bg-purple-50 p-4 rounded-lg">
                                                                     <div className="text-sm text-purple-600 font-medium">자산 지속 기간</div>
                                                                     <div className="text-xl font-bold text-purple-900">
-                                                                        {Math.round(calculation.assetSufficiencyYears || 0)}년
+                                                                        {calculation.assetSufficiencyYears ? 
+                                                                            `${Math.round(calculation.assetSufficiencyYears)}년` :
+                                                                            '계산 필요'
+                                                                        }
                                                                     </div>
                                                                 </div>
                                                             </div>
@@ -8569,7 +8704,8 @@
                     formData: formData,
                     lifeExpectancy: lifeExpectancy,
                     enableDownsizing: enableDownsizing,
-                    savedAt: new Date().toISOString()
+                    savedAt: new Date().toISOString(),
+                    calculatedAt: new Date().toISOString()  // 마이페이지 호환성을 위해 추가
                 };
                 
                 localStorage.setItem('planb_calculation_result', JSON.stringify(savedResult));
