@@ -1991,8 +1991,8 @@
                                                     <h4 className="text-lg font-semibold text-gray-900 mb-2">계산 결과가 없습니다</h4>
                                                     <p className="text-gray-600 mb-4">은퇴생활비를 계산해보세요!</p>
                                                     
-                                                    {/* 디버깅 정보 (개발자용) */}
-                                                    {process.env.NODE_ENV === 'development' && (
+                                                    {/* 디버깅 정보 (테스트 사용자용) */}
+                                                    {currentUser?.email?.includes('test') && (
                                                         <div className="bg-gray-100 p-3 rounded-lg mb-4 text-xs text-left">
                                                             <div><strong>디버그 정보:</strong></div>
                                                             <div>사용자: {currentUser?.email || '게스트'}</div>
