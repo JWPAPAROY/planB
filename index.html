@@ -1155,39 +1155,44 @@
                 </div>
             );
 
-            const Step1BasicInfo = () => (
-                <div className="space-y-4 sm:space-y-6">
-                    <h3 className="text-lg sm:text-xl font-bold text-gray-800 mb-4 sm:mb-6">1단계: 기본 정보</h3>
-                    
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">이름 *</label>
-                        <input
-                            type="text"
-                            value={formData.name || ''}
-                            onChange={(e) => {
-                                console.log('🔥 Name input change:', e.target.value);
-                                updateFormData('name', e.target.value);
-                            }}
-                            onInput={(e) => {
-                                console.log('🔥 Name onInput:', e.target.value);
-                            }}
-                            onFocus={() => console.log('🔥 Name field focused')}
-                            onBlur={() => console.log('🔥 Name field blurred')}
-                            onKeyDown={(e) => console.log('🔥 Key pressed:', e.key)}
-                            className="w-full px-4 py-3 border-2 border-red-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-                            style={{
-                                position: 'relative',
-                                zIndex: 10,
-                                pointerEvents: 'auto',
-                                backgroundColor: 'white'
-                            }}
-                            placeholder="실명을 입력하세요"
-                            disabled={false}
-                            readOnly={false}
-                        />
-                        {/* 디버깅 정보 */}
-                        <div className="text-xs text-gray-400 mt-1">디버깅: "{formData.name}"</div>
-                    </div>
+            const Step1BasicInfo = () => {
+                console.log('🔍 Step1BasicInfo render, formData:', formData);
+                
+                return (
+                    <div className="space-y-4 sm:space-y-6">
+                        <h3 className="text-lg sm:text-xl font-bold text-gray-800 mb-4 sm:mb-6">1단계: 기본 정보</h3>
+                        
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">이름 *</label>
+                            <input
+                                type="text"
+                                defaultValue={formData.name || ''}
+                                onChange={(e) => {
+                                    console.log('🔥 Name input change:', e.target.value);
+                                    console.log('🔥 formData before:', formData);
+                                    updateFormData('name', e.target.value);
+                                }}
+                                onInput={(e) => {
+                                    console.log('🔥 Name onInput:', e.target.value);
+                                    updateFormData('name', e.target.value);
+                                }}
+                                onFocus={() => console.log('🔥 Name field focused')}
+                                onBlur={() => console.log('🔥 Name field blurred')}
+                                onKeyDown={(e) => console.log('🔥 Key pressed:', e.key)}
+                                className="w-full px-4 py-3 border-2 border-red-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                                style={{
+                                    position: 'relative',
+                                    zIndex: 10,
+                                    pointerEvents: 'auto',
+                                    backgroundColor: 'white'
+                                }}
+                                placeholder="실명을 입력하세요"
+                                disabled={false}
+                                readOnly={false}
+                            />
+                            {/* 디버깅 정보 */}
+                            <div className="text-xs text-gray-400 mt-1">디버깅: "{formData.name}"</div>
+                        </div>
 
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">전화번호 *</label>
