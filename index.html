@@ -1217,44 +1217,14 @@
                     </div>
 
 
-                    {/* 자격 검증 섹션 - 완전 재구축 */}
-                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
-                        <h4 className="text-lg font-semibold text-gray-800 mb-6">
-                            🔒 자격 검증 (임시로 간단 버전)
+                    {/* 자격 검증 섹션 */}
+                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                        <h4 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                            🔒 자격 검증 (다음 중 하나만 선택)
                         </h4>
                         
-                        <div className="space-y-4">
-                            <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                                <p className="text-blue-800">자격 검증 섹션이 재구축 중입니다.</p>
-                                <p className="text-sm text-blue-600 mt-2">임시로 아무 옵션이나 선택하여 계속 진행할 수 있습니다.</p>
-                                
-                                <div className="mt-4 space-y-2">
-                                    <label className="flex items-center">
-                                        <input 
-                                            type="radio" 
-                                            name="verificationMethod" 
-                                            value="business" 
-                                            checked={expertProfile.verificationMethod === 'business'}
-                                            onChange={(e) => updateExpertProfile('verificationMethod', e.target.value)}
-                                            className="mr-2"
-                                        />
-                                        사업자등록 (임시)
-                                    </label>
-                                    <label className="flex items-center">
-                                        <input 
-                                            type="radio" 
-                                            name="verificationMethod" 
-                                            value="license" 
-                                            checked={expertProfile.verificationMethod === 'license'}
-                                            onChange={(e) => updateExpertProfile('verificationMethod', e.target.value)}
-                                            className="mr-2"
-                                        />
-                                        자격증 (임시)
-                                    </label>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                        <div className="space-y-6">
+                            {/* 옵션 1: 사업자등록증 */}
                             <div className="border border-gray-200 rounded-lg p-4">
                                 <label className="flex items-center cursor-pointer mb-3">
                                     <input
@@ -4010,153 +3980,83 @@
             if (authMode === 'expert') {
                 return (
                     <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-100 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-                        <div className="max-w-2xl w-full space-y-8">
-                            <div className="text-center">
-                                <div className="mb-6">
-                                    <div className="w-16 h-16 bg-gradient-to-br from-orange-500 to-red-600 rounded-full mx-auto flex items-center justify-center">
-                                        <span className="text-white font-bold text-xl">🎯</span>
-                                    </div>
-                                </div>
-                                <h1 className="text-4xl font-bold text-gray-900 mb-2">
-                                    전문가 등록
-                                </h1>
-                                <p className="text-xl text-gray-600 mb-8">
-                                    {currentStep === 1 ? '기본 정보 입력' : '전문가 프로필 등록'}
-                                </p>
-                                <div className="flex justify-center space-x-4 mb-8">
-                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${currentStep >= 1 ? 'bg-orange-500 text-white' : 'bg-gray-200 text-gray-500'}`}>1</div>
-                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${currentStep >= 2 ? 'bg-orange-500 text-white' : 'bg-gray-200 text-gray-500'}`}>2</div>
-                                </div>
+                        <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8">
+                            <div className="text-center mb-6">
+                                <h1 className="text-2xl font-bold text-gray-800">🎯 전문가 등록</h1>
+                                <p className="text-gray-600 mt-2">간단한 정보만 입력해주세요</p>
                             </div>
                             
-                            <div className="bg-white rounded-lg shadow-lg p-6">
-                                <form className="space-y-6" onSubmit={handleSubmit}>
-                                    {currentStep === 1 ? (
-                                        // 1단계: 기본 회원가입
-                                        <div className="space-y-4">
-                                            <div>
-                                                <label className="block text-sm font-medium text-gray-700">실명 *</label>
-                                                <input
-                                                    type="text"
-                                                    required
-                                                    value={expertProfile.name}
-                                                    onChange={(e) => updateExpertProfile('name', e.target.value)}
-                                                    className="mt-1 w-full px-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-orange-500 focus:border-orange-500 text-lg"
-                                                    placeholder="실명을 입력하세요"
-                                                />
-                                                <p className="text-xs text-gray-500 mt-1">전문가 인증을 위해 실명이 필요합니다</p>
-                                            </div>
-                                            
-                                            <div>
-                                                <label className="block text-sm font-medium text-gray-700">이메일 *</label>
-                                                <input
-                                                    type="email"
-                                                    required
-                                                    value={email}
-                                                    onChange={(e) => setEmail(e.target.value)}
-                                                    className="mt-1 w-full px-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-orange-500 focus:border-orange-500 text-lg"
-                                                    placeholder="이메일 주소"
-                                                />
-                                            </div>
-
-                                            <div>
-                                                <label className="block text-sm font-medium text-gray-700">휴대폰 번호 *</label>
-                                                <input
-                                                    type="tel"
-                                                    required
-                                                    value={expertProfile.phone}
-                                                    onChange={(e) => {
-                                                        const formatted = formatPhoneNumber(e.target.value);
-                                                        updateExpertProfile('phone', formatted);
-                                                    }}
-                                                    className="mt-1 w-full px-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-orange-500 focus:border-orange-500 text-lg"
-                                                    placeholder="010-1234-5678"
-                                                />
-                                                <p className="text-xs text-gray-500 mt-1">본인 확인 및 상담 예약 연락용</p>
-                                            </div>
-                                            
-                                            <div>
-                                                <label className="block text-sm font-medium text-gray-700">비밀번호 *</label>
-                                                <input
-                                                    type="password"
-                                                    required
-                                                    value={password}
-                                                    onChange={(e) => setPassword(e.target.value)}
-                                                    className="mt-1 w-full px-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-orange-500 focus:border-orange-500 text-lg"
-                                                    placeholder="비밀번호"
-                                                />
-                                            </div>
-                                            
-                                            <div>
-                                                <label className="block text-sm font-medium text-gray-700">비밀번호 확인 *</label>
-                                                <input
-                                                    type="password"
-                                                    required
-                                                    value={confirmPassword}
-                                                    onChange={(e) => setConfirmPassword(e.target.value)}
-                                                    className="mt-1 w-full px-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-orange-500 focus:border-orange-500 text-lg"
-                                                    placeholder="비밀번호 확인"
-                                                />
-                                            </div>
-
-                                            
-                                            <ExpertPrivacyConsentComponent 
-                                                checked={expertPrivacyConsent}
-                                                onChange={setExpertPrivacyConsent}
-                                            />
-                                        </div>
-                                    ) : (
-                                        // 2단계: 전문가 프로필
-                                        <ExpertProfileForm 
-                                            expertProfile={expertProfile}
-                                            updateExpertProfile={updateExpertProfile}
-                                            expertCategories={expertCategories}
-                                            specialtyInput={specialtyInput}
-                                            setSpecialtyInput={setSpecialtyInput}
-                                            addSpecialty={addSpecialty}
-                                            removeSpecialty={removeSpecialty}
-                                        />
-                                    )}
-                                    
-                                    {error && (
-                                        <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-                                            <p className="text-red-800 text-sm">{error}</p>
-                                        </div>
-                                    )}
-                                    
-                                    <div className="flex space-x-4">
-                                        {currentStep === 2 && (
-                                            <button
-                                                type="button"
-                                                onClick={() => setCurrentStep(1)}
-                                                className="w-full py-3 px-4 border border-gray-300 text-lg font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50"
-                                            >
-                                                이전 단계
-                                            </button>
-                                        )}
-                                        <button
-                                            type="submit"
-                                            className="w-full py-3 px-4 border border-transparent text-lg font-medium rounded-lg text-white bg-orange-600 hover:bg-orange-700"
-                                        >
-                                            {currentStep === 1 ? '다음 단계' : '전문가 등록 완료'}
-                                        </button>
+                            <form className="space-y-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">이름 *</label>
+                                    <input
+                                        type="text"
+                                        value={expertProfile.name || ''}
+                                        onChange={(e) => updateExpertProfile('name', e.target.value)}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                                        placeholder="실명을 입력해주세요"
+                                    />
+                                </div>
+                                
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">전문분야 *</label>
+                                    <select
+                                        value={expertProfile.expertType || ''}
+                                        onChange={(e) => updateExpertProfile('expertType', e.target.value)}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                                    >
+                                        <option value="">선택해주세요</option>
+                                        <option value="finance">재무/투자</option>
+                                        <option value="tax">세무</option>
+                                        <option value="law">법무</option>
+                                        <option value="real_estate">부동산</option>
+                                        <option value="insurance">보험</option>
+                                        <option value="life">생활설계</option>
+                                    </select>
+                                </div>
+                                
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">휴대폰 번호 *</label>
+                                    <input
+                                        type="tel"
+                                        value={expertProfile.phone || ''}
+                                        onChange={(e) => updateExpertProfile('phone', e.target.value)}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                                        placeholder="010-1234-5678"
+                                    />
+                                </div>
+                                
+                                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                                    <p className="text-sm text-yellow-800">
+                                        <strong>📝 임시 등록:</strong> 현재 간단한 정보만으로 등록 가능합니다.
+                                    </p>
+                                    <p className="text-xs text-yellow-700 mt-1">
+                                        자격 증명 시스템은 곧 업데이트 예정입니다.
+                                    </p>
+                                </div>
+                                
+                                {error && (
+                                    <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                                        <p className="text-sm text-red-600">{error}</p>
                                     </div>
-                                    
-                                    <div className="text-center">
-                                        <button
-                                            type="button"
-                                            onClick={() => {
-                                                setAuthMode('login');
-                                                setCurrentStep(1);
-                                                setError('');
-                                            }}
-                                            className="text-orange-600 hover:text-orange-500 text-sm font-medium"
-                                        >
-                                            일반 로그인으로 돌아가기
-                                        </button>
-                                    </div>
-                                </form>
-                            </div>
+                                )}
+                                
+                                <button
+                                    type="button"
+                                    onClick={handleExpertRegistration}
+                                    className="w-full bg-orange-600 text-white py-3 px-4 rounded-lg hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-orange-500 font-medium"
+                                >
+                                    전문가 등록 신청
+                                </button>
+                                
+                                <button
+                                    type="button"
+                                    onClick={() => setAuthMode('login')}
+                                    className="w-full bg-gray-100 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500"
+                                >
+                                    일반 로그인으로 돌아가기
+                                </button>
+                            </form>
                         </div>
                     </div>
                 );
