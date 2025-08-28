@@ -1129,7 +1129,12 @@
                                 onChange={(e) => setSpecialtyInput(e.target.value)}
                                 className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-orange-500 focus:border-orange-500"
                                 placeholder="전문분야 입력 후 추가 버튼"
-                                onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addSpecialty())}
+                                onKeyPress={(e) => {
+                                    if (e.key === 'Enter') {
+                                        e.preventDefault();
+                                        addSpecialty();
+                                    }
+                                }}
                             />
                             <button
                                 type="button"
@@ -6843,7 +6848,12 @@
                                         type="text"
                                         value={tagInput}
                                         onChange={(e) => setTagInput(e.target.value)}
-                                        onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddTag())}
+                                        onKeyPress={(e) => {
+                                            if (e.key === 'Enter') {
+                                                e.preventDefault();
+                                                handleAddTag();
+                                            }
+                                        }}
                                         placeholder="태그 입력 후 엔터"
                                         className="flex-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                     />
@@ -13392,7 +13402,7 @@
                     <p style="color: #dc2626; font-weight: bold; margin-bottom: 10px;">오류가 발생했습니다</p>
                     <p style="color: #374151; font-size: 14px; margin-bottom: 10px;">오류 내용: ${error.message}</p>
                     <p style="color: #6b7280; font-size: 12px; margin-bottom: 20px;">브라우저 콘솔을 확인해주세요 (F12)</p>
-                    <button onclick="location.reload()" style="margin-top: 20px; padding: 12px 24px; background: #3b82f6; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 14px;">새로고침</button>
+                    <button onClick={() => location.reload()} style="margin-top: 20px; padding: 12px 24px; background: #3b82f6; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 14px;">새로고침</button>
                 </div>
             `;
         }
