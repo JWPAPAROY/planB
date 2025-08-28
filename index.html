@@ -1198,9 +1198,9 @@
             };
             
             // 1단계: 기본정보 + 동의
-            const Step1BasicInfo = () => {
-                // 체크박스 상태 동기화를 위한 useEffect
-                useEffect(() => {
+            const renderStep1BasicInfo = () => {
+                // DOM 조작을 setTimeout으로 대체 (useEffect 제거)
+                setTimeout(() => {
                     const privacyCheckbox = document.getElementById('privacy-agree-checkbox');
                     const termsCheckbox = document.getElementById('terms-agree-checkbox');
                     
@@ -1210,7 +1210,7 @@
                     if (termsCheckbox) {
                         termsCheckbox.checked = formData.agreeTerms;
                     }
-                }, [formData.agreePrivacy, formData.agreeTerms]);
+                }, 0);
                 
                 return React.createElement('div', {
                     key: 'step1',
@@ -1389,7 +1389,7 @@
             };
             
             // 2단계: 전문분야 선택
-            const Step2Expertise = () => {
+            const renderStep2Expertise = () => {
                 // 카테고리 객체 완전 독립 정의
                 const expertCategories = {
                     'travel': {
@@ -1578,7 +1578,7 @@
             };
             
             // 3단계: 자격 검증
-            const Step3Verification = () => {
+            const renderStep3Verification = () => {
                 const verificationOptions = [
                     {
                         id: 'business',
@@ -1910,9 +1910,9 @@
                     key: 'content',
                     className: 'min-h-[400px] mb-8'
                 }, [
-                    currentStep === 1 ? Step1BasicInfo() : null,
-                    currentStep === 2 ? Step2Expertise() : null,
-                    currentStep === 3 ? Step3Verification() : null
+                    currentStep === 1 ? renderStep1BasicInfo() : null,
+                    currentStep === 2 ? renderStep2Expertise() : null,
+                    currentStep === 3 ? renderStep3Verification() : null
                 ].filter(Boolean)),
                 
                 React.createElement('div', {
