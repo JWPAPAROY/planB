@@ -679,6 +679,8 @@
                                 id: data.user.id,
                                 email: email,
                                 nickname: finalNickname,
+                                role: expertProfile ? 'expert' : 'member',
+                                expert_status: expertProfile ? 'pending' : null,
                                 privacy_consent: true,
                                 privacy_consent_date: new Date().toISOString(),
                                 created_at: new Date().toISOString()
@@ -755,7 +757,7 @@
                     // 기존 user_profiles 테이블에서 이메일 확인
                     const { data: existingUser, error } = await supabase
                         .from('user_profiles')
-                        .select('id, email')
+                        .select('id, email, role, expert_status')
                         .eq('email', email)
                         .single();
                     
@@ -787,12 +789,39 @@
                 }
             }
             
-            // 현재 사용자 정보 가져오기
+            // 현재 사용자 정보 가져오기 (role 포함)
             async getCurrentUser() {
                 try {
                     const { data: { user } } = await supabase.auth.getUser();
-                    this.currentUser = user;
-                    return user;
+                    if (!user) {
+                        this.currentUser = null;
+                        return null;
+                    }
+                    
+                    // user_profiles에서 추가 정보 가져오기 (role, expert_status 포함)
+                    const { data: profileData, error: profileError } = await supabase
+                        .from('user_profiles')
+                        .select('id, email, nickname, role, expert_status, created_at')
+                        .eq('id', user.id)
+                        .single();
+                    
+                    if (profileError) {
+                        console.warn('프로필 정보 로드 실패:', profileError);
+                        // Auth 정보만이라도 사용
+                        this.currentUser = user;
+                        return user;
+                    }
+                    
+                    // Auth 정보와 프로필 정보 병합
+                    const enhancedUser = {
+                        ...user,
+                        ...profileData,
+                        // 호환성을 위해 기존 필드들 유지
+                        user_metadata: user.user_metadata || {}
+                    };
+                    
+                    this.currentUser = enhancedUser;
+                    return enhancedUser;
                 } catch (error) {
                     console.error('Error getting current user:', error);
                     return null;
@@ -3422,8 +3451,8 @@
             // 전문가 카테고리 정의
             const expertCategories = {
                 'travel': { name: '여행/취미', icon: '✈️', description: '시니어 여행 및 취미 활동 전문가' },
-                'legal': { name: '세무/법무/자산관리', icon: '📋', description: '세무, 법무, 자산관리 전문가 (상담만)' },
-                'living': { name: '주거/생활', icon: '🏠', description: '주거 및 생활환경 설계 전문가' }
+                'legal': { name: '세무/법무/자산관리', icon: '📋', description: '세무, 법무, 자산관리 전문가 (상품판매없음)' },
+                'housing': { name: '주거/생활', icon: '🏠', description: '주거 및 생활환경 설계 전문가' }
             };
 
             // 전문가 프로필 업데이트 함수
@@ -3636,21 +3665,25 @@
 
                         // 전문가 프로필 저장 (검토 대기 상태)
                         const { data: expertData, error: expertError } = await supabase
-                            .from('financial_experts')
+                            .from('experts')
                             .insert({
                                 email: email,
                                 name: expertProfile.name,
                                 phone: expertProfile.phone,
                                 title: expertProfile.title,
+                                expert_type: expertProfile.category === 'travel' ? 'travel_planner' : 
+                                           expertProfile.category === 'legal' ? 'lawyer' : 'senior_housing_consultant',
                                 category: expertProfile.category,
                                 specialties: expertProfile.specialties,
                                 bio: expertProfile.bio,
                                 experience_years: parseInt(expertProfile.experienceYears),
                                 credentials: expertProfile.credentials,
-                                business_license: expertProfile.businessLicense || null,
                                 qualification_number: expertProfile.qualificationNumber || null,
-                                available_types: expertProfile.availableTypes,
-                                verification_status: 'pending'
+                                available_consultation_types: expertProfile.availableTypes,
+                                verification_status: 'pending',
+                                no_sales_pledge: true,
+                                senior_focused: true,
+                                experience_based: true
                             })
                             .select()
                             .single();
@@ -5096,7 +5129,7 @@
                             .from('consultation_sessions')
                             .select(`
                                 *,
-                                expert:financial_experts!consultation_sessions_expert_id_fkey(name, title, specialties),
+                                expert:experts!consultation_sessions_expert_id_fkey(name, title, specialties),
                                 client:user_profiles!consultation_sessions_client_id_fkey(nickname, email)
                             `);
 
@@ -5409,7 +5442,7 @@
                         const avgRating = reviews.reduce((sum, r) => sum + r.overall_rating, 0) / reviews.length;
                         
                         await supabase
-                            .from('financial_experts')
+                            .from('experts')
                             .update({
                                 average_rating: Math.round(avgRating * 10) / 10,
                                 total_reviews: reviews.length
@@ -6163,7 +6196,7 @@
             const categories = {
                 'travel': { name: '여행/취미', icon: '✈️', color: 'orange' },
                 'legal': { name: '세무/법무/자산관리', icon: '📋', color: 'blue' },
-                'living': { name: '주거/생활', icon: '🏠', color: 'green' }
+                'housing': { name: '주거/생활', icon: '🏠', color: 'green' }
             };
 
             // 서비스 유형 (상담 방식)
@@ -6305,7 +6338,7 @@
                     } else {
                         // 일반 사용자는 전문가 프로필 확인
                         const { data: profile } = await supabase
-                            .from('financial_experts')
+                            .from('experts')
                             .select('*')
                             .eq('user_id', currentUser.id)
                             .eq('is_verified', true)
@@ -8736,7 +8769,7 @@
                     // 수신자 확인
                     const { data: recipientData, error: recipientError } = await supabase
                         .from('user_profiles')
-                        .select('id, nickname, email')
+                        .select('id, nickname, email, role')
                         .eq('email', newRecipientEmail.trim())
                         .single();
                     
@@ -9521,7 +9554,7 @@
 
                     try {
                         const { data: expertProfile } = await supabase
-                            .from('financial_experts')
+                            .from('experts')
                             .select('is_verified, is_active')
                             .eq('user_id', currentUser.id)
                             .single();
@@ -9699,10 +9732,10 @@
 
                         // Supabase에서 전문가 데이터 로드
                         const { data: experts, error } = await supabase
-                            .from('financial_experts')
+                            .from('experts')
                             .select(`
                                 *,
-                                user_profiles!financial_experts_user_id_fkey(nickname, email)
+                                user_profiles!experts_user_id_fkey(nickname, email)
                             `)
                             .eq('is_verified', true)
                             .eq('is_active', true);
@@ -12356,10 +12389,18 @@
                 // 관리자는 모든 권한을 가지므로 'admin' 반환하지만 UI에서 모든 기능 접근 가능
                 if (isAdminUser(user)) return 'admin';
                 
-                // Supabase에서 expert_profiles 테이블 조회하여 전문가 여부 확인
+                // 1순위: user_profiles.role 확인 (getCurrentUser에서 이미 로드됨)
+                if (user.role) {
+                    console.log('🔍 User role from DB:', user.role);
+                    if (user.role === 'expert') return 'expert';
+                    if (user.role === 'admin') return 'admin';  
+                    if (user.role === 'member') return 'member';
+                }
+                
+                // 2순위: experts 테이블에서 확인 (백업용)
                 try {
                     const { data: expertProfile, error } = await supabase
-                        .from('financial_experts')
+                        .from('experts')
                         .select('id, verification_status')
                         .eq('email', user.email)
                         .single();
@@ -12384,7 +12425,7 @@
                 
                 try {
                     const { data: expertProfile } = await supabase
-                        .from('financial_experts')
+                        .from('experts')
                         .select('verification_status')
                         .eq('email', user.email)
                         .single();
