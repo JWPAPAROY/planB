@@ -8,9 +8,9 @@
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- React 18 CDN (Production) -->
-    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <!-- React 18 CDN (Development) -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     
     <!-- Babel Standalone for JSX -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -1080,10 +1080,6 @@
                     name: '🏠 주거/생활',
                     specialties: ['주거이전', '실버타운', '생활편의', '홈케어', '인테리어', '생활관리']
                 },
-                'health': {
-                    name: '💊 건강/의료',
-                    specialties: ['건강관리', '의료상담', '운동처방', '영양상담', '정신건강', '재활치료']
-                }
             };
             
             // 데이터 업데이트 함수
@@ -1394,8 +1390,8 @@
             
             // 2단계: 전문분야 선택
             const Step2Expertise = () => {
-                // categories 객체 직접 정의 (안전한 처리)
-                const safeCategories = typeof categories !== 'undefined' ? categories : {
+                // 카테고리 객체 완전 독립 정의
+                const expertCategories = {
                     'travel': {
                         name: '✈️ 여행/취미',
                         specialties: ['해외여행', '국내여행', '문화생활', '취미활동', '여가계획', '액티비티']
@@ -1438,7 +1434,7 @@
                         React.createElement('div', {
                             key: 'category-grid',
                             className: 'grid grid-cols-1 sm:grid-cols-2 gap-3'
-                        }, Object.entries(safeCategories).map(([key, category]) =>
+                        }, Object.entries(expertCategories).map(([key, category]) =>
                             React.createElement('label', {
                                 key: key,
                                 className: `flex items-center p-4 border-2 rounded-lg cursor-pointer transition-all ${
@@ -1528,7 +1524,7 @@
                 ];
                 
                 // 세부 전문분야 선택 (카테고리 선택된 경우만)
-                if (formData.category && safeCategories[formData.category]) {
+                if (formData.category && expertCategories[formData.category]) {
                     const specialtiesSection = React.createElement('div', {
                         key: 'specialties-section'
                     }, [
@@ -1539,7 +1535,7 @@
                         React.createElement('div', {
                             key: 'specialties-grid',
                             className: 'grid grid-cols-2 sm:grid-cols-3 gap-2'
-                        }, (safeCategories[formData.category]?.specialties || []).map(specialty => {
+                        }, (expertCategories[formData.category]?.specialties || []).map(specialty => {
                             const currentSpecialties = formData.specialties || [];
                             const isSelected = currentSpecialties.includes(specialty);
                             const isDisabled = currentSpecialties.length >= 3 && !isSelected;
