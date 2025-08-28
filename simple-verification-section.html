@@ -1,0 +1,156 @@
+                    {/* 자격 검증 섹션 - 간단 버전 */}
+                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
+                        <h4 className="text-lg font-semibold text-gray-800 mb-6">
+                            🔒 자격 검증 (다음 중 하나만 선택)
+                        </h4>
+                        
+                        <div className="space-y-4">
+                            {/* 옵션 1: 사업자등록 */}
+                            <div className="border border-gray-200 rounded-lg p-4">
+                                <label className="flex items-center cursor-pointer mb-3">
+                                    <input
+                                        type="radio"
+                                        name="verificationMethod"
+                                        value="business"
+                                        checked={expertProfile.verificationMethod === 'business'}
+                                        onChange={(e) => updateExpertProfile('verificationMethod', e.target.value)}
+                                        className="w-5 h-5 text-orange-600"
+                                    />
+                                    <span className="font-medium text-gray-800 ml-3">📄 사업자등록 정보</span>
+                                </label>
+                                
+                                {expertProfile.verificationMethod === 'business' && (
+                                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                                        <div className="mb-4">
+                                            <label className="block text-sm font-medium text-gray-700 mb-2">사업자등록번호 *</label>
+                                            <input
+                                                type="text"
+                                                value={expertProfile.businessLicense || ''}
+                                                onChange={(e) => updateExpertProfile('businessLicense', e.target.value)}
+                                                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                                                placeholder="123-45-67890"
+                                            />
+                                        </div>
+                                        
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-2">사업자등록증 파일</label>
+                                            <input
+                                                type="file"
+                                                accept="image/*,.pdf"
+                                                onChange={(e) => {
+                                                    const file = e.target.files[0];
+                                                    if (file) updateExpertProfile('businessFile', file);
+                                                }}
+                                                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                                            />
+                                            <p className="text-xs text-gray-500 mt-1">JPG, PNG, PDF (최대 5MB)</p>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                            
+                            {/* 옵션 2: 자격증 */}
+                            <div className="border border-gray-200 rounded-lg p-4">
+                                <label className="flex items-center cursor-pointer mb-3">
+                                    <input
+                                        type="radio"
+                                        name="verificationMethod"
+                                        value="license"
+                                        checked={expertProfile.verificationMethod === 'license'}
+                                        onChange={(e) => updateExpertProfile('verificationMethod', e.target.value)}
+                                        className="w-5 h-5 text-orange-600"
+                                    />
+                                    <span className="font-medium text-gray-800 ml-3">🎓 국가자격증</span>
+                                </label>
+                                
+                                {expertProfile.verificationMethod === 'license' && (
+                                    <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                                        <div className="mb-4">
+                                            <label className="block text-sm font-medium text-gray-700 mb-2">자격증명 *</label>
+                                            <input
+                                                type="text"
+                                                value={expertProfile.licenseName || ''}
+                                                onChange={(e) => updateExpertProfile('licenseName', e.target.value)}
+                                                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                                                placeholder="예: 공인회계사, 변호사, 세무사"
+                                            />
+                                        </div>
+                                        
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-2">자격증 파일 *</label>
+                                            <input
+                                                type="file"
+                                                accept=".jpg,.jpeg,.png,.pdf"
+                                                onChange={(e) => {
+                                                    const file = e.target.files[0];
+                                                    if (file) updateExpertProfile('licenseFile', file);
+                                                }}
+                                                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                                            />
+                                            <p className="text-xs text-gray-500 mt-1">JPG, PNG, PDF (최대 5MB)</p>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                            
+                            {/* 옵션 3: 개인 전문가 */}
+                            <div className="border border-gray-200 rounded-lg p-4">
+                                <label className="flex items-center cursor-pointer mb-3">
+                                    <input
+                                        type="radio"
+                                        name="verificationMethod"
+                                        value="experience"
+                                        checked={expertProfile.verificationMethod === 'experience'}
+                                        onChange={(e) => updateExpertProfile('verificationMethod', e.target.value)}
+                                        className="w-5 h-5 text-orange-600"
+                                    />
+                                    <span className="font-medium text-gray-800 ml-3">👤 개인 전문가</span>
+                                </label>
+                                
+                                {expertProfile.verificationMethod === 'experience' && (
+                                    <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                                        <div className="mb-4">
+                                            <p className="text-sm text-purple-800 mb-2">⚠️ 추가 심사가 필요합니다 (7-10일 소요)</p>
+                                        </div>
+                                        
+                                        <div className="mb-4">
+                                            <label className="block text-sm font-medium text-gray-700 mb-2">포트폴리오 파일</label>
+                                            <input
+                                                type="file"
+                                                accept=".jpg,.jpeg,.png,.pdf,.doc,.docx"
+                                                multiple
+                                                onChange={(e) => {
+                                                    const files = Array.from(e.target.files);
+                                                    updateExpertProfile('portfolioFiles', files);
+                                                }}
+                                                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                                            />
+                                            <p className="text-xs text-gray-500 mt-1">여러 파일 선택 가능 (최대 5MB)</p>
+                                        </div>
+                                        
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-2">전문성 설명 *</label>
+                                            <textarea
+                                                rows="4"
+                                                value={expertProfile.expertiseDescription || ''}
+                                                onChange={(e) => updateExpertProfile('expertiseDescription', e.target.value)}
+                                                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                                                placeholder="해당 분야의 전문가인 이유를 설명해주세요"
+                                            />
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                            
+                            {/* 검증 안내 */}
+                            <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+                                <p className="text-sm text-orange-800 font-medium">⚠️ 검증 안내</p>
+                                <ul className="text-xs text-orange-700 mt-2 space-y-1">
+                                    <li>• 사업자등록번호와 자격증은 해당 기관에서 검증합니다</li>
+                                    <li>• 개인 전문가는 제출 서류를 통해 전문성을 검증합니다</li>
+                                    <li>• 허위 정보 제출시 등록이 거부됩니다</li>
+                                    <li>• 검토 기간: 사업자/자격증 3-5일, 개인 전문가 7-10일</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
