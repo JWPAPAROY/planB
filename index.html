@@ -1628,32 +1628,6 @@
                         className: 'text-xl font-bold text-gray-800'
                     }, '자격 확인 방법을 선택해주세요'),
                     
-                    React.createElement('div', {
-                        key: 'info',
-                        className: 'bg-blue-50 border border-blue-200 rounded-lg p-4'
-                    }, [
-                        React.createElement('div', {
-                            key: 'info-content',
-                            className: 'flex items-start'
-                        }, [
-                            React.createElement('div', {
-                                key: 'info-icon',
-                                className: 'text-blue-500 mr-3 text-lg'
-                            }, '💡'),
-                            React.createElement('div', {
-                                key: 'info-text'
-                            }, [
-                                React.createElement('p', {
-                                    key: 'title',
-                                    className: 'font-medium text-blue-800 mb-1'
-                                }, '간편한 검증 시스템'),
-                                React.createElement('p', {
-                                    key: 'desc',
-                                    className: 'text-sm text-blue-700'
-                                }, '복잡한 서류 제출 없이 기본 정보만으로 확인합니다. 필요시 추가 자료는 이메일로 요청드릴 수 있습니다.')
-                            ])
-                        ])
-                    ]),
                     
                     React.createElement('div', {
                         key: 'options',
@@ -1670,7 +1644,14 @@
                                     formData.verificationType === option.id
                                         ? 'border-orange-500 bg-orange-50'
                                         : 'border-gray-200 hover:border-gray-300'
-                                }`
+                                }`,
+                                onClick: () => {
+                                    updateFormData('verificationType', option.id);
+                                    // 다른 필드들 초기화
+                                    updateFormData('businessNumber', '');
+                                    updateFormData('licenseType', '');
+                                    updateFormData('organization', '');
+                                }
                             }, [
                                 React.createElement('input', {
                                     key: 'radio',
@@ -1678,14 +1659,8 @@
                                     name: 'verificationType',
                                     value: option.id,
                                     checked: formData.verificationType === option.id,
-                                    onChange: (e) => {
-                                        updateFormData('verificationType', e.target.value);
-                                        // 다른 필드들 초기화
-                                        updateFormData('businessNumber', '');
-                                        updateFormData('licenseType', '');
-                                        updateFormData('organization', '');
-                                    },
-                                    className: 'w-4 h-4 text-orange-600 mt-1 mr-3'
+                                    readOnly: true,
+                                    className: 'w-4 h-4 text-orange-600 mt-1 mr-3 pointer-events-none'
                                 }),
                                 React.createElement('div', {
                                     key: 'content',
