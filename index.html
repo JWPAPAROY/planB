@@ -1394,8 +1394,21 @@
             
             // 2단계: 전문분야 선택
             const Step2Expertise = () => {
-                // 안전한 categories 참조
-                const safeCategories = categories || {};
+                // categories 객체 직접 정의 (안전한 처리)
+                const safeCategories = typeof categories !== 'undefined' ? categories : {
+                    'travel': {
+                        name: '✈️ 여행/취미',
+                        specialties: ['해외여행', '국내여행', '문화생활', '취미활동', '여가계획', '액티비티']
+                    },
+                    'finance': {
+                        name: '💰 세무/법무',  
+                        specialties: ['세무상담', '법무자문', '상속계획', '부동산법', '금융법', '계약서검토']
+                    },
+                    'housing': {
+                        name: '🏠 주거/생활',
+                        specialties: ['주거이전', '실버타운', '생활편의', '홈케어', '인테리어', '생활관리']
+                    }
+                };
                 
                 const toggleSpecialty = (specialty) => {
                     const currentSpecialties = formData.specialties || [];
