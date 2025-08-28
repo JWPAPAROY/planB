@@ -1165,9 +1165,15 @@
                             type="text"
                             value={formData.name || ''}
                             onChange={(e) => {
-                                console.log('Name input change:', e.target.value);
+                                console.log('🔥 Name input change:', e.target.value);
                                 updateFormData('name', e.target.value);
                             }}
+                            onInput={(e) => {
+                                console.log('🔥 Name onInput:', e.target.value);
+                            }}
+                            onFocus={() => console.log('🔥 Name field focused')}
+                            onBlur={() => console.log('🔥 Name field blurred')}
+                            onKeyDown={(e) => console.log('🔥 Key pressed:', e.key)}
                             className="w-full px-4 py-3 border-2 border-red-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
                             style={{
                                 position: 'relative',
@@ -1448,6 +1454,17 @@
                             <div>이메일: "{formData.email}"</div>
                             <div>전문분야: "{formData.expertType}"</div>
                         </div>
+                    </div>
+
+                    {/* 테스트용 간단한 입력 필드 */}
+                    <div className="bg-green-100 border border-green-300 rounded-lg p-3 mb-4">
+                        <div className="font-bold text-green-800 mb-2">🧪 테스트 입력 필드</div>
+                        <input
+                            type="text"
+                            placeholder="여기에 타이핑해보세요"
+                            className="w-full p-2 border border-green-500 rounded"
+                            onInput={(e) => console.log('🧪 Test input:', e.target.value)}
+                        />
                     </div>
 
                     <div className="text-center mb-6 sm:mb-8">
