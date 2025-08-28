@@ -1139,21 +1139,71 @@
             };
             
             // 최종 제출
-            const handleSubmit = () => {
-                // 전체 데이터를 expertProfile에 저장
-                Object.keys(formData).forEach(key => {
-                    updateExpertProfile(key, formData[key]);
-                });
-                
-                alert(`전문가 등록 신청이 완료되었습니다! 🎉
+            const handleSubmit = async () => {
+                try {
+                    // 전체 데이터를 expertProfile에 저장
+                    Object.keys(formData).forEach(key => {
+                        updateExpertProfile(key, formData[key]);
+                    });
+
+                    // 현재 사용자 정보 확인
+                    const currentUser = await authManager.getCurrentUser();
+                    if (!currentUser) {
+                        alert('로그인이 필요합니다.');
+                        setCurrentView('login');
+                        return;
+                    }
+
+                    // Supabase에 전문가 등록 요청 저장
+                    const expertRequestData = {
+                        user_id: currentUser.id,
+                        name: formData.name,
+                        phone: formData.phone,
+                        email: formData.email,
+                        category: formData.category,
+                        experience_years: formData.experienceYears,
+                        keywords: formData.keywords,
+                        verification_type: formData.verificationType,
+                        business_number: formData.businessNumber || null,
+                        license_type: formData.licenseType || null,
+                        organization: formData.organization || null,
+                        status: 'pending', // 승인 대기 상태
+                        created_at: new Date().toISOString(),
+                        updated_at: new Date().toISOString()
+                    };
+
+                    console.log('전문가 등록 요청 저장:', expertRequestData);
+
+                    // expert_requests 테이블에 저장
+                    const { data, error } = await supabase
+                        .from('expert_requests')
+                        .insert([expertRequestData])
+                        .select();
+
+                    if (error) {
+                        console.error('전문가 등록 요청 저장 오류:', error);
+                        alert('등록 처리 중 오류가 발생했습니다. 다시 시도해주세요.');
+                        return;
+                    }
+
+                    console.log('전문가 등록 요청 저장 완료:', data);
+                    
+                    alert(`전문가 등록 신청이 완료되었습니다! 🎉
 
 📋 제출된 정보:
 • 이름: ${formData.name}
 • 전문분야: ${categories[formData.category]?.name}
 • 검증방법: ${formData.verificationType}
 
-📞 검토 후 3-5일 내 연락드리겠습니다.`);
-                setCurrentView('login');
+📞 관리자 검토 후 3-5일 내 연락드리겠습니다.
+📧 승인 결과를 이메일로 알려드릴게요.`);
+                    
+                    setCurrentView('login');
+                    
+                } catch (error) {
+                    console.error('전문가 등록 처리 오류:', error);
+                    alert('등록 처리 중 오류가 발생했습니다. 다시 시도해주세요.');
+                }
             };
             
             // 프로그레스 바 컴포넌트
@@ -3393,14 +3443,19 @@
                 try {
                     setLoading(true);
                     if (supabase) {
+                        // expert_requests 테이블에서 조회 (user_profiles와 조인)
                         const { data, error } = await supabase
-                            .from('user_profiles')
-                            .select('*')
-                            .eq('role', 'expert')
-                            .eq('expert_status', activeTab)
+                            .from('expert_requests')
+                            .select(`
+                                *,
+                                user_profiles!inner(id, nickname, email, role)
+                            `)
+                            .eq('status', activeTab === 'pending' ? 'pending' : 
+                                        activeTab === 'approved' ? 'approved' : 'rejected')
                             .order('created_at', { ascending: false });
                         
                         if (error) throw error;
+                        console.log('전문가 요청 목록 로드:', data);
                         setExperts(data || []);
                     } else {
                         // 데모 데이터
@@ -3465,16 +3520,37 @@
                     const newStatus = action === 'approve' ? 'approved' : 'rejected';
                     
                     if (supabase) {
-                        const { error } = await supabase
-                            .from('user_profiles')
+                        // expert_requests 테이블 상태 업데이트
+                        const { data: requestData, error: requestError } = await supabase
+                            .from('expert_requests')
                             .update({ 
-                                expert_status: newStatus,
-                                expert_status_updated_at: new Date().toISOString(),
-                                expert_status_reason: reason || (action === 'approve' ? '전문가 자격 요건을 충족합니다.' : '자격 요건 미달')
+                                status: newStatus,
+                                reviewed_by: currentUser.id,
+                                review_reason: reason || (action === 'approve' ? '전문가 자격 요건을 충족합니다.' : '자격 요건 미달'),
+                                updated_at: new Date().toISOString()
                             })
-                            .eq('user_id', expertId);
+                            .eq('id', expertId)
+                            .select()
+                            .single();
                         
-                        if (error) throw error;
+                        if (requestError) throw requestError;
+
+                        // 승인된 경우 user_profiles 테이블에 role 업데이트
+                        if (action === 'approve' && requestData) {
+                            const { error: profileError } = await supabase
+                                .from('user_profiles')
+                                .update({ 
+                                    role: 'expert',
+                                    expert_status: 'approved',
+                                    expert_status_updated_at: new Date().toISOString(),
+                                    expert_status_reason: reason || '전문가 자격 요건을 충족합니다.'
+                                })
+                                .eq('id', requestData.user_id);
+                            
+                            if (profileError) {
+                                console.warn('user_profiles 업데이트 실패:', profileError);
+                            }
+                        }
                         
                         // 승인/거절 이메일 발송
                         const currentExpert = experts.find(e => e.user_id === expertId);
