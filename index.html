@@ -1037,98 +1037,391 @@
         };
 
         // 전문가 프로필 폼 컴포넌트 - 간소화 버전
-        const ExpertProfileForm = ({ 
+        // 전문가 등록 위자드 - 4단계 시스템
+        const ExpertRegistrationWizard = ({ 
             expertProfile, updateExpertProfile, expertCategories,
             specialtyInput, setSpecialtyInput,
             addSpecialty, removeSpecialty, setCurrentView 
         }) => {
-            
+            const [currentStep, setCurrentStep] = React.useState(1);
+            const [formData, setFormData] = React.useState({
+                // Step 1: 기본 정보
+                name: expertProfile.name || '',
+                phone: expertProfile.phone || '',
+                email: expertProfile.email || '',
+                // Step 2: 전문분야
+                expertType: expertProfile.expertType || '',
+                specialties: expertProfile.specialties || [],
+                experience: expertProfile.experience || '',
+                // Step 3: 간소화된 검증
+                verificationMethod: '',
+                businessNumber: '',
+                licenseType: '',
+                // Step 4: 최종 확인
+                agreeToTerms: false
+            });
+
+            const updateFormData = (field, value) => {
+                setFormData(prev => ({ ...prev, [field]: value }));
+            };
+
+            const nextStep = () => {
+                if (validateStep(currentStep)) {
+                    setCurrentStep(prev => Math.min(prev + 1, 4));
+                }
+            };
+
+            const prevStep = () => {
+                setCurrentStep(prev => Math.max(prev - 1, 1));
+            };
+
+            const validateStep = (step) => {
+                switch (step) {
+                    case 1:
+                        return formData.name && formData.phone && formData.email;
+                    case 2:
+                        return formData.expertType && formData.experience;
+                    case 3:
+                        return formData.verificationMethod && 
+                               ((formData.verificationMethod === 'business' && formData.businessNumber) ||
+                                (formData.verificationMethod === 'license' && formData.licenseType) ||
+                                formData.verificationMethod === 'personal');
+                    case 4:
+                        return formData.agreeToTerms;
+                    default:
+                        return true;
+                }
+            };
+
             const handleSubmit = () => {
-                console.log('전문가 등록 데이터:', expertProfile);
-                alert('전문가 등록이 완료되었습니다! (임시)');
+                // 모든 데이터를 expertProfile에 업데이트
+                Object.keys(formData).forEach(key => {
+                    updateExpertProfile(key, formData[key]);
+                });
+                
+                console.log('전문가 등록 데이터:', formData);
+                alert('전문가 등록 신청이 완료되었습니다!\n검토 후 3-5일 내 연락드리겠습니다.');
                 setCurrentView('main');
             };
 
-            return (
-                <div className="max-w-2xl mx-auto bg-white rounded-lg shadow-lg p-8">
-                    <div className="text-center mb-6">
-                        <h2 className="text-2xl font-bold text-gray-800">🎯 전문가 등록</h2>
-                        <p className="text-gray-600 mt-2">간단한 정보만 입력하세요</p>
+            const StepProgressBar = () => (
+                <div className="mb-6 sm:mb-8">
+                    <div className="flex items-center justify-between mb-4">
+                        {[1, 2, 3, 4].map(step => (
+                            <div key={step} className="flex items-center">
+                                <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center font-bold text-xs sm:text-sm ${
+                                    step <= currentStep 
+                                        ? 'bg-orange-500 text-white' 
+                                        : 'bg-gray-200 text-gray-400'
+                                }`}>
+                                    {step}
+                                </div>
+                                {step < 4 && (
+                                    <div className={`w-12 sm:w-16 h-1 mx-1 sm:mx-2 ${
+                                        step < currentStep ? 'bg-orange-500' : 'bg-gray-200'
+                                    }`}></div>
+                                )}
+                            </div>
+                        ))}
                     </div>
+                    <div className="text-center text-xs sm:text-sm text-gray-600 px-2">
+                        {currentStep === 1 && '기본 정보를 입력해주세요'}
+                        {currentStep === 2 && '전문분야와 경력을 선택해주세요'}
+                        {currentStep === 3 && '간단한 자격 확인을 진행해주세요'}
+                        {currentStep === 4 && '입력 정보를 확인하고 제출해주세요'}
+                    </div>
+                </div>
+            );
+
+            const Step1BasicInfo = () => (
+                <div className="space-y-4 sm:space-y-6">
+                    <h3 className="text-lg sm:text-xl font-bold text-gray-800 mb-4 sm:mb-6">1단계: 기본 정보</h3>
                     
-                    <div className="space-y-6">
-                        {/* 이름 */}
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">이름 *</label>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">이름 *</label>
+                        <input
+                            type="text"
+                            value={formData.name}
+                            onChange={(e) => updateFormData('name', e.target.value)}
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                            placeholder="실명을 입력하세요"
+                        />
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">전화번호 *</label>
+                        <input
+                            type="tel"
+                            value={formData.phone}
+                            onChange={(e) => updateFormData('phone', e.target.value)}
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                            placeholder="010-1234-5678"
+                        />
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">이메일 *</label>
+                        <input
+                            type="email"
+                            value={formData.email}
+                            onChange={(e) => updateFormData('email', e.target.value)}
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                            placeholder="example@email.com"
+                        />
+                    </div>
+                </div>
+            );
+
+            const Step2Expertise = () => (
+                <div className="space-y-4 sm:space-y-6">
+                    <h3 className="text-lg sm:text-xl font-bold text-gray-800 mb-4 sm:mb-6">2단계: 전문분야</h3>
+                    
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">주요 전문분야 *</label>
+                        <select
+                            value={formData.expertType}
+                            onChange={(e) => updateFormData('expertType', e.target.value)}
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                        >
+                            <option value="">선택하세요</option>
+                            <option value="finance">💰 재무/투자 상담</option>
+                            <option value="tax">📊 세무 상담</option>
+                            <option value="law">⚖️ 법무 상담</option>
+                            <option value="real_estate">🏠 부동산 상담</option>
+                            <option value="insurance">🛡️ 보험 상담</option>
+                            <option value="life">🌟 생활설계 상담</option>
+                            <option value="travel">✈️ 여행/취미 상담</option>
+                            <option value="health">💊 건강/의료 상담</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">경력 및 전문성 *</label>
+                        <textarea
+                            value={formData.experience}
+                            onChange={(e) => updateFormData('experience', e.target.value)}
+                            rows="4"
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                            placeholder="해당 분야에서의 경력이나 전문성을 간단히 설명해주세요"
+                        />
+                    </div>
+                </div>
+            );
+
+            const Step3Verification = () => (
+                <div className="space-y-4 sm:space-y-6">
+                    <h3 className="text-lg sm:text-xl font-bold text-gray-800 mb-4 sm:mb-6">3단계: 자격 확인</h3>
+                    
+                    <div className="bg-blue-50 p-4 rounded-lg mb-6">
+                        <p className="text-sm text-blue-800">
+                            🔒 안전한 상담을 위해 간단한 자격 확인을 진행합니다. 
+                            복잡한 서류 제출 없이 기본 정보만 확인합니다.
+                        </p>
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-4">자격 확인 방법 선택 *</label>
+                        
+                        <div className="space-y-3">
+                            <label className="flex items-center p-4 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50">
+                                <input
+                                    type="radio"
+                                    name="verification"
+                                    value="business"
+                                    checked={formData.verificationMethod === 'business'}
+                                    onChange={(e) => updateFormData('verificationMethod', e.target.value)}
+                                    className="w-4 h-4 text-orange-600"
+                                />
+                                <div className="ml-3">
+                                    <div className="font-medium">📄 사업자등록증 보유</div>
+                                    <div className="text-sm text-gray-600">사업자등록번호로 확인</div>
+                                </div>
+                            </label>
+
+                            <label className="flex items-center p-4 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50">
+                                <input
+                                    type="radio"
+                                    name="verification"
+                                    value="license"
+                                    checked={formData.verificationMethod === 'license'}
+                                    onChange={(e) => updateFormData('verificationMethod', e.target.value)}
+                                    className="w-4 h-4 text-orange-600"
+                                />
+                                <div className="ml-3">
+                                    <div className="font-medium">🎓 전문 자격증 보유</div>
+                                    <div className="text-sm text-gray-600">관련 자격증 정보로 확인</div>
+                                </div>
+                            </label>
+
+                            <label className="flex items-center p-4 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50">
+                                <input
+                                    type="radio"
+                                    name="verification"
+                                    value="personal"
+                                    checked={formData.verificationMethod === 'personal'}
+                                    onChange={(e) => updateFormData('verificationMethod', e.target.value)}
+                                    className="w-4 h-4 text-orange-600"
+                                />
+                                <div className="ml-3">
+                                    <div className="font-medium">👤 개인 전문가</div>
+                                    <div className="text-sm text-gray-600">경력 기반 심사 (7-10일 소요)</div>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+
+                    {formData.verificationMethod === 'business' && (
+                        <div className="bg-yellow-50 p-4 rounded-lg">
+                            <label className="block text-sm font-medium text-gray-700 mb-2">사업자등록번호 *</label>
                             <input
                                 type="text"
-                                value={expertProfile.name || ''}
-                                onChange={(e) => updateExpertProfile('name', e.target.value)}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-                                placeholder="실명을 입력하세요"
+                                value={formData.businessNumber}
+                                onChange={(e) => updateFormData('businessNumber', e.target.value)}
+                                className="w-full px-4 py-3 border border-gray-300 rounded-lg"
+                                placeholder="123-45-67890"
                             />
-                        </div>
-                        
-                        {/* 전문분야 */}
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">전문분야 *</label>
-                            <select
-                                value={expertProfile.expertType || ''}
-                                onChange={(e) => updateExpertProfile('expertType', e.target.value)}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-                            >
-                                <option value="">선택하세요</option>
-                                <option value="finance">재무/투자 상담</option>
-                                <option value="tax">세무 상담</option>
-                                <option value="law">법무 상담</option>
-                                <option value="real_estate">부동산 상담</option>
-                                <option value="insurance">보험 상담</option>
-                                <option value="life">생활설계 상담</option>
-                            </select>
-                        </div>
-                        
-                        {/* 연락처 */}
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">연락처 *</label>
-                            <input
-                                type="tel"
-                                value={expertProfile.phone || ''}
-                                onChange={(e) => updateExpertProfile('phone', e.target.value)}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-                                placeholder="010-1234-5678"
-                            />
-                        </div>
-                        
-                        {/* 간소화 안내 */}
-                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                            <p className="text-blue-800 font-medium">📝 간소화된 등록</p>
-                            <p className="text-sm text-blue-600 mt-1">
-                                현재 기본 정보만으로 등록 가능합니다. 
-                                자격 증명 시스템은 추후 업데이트될 예정입니다.
+                            <p className="text-xs text-gray-600 mt-2">
+                                * 국세청 사업자등록정보 확인 서비스를 통해 자동 검증됩니다
                             </p>
                         </div>
-                        
-                        {/* 버튼들 */}
-                        <div className="flex gap-4 pt-4">
-                            <button
-                                type="button"
-                                onClick={() => setCurrentView('main')}
-                                className="flex-1 px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
-                            >
-                                취소
-                            </button>
-                            <button
-                                type="button"
-                                onClick={handleSubmit}
-                                className="flex-1 px-6 py-3 bg-orange-500 text-white rounded-lg hover:bg-orange-600"
-                            >
-                                등록하기
-                            </button>
+                    )}
+
+                    {formData.verificationMethod === 'license' && (
+                        <div className="bg-green-50 p-4 rounded-lg">
+                            <label className="block text-sm font-medium text-gray-700 mb-2">자격증명 *</label>
+                            <input
+                                type="text"
+                                value={formData.licenseType}
+                                onChange={(e) => updateFormData('licenseType', e.target.value)}
+                                className="w-full px-4 py-3 border border-gray-300 rounded-lg"
+                                placeholder="예: 공인회계사, 변호사, 세무사, 공인중개사"
+                            />
+                            <p className="text-xs text-gray-600 mt-2">
+                                * 해당 협회/기관을 통해 자격 보유 여부를 확인합니다
+                            </p>
                         </div>
+                    )}
+
+                    {formData.verificationMethod === 'personal' && (
+                        <div className="bg-purple-50 p-4 rounded-lg">
+                            <p className="text-sm text-purple-800 mb-2">
+                                📋 개인 전문가 심사 절차
+                            </p>
+                            <ul className="text-xs text-purple-700 space-y-1">
+                                <li>• 제출하신 경력 정보를 바탕으로 전문성을 평가합니다</li>
+                                <li>• 필요시 전화 인터뷰를 진행할 수 있습니다</li>
+                                <li>• 심사 기간은 7-10일이 소요됩니다</li>
+                                <li>• 승인 후 전문가 활동을 시작할 수 있습니다</li>
+                            </ul>
+                        </div>
+                    )}
+                </div>
+            );
+
+            const Step4Confirmation = () => (
+                <div className="space-y-4 sm:space-y-6">
+                    <h3 className="text-lg sm:text-xl font-bold text-gray-800 mb-4 sm:mb-6">4단계: 최종 확인</h3>
+                    
+                    <div className="bg-gray-50 p-6 rounded-lg">
+                        <h4 className="font-bold text-lg mb-4">입력하신 정보</h4>
+                        
+                        <div className="space-y-3 text-sm">
+                            <div><strong>이름:</strong> {formData.name}</div>
+                            <div><strong>연락처:</strong> {formData.phone}</div>
+                            <div><strong>이메일:</strong> {formData.email}</div>
+                            <div><strong>전문분야:</strong> {
+                                formData.expertType === 'finance' ? '💰 재무/투자 상담' :
+                                formData.expertType === 'tax' ? '📊 세무 상담' :
+                                formData.expertType === 'law' ? '⚖️ 법무 상담' :
+                                formData.expertType === 'real_estate' ? '🏠 부동산 상담' :
+                                formData.expertType === 'insurance' ? '🛡️ 보험 상담' :
+                                formData.expertType === 'life' ? '🌟 생활설계 상담' :
+                                formData.expertType === 'travel' ? '✈️ 여행/취미 상담' :
+                                formData.expertType === 'health' ? '💊 건강/의료 상담' : ''
+                            }</div>
+                            <div><strong>자격확인:</strong> {
+                                formData.verificationMethod === 'business' ? '사업자등록증' :
+                                formData.verificationMethod === 'license' ? '전문 자격증' :
+                                formData.verificationMethod === 'personal' ? '개인 전문가' : ''
+                            }</div>
+                        </div>
+                    </div>
+
+                    <div className="bg-orange-50 p-4 rounded-lg">
+                        <h5 className="font-medium text-orange-800 mb-2">📋 다음 단계 안내</h5>
+                        <ul className="text-sm text-orange-700 space-y-1">
+                            <li>• 제출된 정보를 검토합니다 (3-10일 소요)</li>
+                            <li>• 승인 완료시 이메일로 안내해드립니다</li>
+                            <li>• 전문가 대시보드에서 상담 서비스를 등록할 수 있습니다</li>
+                            <li>• 질문이 있으시면 언제든 연락주세요</li>
+                        </ul>
+                    </div>
+
+                    <div className="flex items-center p-4 border border-gray-200 rounded-lg">
+                        <input
+                            type="checkbox"
+                            id="agreeTerms"
+                            checked={formData.agreeToTerms}
+                            onChange={(e) => updateFormData('agreeToTerms', e.target.checked)}
+                            className="w-5 h-5 text-orange-600"
+                        />
+                        <label htmlFor="agreeTerms" className="ml-3 text-sm">
+                            위 정보가 정확함을 확인하며, 플랜비 전문가 서비스 약관에 동의합니다 *
+                        </label>
+                    </div>
+                </div>
+            );
+
+            return (
+                <div className="max-w-3xl mx-auto bg-white rounded-lg shadow-lg p-4 sm:p-6 lg:p-8">
+                    <div className="text-center mb-6 sm:mb-8">
+                        <h2 className="text-xl sm:text-2xl font-bold text-gray-800">🎯 전문가 등록</h2>
+                        <p className="text-sm sm:text-base text-gray-600 mt-2">
+                            은퇴 준비하는 분들을 도와주는 전문가로 함께하세요
+                        </p>
+                    </div>
+
+                    <StepProgressBar />
+
+                    <div className="min-h-[400px]">
+                        {currentStep === 1 && <Step1BasicInfo />}
+                        {currentStep === 2 && <Step2Expertise />}
+                        {currentStep === 3 && <Step3Verification />}
+                        {currentStep === 4 && <Step4Confirmation />}
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row justify-between gap-3 sm:gap-0 mt-6 sm:mt-8">
+                        <button
+                            onClick={currentStep === 1 ? () => setCurrentView('main') : prevStep}
+                            className="px-4 sm:px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm sm:text-base"
+                        >
+                            {currentStep === 1 ? '취소' : '이전'}
+                        </button>
+
+                        {currentStep < 4 ? (
+                            <button
+                                onClick={nextStep}
+                                disabled={!validateStep(currentStep)}
+                                className="px-4 sm:px-6 py-3 bg-orange-500 text-white rounded-lg hover:bg-orange-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors text-sm sm:text-base"
+                            >
+                                다음 단계
+                            </button>
+                        ) : (
+                            <button
+                                onClick={handleSubmit}
+                                disabled={!validateStep(currentStep)}
+                                className="px-4 sm:px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors text-sm sm:text-base"
+                            >
+                                등록 신청 완료
+                            </button>
+                        )}
                     </div>
                 </div>
             );
         };
+
+        // 호환성을 위한 별칭
+        const ExpertProfileForm = ExpertRegistrationWizard;
 
         // 마이페이지 컴포넌트
         const MyPageComponent = ({ currentUser, onClose, getUserType, getUserTypeName, isAdminUser, isGuest, setCurrentView, setFormData, setCalculatorResult, setCalculatorStep, showNotification }) => {
