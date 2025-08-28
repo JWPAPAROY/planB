@@ -1217,14 +1217,44 @@
                     </div>
 
 
-                    {/* 자격 검증 섹션 */}
-                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                        <h4 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-                            🔒 자격 검증 (다음 중 하나만 선택)
+                    {/* 자격 검증 섹션 - 완전 재구축 */}
+                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
+                        <h4 className="text-lg font-semibold text-gray-800 mb-6">
+                            🔒 자격 검증 (임시로 간단 버전)
                         </h4>
                         
-                        <div className="space-y-6">
-                            {/* 옵션 1: 사업자등록증 */}
+                        <div className="space-y-4">
+                            <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                                <p className="text-blue-800">자격 검증 섹션이 재구축 중입니다.</p>
+                                <p className="text-sm text-blue-600 mt-2">임시로 아무 옵션이나 선택하여 계속 진행할 수 있습니다.</p>
+                                
+                                <div className="mt-4 space-y-2">
+                                    <label className="flex items-center">
+                                        <input 
+                                            type="radio" 
+                                            name="verificationMethod" 
+                                            value="business" 
+                                            checked={expertProfile.verificationMethod === 'business'}
+                                            onChange={(e) => updateExpertProfile('verificationMethod', e.target.value)}
+                                            className="mr-2"
+                                        />
+                                        사업자등록 (임시)
+                                    </label>
+                                    <label className="flex items-center">
+                                        <input 
+                                            type="radio" 
+                                            name="verificationMethod" 
+                                            value="license" 
+                                            checked={expertProfile.verificationMethod === 'license'}
+                                            onChange={(e) => updateExpertProfile('verificationMethod', e.target.value)}
+                                            className="mr-2"
+                                        />
+                                        자격증 (임시)
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                             <div className="border border-gray-200 rounded-lg p-4">
                                 <label className="flex items-center cursor-pointer mb-3">
                                     <input
