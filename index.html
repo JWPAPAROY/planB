@@ -1441,7 +1441,11 @@
                                     formData.category === key 
                                         ? 'border-orange-500 bg-orange-50' 
                                         : 'border-gray-200 hover:border-gray-300'
-                                }`
+                                }`,
+                                onClick: () => {
+                                    updateFormData('category', key);
+                                    updateFormData('specialties', []); // 카테고리 변경시 세부분야 초기화
+                                }
                             }, [
                                 React.createElement('input', {
                                     key: 'radio',
@@ -1449,11 +1453,8 @@
                                     name: 'category',
                                     value: key,
                                     checked: formData.category === key,
-                                    onChange: (e) => {
-                                        updateFormData('category', e.target.value);
-                                        updateFormData('specialties', []); // 카테고리 변경시 세부분야 초기화
-                                    },
-                                    className: 'w-4 h-4 text-orange-600 mr-3'
+                                    readOnly: true,
+                                    className: 'w-4 h-4 text-orange-600 mr-3 pointer-events-none'
                                 }),
                                 React.createElement('span', {
                                     key: 'text',
@@ -1519,7 +1520,36 @@
                         React.createElement('p', {
                             key: 'keywords-helper',
                             className: 'text-xs text-gray-500 mt-1'
-                        }, '콤마(,)로 구분해서 입력하세요')
+                        }, '콤마(,)로 구분해서 입력하세요'),
+                        // 키워드 태그 표시
+                        formData.keywords && formData.keywords.trim() ? React.createElement('div', {
+                            key: 'keywords-tags',
+                            className: 'flex flex-wrap gap-2 mt-3'
+                        }, formData.keywords.split(',').map(keyword => {
+                            const trimmed = keyword.trim();
+                            return trimmed ? React.createElement('span', {
+                                key: trimmed,
+                                className: 'inline-flex items-center px-3 py-1 rounded-full text-sm bg-orange-100 text-orange-800 border border-orange-200'
+                            }, [
+                                React.createElement('span', {
+                                    key: 'text'
+                                }, trimmed),
+                                React.createElement('button', {
+                                    key: 'remove',
+                                    type: 'button',
+                                    className: 'ml-2 text-orange-600 hover:text-orange-800',
+                                    onClick: () => {
+                                        const newKeywords = formData.keywords
+                                            .split(',')
+                                            .filter(k => k.trim() !== trimmed)
+                                            .join(',')
+                                            .replace(/^,+|,+$/g, '') // 앞뒤 콤마 제거
+                                            .replace(/,+/g, ','); // 중복 콤마 제거
+                                        updateFormData('keywords', newKeywords);
+                                    }
+                                }, '×')
+                            ]) : null;
+                        }).filter(Boolean)) : null
                     ])
                 ];
                 
