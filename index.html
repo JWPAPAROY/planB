@@ -1055,7 +1055,6 @@
                 agreeTerms: false,
                 // 2단계: 전문분야
                 category: '',
-                specialties: [],
                 experienceYears: '',
                 keywords: '',
                 // 3단계: 자격검증
@@ -1069,16 +1068,13 @@
             // 전문분야 카테고리 데이터
             const categories = {
                 'travel': {
-                    name: '✈️ 여행/취미',
-                    specialties: ['해외여행', '국내여행', '문화생활', '취미활동', '여가계획', '액티비티']
+                    name: '✈️ 여행/취미'
                 },
                 'finance': {
-                    name: '💰 세무/법무',  
-                    specialties: ['세무상담', '법무자문', '상속계획', '부동산법', '금융법', '계약서검토']
+                    name: '💰 세무/법무'
                 },
                 'housing': {
-                    name: '🏠 주거/생활',
-                    specialties: ['주거이전', '실버타운', '생활편의', '홈케어', '인테리어', '생활관리']
+                    name: '🏠 주거/생활'
                 },
             };
             
@@ -1097,7 +1093,7 @@
                         return formData.name && formData.phone && formData.email && 
                                formData.agreePrivacy && formData.agreeTerms;
                     case 2:
-                        return formData.category && formData.specialties.length > 0 && formData.experienceYears;
+                        return formData.category && formData.experienceYears;
                     case 3:
                         const hasBasicInfo = formData.verificationType && (
                             (formData.verificationType === 'business' && formData.businessNumber) ||
@@ -1393,29 +1389,16 @@
                 // 카테고리 객체 완전 독립 정의
                 const expertCategories = {
                     'travel': {
-                        name: '✈️ 여행/취미',
-                        specialties: ['해외여행', '국내여행', '문화생활', '취미활동', '여가계획', '액티비티']
+                        name: '✈️ 여행/취미'
                     },
                     'finance': {
-                        name: '💰 세무/법무',  
-                        specialties: ['세무상담', '법무자문', '상속계획', '부동산법', '금융법', '계약서검토']
+                        name: '💰 세무/법무'
                     },
                     'housing': {
-                        name: '🏠 주거/생활',
-                        specialties: ['주거이전', '실버타운', '생활편의', '홈케어', '인테리어', '생활관리']
+                        name: '🏠 주거/생활'
                     }
                 };
                 
-                const toggleSpecialty = (specialty) => {
-                    const currentSpecialties = formData.specialties || [];
-                    const isSelected = currentSpecialties.includes(specialty);
-                    
-                    if (isSelected) {
-                        updateFormData('specialties', currentSpecialties.filter(s => s !== specialty));
-                    } else {
-                        updateFormData('specialties', [...currentSpecialties, specialty]);
-                    }
-                };
                 
                 const elements = [
                     React.createElement('h3', {
@@ -1444,7 +1427,6 @@
                                 }`,
                                 onClick: () => {
                                     updateFormData('category', key);
-                                    updateFormData('specialties', []); // 카테고리 변경시 세부분야 초기화
                                 }
                             }, [
                                 React.createElement('input', {
@@ -1553,53 +1535,6 @@
                     ])
                 ];
                 
-                // 세부 전문분야 선택 (카테고리 선택된 경우만)
-                if (formData.category && expertCategories[formData.category]) {
-                    const specialtiesSection = React.createElement('div', {
-                        key: 'specialties-section'
-                    }, [
-                        React.createElement('label', {
-                            key: 'specialties-label',
-                            className: 'block text-sm font-medium text-gray-700 mb-3'
-                        }, '세부 전문분야 (최대 3개) *'),
-                        React.createElement('div', {
-                            key: 'specialties-grid',
-                            className: 'grid grid-cols-2 sm:grid-cols-3 gap-2'
-                        }, (expertCategories[formData.category]?.specialties || []).map(specialty => {
-                            const currentSpecialties = formData.specialties || [];
-                            const isSelected = currentSpecialties.includes(specialty);
-                            const isDisabled = currentSpecialties.length >= 3 && !isSelected;
-                            
-                            return React.createElement('label', {
-                                key: specialty,
-                                className: `flex items-center p-3 border rounded-lg cursor-pointer text-sm transition-all ${
-                                    isSelected
-                                        ? 'border-orange-500 bg-orange-50 text-orange-800'
-                                        : 'border-gray-200 hover:border-gray-300'
-                                } ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`
-                            }, [
-                                React.createElement('input', {
-                                    key: 'checkbox',
-                                    type: 'checkbox',
-                                    checked: isSelected,
-                                    onChange: () => toggleSpecialty(specialty),
-                                    disabled: isDisabled,
-                                    className: 'w-4 h-4 text-orange-600 mr-2'
-                                }),
-                                React.createElement('span', {
-                                    key: 'text'
-                                }, specialty)
-                            ]);
-                        })),
-                        React.createElement('p', {
-                            key: 'helper',
-                            className: 'text-xs text-gray-500 mt-2'
-                        }, `${(formData.specialties || []).length}/3개 선택됨`)
-                    ]);
-                    
-                    // 세부분야를 카테고리 섹션 다음에 삽입
-                    elements.splice(2, 0, specialtiesSection);
-                }
 
                 return React.createElement('div', {
                     key: 'step2',
