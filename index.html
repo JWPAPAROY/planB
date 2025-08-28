@@ -1154,6 +1154,31 @@
                         return;
                     }
 
+                    // 기존 전문가 등록 신청 확인
+                    const { data: existingRequest, error: checkError } = await supabase
+                        .from('expert_requests')
+                        .select('id, status, created_at')
+                        .eq('user_id', currentUser.id)
+                        .single();
+
+                    if (checkError && checkError.code !== 'PGRST116') {
+                        // PGRST116 = No rows found (정상)
+                        console.error('기존 신청 확인 오류:', checkError);
+                    }
+
+                    if (existingRequest) {
+                        const statusText = existingRequest.status === 'pending' ? '승인 대기' : 
+                                          existingRequest.status === 'approved' ? '승인 완료' : '거절';
+                        const createdDate = new Date(existingRequest.created_at).toLocaleDateString('ko-KR');
+                        
+                        alert(`⚠️ 이미 전문가 등록 신청을 하셨습니다.\n\n` +
+                              `📅 신청일: ${createdDate}\n` +
+                              `📊 현재 상태: ${statusText}\n\n` +
+                              `승인 대기 중이시면 곧 연락드리겠습니다.\n` +
+                              `문의사항은 관리자(jwpaparoy@gmail.com)에게 연락해주세요.`);
+                        return;
+                    }
+
                     // Supabase에 전문가 등록 요청 저장
                     const expertRequestData = {
                         user_id: currentUser.id,
@@ -1182,7 +1207,29 @@
 
                     if (error) {
                         console.error('전문가 등록 요청 저장 오류:', error);
-                        alert('등록 처리 중 오류가 발생했습니다. 다시 시도해주세요.');
+                        
+                        // 구체적인 오류 메시지 생성
+                        let errorMessage = '전문가 등록 처리 중 오류가 발생했습니다.\n\n';
+                        
+                        if (error.code === '23505' || error.message?.includes('duplicate') || error.message?.includes('already exists')) {
+                            errorMessage += '⚠️ 이미 전문가 등록 신청을 하신 것으로 보입니다.\n\n';
+                            errorMessage += '📧 기존 신청 상태를 확인하고 싶으시면 관리자(jwpaparoy@gmail.com)에게 문의해주세요.\n';
+                            errorMessage += '✅ 승인 대기 중이라면 곧 연락드리겠습니다.';
+                        } else if (error.code === '23503' || error.message?.includes('foreign key')) {
+                            errorMessage += '🔐 로그인 정보에 문제가 있습니다.\n\n';
+                            errorMessage += '다시 로그인 후 시도해주세요.';
+                        } else if (error.code === '42501' || error.message?.includes('permission') || error.message?.includes('policy')) {
+                            errorMessage += '🚫 접근 권한이 없습니다.\n\n';
+                            errorMessage += '로그인 상태를 확인해주세요.';
+                        } else if (error.message?.includes('network') || error.message?.includes('timeout')) {
+                            errorMessage += '🌐 네트워크 연결에 문제가 있습니다.\n\n';
+                            errorMessage += '인터넷 연결을 확인하고 다시 시도해주세요.';
+                        } else {
+                            errorMessage += `🔍 오류 상세 정보:\n${error.message || '알 수 없는 오류'}\n\n`;
+                            errorMessage += '관리자에게 문의하실 때 위 정보를 함께 알려주시면 더 빠른 해결이 가능합니다.';
+                        }
+                        
+                        alert(errorMessage);
                         return;
                     }
 
@@ -1202,7 +1249,21 @@
                     
                 } catch (error) {
                     console.error('전문가 등록 처리 오류:', error);
-                    alert('등록 처리 중 오류가 발생했습니다. 다시 시도해주세요.');
+                    
+                    let errorMessage = '전문가 등록 처리 중 예상치 못한 오류가 발생했습니다.\n\n';
+                    
+                    if (error.message?.includes('getCurrentUser')) {
+                        errorMessage += '🔐 로그인 세션이 만료되었습니다.\n\n';
+                        errorMessage += '다시 로그인 후 시도해주세요.';
+                    } else if (error.message?.includes('network') || error.name === 'NetworkError') {
+                        errorMessage += '🌐 네트워크 연결 문제입니다.\n\n';
+                        errorMessage += '인터넷 연결을 확인하고 다시 시도해주세요.';
+                    } else {
+                        errorMessage += `🔍 오류 정보: ${error.message || error.toString()}\n\n`;
+                        errorMessage += '문제가 지속되면 관리자(jwpaparoy@gmail.com)에게 문의해주세요.';
+                    }
+                    
+                    alert(errorMessage);
                 }
             };
             
