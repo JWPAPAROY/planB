@@ -174,24 +174,24 @@
                 // 실제 서비스에서는 이메일 서비스 연동 필요 (예: Supabase Edge Functions)
                 const emailData = {
                     to: expert.email,
-                    subject: action === 'approve' ? 
-                        '[플랜비] 전문가 승인 완료 🎉' : 
-                        '[플랜비] 전문가 신청 검토 결과',
-                    html: action === 'approve' ? 
-                        `<h2>🎉 전문가 승인이 완료되었습니다!</h2>
+                    subject: (action === 'approve' 
+                        ? '[플랜비] 전문가 승인 완료 🎉' 
+                        : '[플랜비] 전문가 신청 검토 결과'),
+                    html: (action === 'approve' 
+                        ? `<h2>🎉 전문가 승인이 완료되었습니다!</h2>
                          <p>안녕하세요 ${expert.nickname}님,</p>
                          <p>플랜비 전문가 신청이 <strong>승인</strong>되었습니다.</p>
                          <p><strong>승인 사유:</strong> ${reason || '전문가 자격 요건을 충족합니다.'}</p>
                          <p>이제 플랜비에서 전문가로 활동하실 수 있습니다!</p>
                          <p><a href="https://jwpaparoy.github.io/planB/" style="background-color: #3b82f6; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">플랜비 바로가기</a></p>
-                         <p>감사합니다.<br/>플랜비 운영팀</p>` :
-                        `<h2>전문가 신청 검토 결과</h2>
+                         <p>감사합니다.<br/>플랜비 운영팀</p>` 
+                        : `<h2>전문가 신청 검토 결과</h2>
                          <p>안녕하세요 ${expert.nickname}님,</p>
                          <p>플랜비 전문가 신청을 검토한 결과를 안내드립니다.</p>
                          <p><strong>검토 결과:</strong> 승인 보류</p>
                          <p><strong>사유:</strong> ${reason || '자격 요건 미달'}</p>
                          <p>추가 자격증이나 경력을 보완하신 후 다시 신청해주세요.</p>
-                         <p>감사합니다.<br/>플랜비 운영팀</p>`
+                         <p>감사합니다.<br/>플랜비 운영팀</p>`)
                 };
                 
                 console.log('이메일 발송 예정:', emailData);
@@ -1246,9 +1246,9 @@
                                             value={expertProfile.businessLicense}
                                             onChange={(e) => {
                                                 const value = e.target.value.replace(/[^0-9]/g, '');
-                                                const formatted = value.length >= 10 ? 
-                                                    `${value.slice(0,3)}-${value.slice(3,5)}-${value.slice(5,10)}` : 
-                                                    value;
+                                                const formatted = (value.length >= 10 
+                                                    ? `${value.slice(0,3)}-${value.slice(3,5)}-${value.slice(5,10)}` 
+                                                    : value);
                                                 updateExpertProfile('businessLicense', formatted);
                                             }}
                                             className="mt-1 w-full px-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-orange-500 focus:border-orange-500"
@@ -2256,18 +2256,18 @@
                                                                 <div className="bg-green-50 p-4 rounded-lg">
                                                                     <div className="text-sm text-green-600 font-medium">월 생활비</div>
                                                                     <div className="text-xl font-bold text-green-900">
-                                                                        {calculation.monthlyLivingCost ? 
-                                                                            `${calculation.monthlyLivingCost.toLocaleString()}만원` :
-                                                                            '계산 필요'
+                                                                        {calculation.monthlyLivingCost 
+                                                                            ? `${calculation.monthlyLivingCost.toLocaleString()}만원` 
+                                                                            : '계산 필요'
                                                                         }
                                                                     </div>
                                                                 </div>
                                                                 <div className="bg-purple-50 p-4 rounded-lg">
                                                                     <div className="text-sm text-purple-600 font-medium">자산 지속 기간</div>
                                                                     <div className="text-xl font-bold text-purple-900">
-                                                                        {calculation.assetSufficiencyYears ? 
-                                                                            `${Math.round(calculation.assetSufficiencyYears)}년` :
-                                                                            '계산 필요'
+                                                                        {calculation.assetSufficiencyYears 
+                                                                            ? `${Math.round(calculation.assetSufficiencyYears)}년` 
+                                                                            : '계산 필요'
                                                                         }
                                                                     </div>
                                                                 </div>
@@ -5826,9 +5826,9 @@
                             </div>
                             
                             <p className="text-gray-600 mb-6">
-                                {userType === 'expert' ? 
-                                    '상담을 완료하셨으면 완료 버튼을 눌러주세요.' :
-                                    '상담이 완료되었으면 완료 확인 후 후기를 작성해주세요.'
+                                {userType === 'expert' 
+                                    ? '상담을 완료하셨으면 완료 버튼을 눌러주세요.' 
+                                    : '상담이 완료되었으면 완료 확인 후 후기를 작성해주세요.'
                                 }
                             </p>
                             
@@ -6987,13 +6987,13 @@
                     case 'pending':
                         return <span className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs">승인 대기중</span>;
                     case 'approved_by_expert':
-                        return isExpert ? 
-                            <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs">내가 승인함</span> :
-                            <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs">전문가 승인됨</span>;
+                        return (isExpert 
+                            ? <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs">내가 승인함</span> 
+                            : <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs">전문가 승인됨</span>);
                     case 'approved_by_client':
-                        return isExpert ? 
-                            <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs">고객 승인됨</span> :
-                            <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs">내가 승인함</span>;
+                        return (isExpert 
+                            ? <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs">고객 승인됨</span> 
+                            : <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs">내가 승인함</span>);
                     case 'both_approved':
                         return <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs">연락처 교환 완료</span>;
                     case 'declined':
