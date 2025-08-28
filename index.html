@@ -3948,80 +3948,20 @@
                 setGeneratedNickname(newNickname);
             };
 
-            // 전문가 등록 UI 렌더링
+            // 전문가 등록 UI 렌더링 - 새로운 4단계 위자드 사용
             if (authMode === 'expert') {
                 return (
-                    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-100 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-                        <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8">
-                            <div className="text-center mb-6">
-                                <h1 className="text-2xl font-bold text-gray-800">🎯 전문가 등록</h1>
-                                <p className="text-gray-600 mt-2">간단한 정보만 입력해주세요</p>
-                            </div>
-                            
-                            <form className="space-y-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">이름 *</label>
-                                    <input
-                                        type="text"
-                                        value={expertProfile.name || ''}
-                                        onChange={(e) => updateExpertProfile('name', e.target.value)}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-                                        placeholder="실명을 입력해주세요"
-                                    />
-                                </div>
-                                
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">전문분야 *</label>
-                                    <select
-                                        value={expertProfile.expertType || ''}
-                                        onChange={(e) => updateExpertProfile('expertType', e.target.value)}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-                                    >
-                                        <option value="">선택해주세요</option>
-                                        <option value="finance">재무/투자</option>
-                                        <option value="tax">세무</option>
-                                        <option value="law">법무</option>
-                                        <option value="real_estate">부동산</option>
-                                        <option value="insurance">보험</option>
-                                        <option value="life">생활설계</option>
-                                    </select>
-                                </div>
-                                
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">휴대폰 번호 *</label>
-                                    <input
-                                        type="tel"
-                                        value={expertProfile.phone || ''}
-                                        onChange={(e) => updateExpertProfile('phone', e.target.value)}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-                                        placeholder="010-1234-5678"
-                                    />
-                                </div>
-                                
-                                
-                                {error && (
-                                    <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-                                        <p className="text-sm text-red-600">{error}</p>
-                                    </div>
-                                )}
-                                
-                                <button
-                                    type="button"
-                                    onClick={handleExpertRegistration}
-                                    className="w-full bg-orange-600 text-white py-3 px-4 rounded-lg hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-orange-500 font-medium"
-                                >
-                                    전문가 등록 신청
-                                </button>
-                                
-                                <button
-                                    type="button"
-                                    onClick={() => setAuthMode('login')}
-                                    className="w-full bg-gray-100 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500"
-                                >
-                                    일반 로그인으로 돌아가기
-                                </button>
-                            </form>
-                        </div>
+                    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-100 flex items-center justify-center py-4 px-4">
+                        <ExpertRegistrationWizard
+                            expertProfile={expertProfile}
+                            updateExpertProfile={updateExpertProfile}
+                            expertCategories={[]}
+                            specialtyInput=""
+                            setSpecialtyInput={() => {}}
+                            addSpecialty={() => {}}
+                            removeSpecialty={() => {}}
+                            setCurrentView={() => setAuthMode('login')}
+                        />
                     </div>
                 );
             }
