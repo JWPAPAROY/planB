@@ -1039,8 +1039,8 @@
         // 전문가 프로필 폼 컴포넌트
         const ExpertProfileForm = ({ 
             expertProfile, updateExpertProfile, expertCategories,
-            specialtyInput, setSpecialtyInput, credentialInput, setCredentialInput,
-            addSpecialty, addCredential, removeSpecialty, removeCredential 
+            specialtyInput, setSpecialtyInput,
+            addSpecialty, removeSpecialty 
         }) => {
             return (
                 <div className="space-y-6">
@@ -1155,41 +1155,6 @@
                         </div>
                     </div>
 
-                    {/* 자격증/경력 */}
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700">자격증/경력증명 *</label>
-                        <div className="flex gap-2 mt-1">
-                            <input
-                                type="text"
-                                value={credentialInput}
-                                onChange={(e) => setCredentialInput(e.target.value)}
-                                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-orange-500 focus:border-orange-500"
-                                placeholder="자격증/경력 입력 후 추가 버튼"
-                                onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addCredential())}
-                            />
-                            <button
-                                type="button"
-                                onClick={addCredential}
-                                className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600"
-                            >
-                                추가
-                            </button>
-                        </div>
-                        <div className="flex flex-wrap gap-2 mt-2">
-                            {expertProfile.credentials.map((credential, index) => (
-                                <span key={index} className="inline-flex items-center px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">
-                                    {credential}
-                                    <button
-                                        type="button"
-                                        onClick={() => removeCredential(index)}
-                                        className="ml-2 text-blue-600 hover:text-blue-800"
-                                    >
-                                        ×
-                                    </button>
-                                </span>
-                            ))}
-                        </div>
-                    </div>
 
 
                     {/* 상담 방식 */}
@@ -1252,16 +1217,27 @@
                     {/* 자격 검증 섹션 */}
                     <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
                         <h4 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-                            🔒 자격 검증 (다음 중 하나 이상 필수)
+                            🔒 자격 검증 (다음 중 하나만 선택)
                         </h4>
                         
                         <div className="space-y-6">
                             {/* 옵션 1: 사업자등록증 */}
                             <div className="border border-gray-200 rounded-lg p-4">
-                                <h5 className="font-medium text-gray-800 mb-3">📄 옵션 1: 사업자등록 정보</h5>
-                                <div className="space-y-3">
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700">사업자등록번호</label>
+                                <label className="flex items-center cursor-pointer mb-3">
+                                    <input
+                                        type="radio"
+                                        name="verificationMethod"
+                                        value="business"
+                                        checked={expertProfile.verificationMethod === 'business'}
+                                        onChange={(e) => updateExpertProfile('verificationMethod', e.target.value)}
+                                        className="w-5 h-5 text-orange-600 border-2 border-gray-300 focus:ring-2 focus:ring-orange-500"
+                                    />
+                                    <h5 className="font-medium text-gray-800 ml-3">📄 옵션 1: 사업자등록 정보</h5>
+                                </label>
+                                {expertProfile.verificationMethod === 'business' && (
+                                    <div className="space-y-3">
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700">사업자등록번호</label>
                                         <input
                                             type="text"
                                             value={expertProfile.businessLicense}
@@ -1301,14 +1277,26 @@
                                         </div>
                                     )}
                                 </div>
+                            )}
                             </div>
 
                             {/* 옵션 2: 국가자격증 */}
                             <div className="border border-gray-200 rounded-lg p-4">
-                                <h5 className="font-medium text-gray-800 mb-3">🎓 옵션 2: 국가자격증</h5>
-                                <div className="space-y-3">
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700">자격증 번호</label>
+                                <label className="flex items-center cursor-pointer mb-3">
+                                    <input
+                                        type="radio"
+                                        name="verificationMethod"
+                                        value="license"
+                                        checked={expertProfile.verificationMethod === 'license'}
+                                        onChange={(e) => updateExpertProfile('verificationMethod', e.target.value)}
+                                        className="w-5 h-5 text-orange-600 border-2 border-gray-300 focus:ring-2 focus:ring-orange-500"
+                                    />
+                                    <h5 className="font-medium text-gray-800 ml-3">🎓 옵션 2: 국가자격증</h5>
+                                </label>
+                                {expertProfile.verificationMethod === 'license' && (
+                                    <div className="space-y-3">
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700">자격증 번호</label>
                                         <input
                                             type="text"
                                             value={expertProfile.qualificationNumber}
@@ -1355,14 +1343,25 @@
                                             </div>
                                         </div>
                                     </div>
-                                </div>
+                                )}
                             </div>
 
                             {/* 옵션 3: 개인 전문가 */}
                             <div className="border border-gray-200 rounded-lg p-4">
-                                <h5 className="font-medium text-gray-800 mb-3">👤 옵션 3: 개인 전문가 (추가 심사)</h5>
-                                <div className="space-y-3">
-                                    <div className="bg-blue-50 border border-blue-200 rounded p-3">
+                                <label className="flex items-center cursor-pointer mb-3">
+                                    <input
+                                        type="radio"
+                                        name="verificationMethod"
+                                        value="experience"
+                                        checked={expertProfile.verificationMethod === 'experience'}
+                                        onChange={(e) => updateExpertProfile('verificationMethod', e.target.value)}
+                                        className="w-5 h-5 text-orange-600 border-2 border-gray-300 focus:ring-2 focus:ring-orange-500"
+                                    />
+                                    <h5 className="font-medium text-gray-800 ml-3">👤 옵션 3: 개인 전문가 (추가 심사)</h5>
+                                </label>
+                                {expertProfile.verificationMethod === 'experience' && (
+                                    <div className="space-y-3">
+                                        <div className="bg-blue-50 border border-blue-200 rounded p-3">
                                         <p className="text-sm text-blue-800">
                                             <strong>ℹ️ 개인 전문가 심사 기준:</strong>
                                         </p>
@@ -1390,8 +1389,8 @@
                                                                onChange={(e) => {
                                                                    const files = Array.from(e.target.files);
                                                                    const totalSize = files.reduce((sum, file) => sum + file.size, 0);
-                                                                   if (totalSize > 20 * 1024 * 1024) {
-                                                                       alert('전체 파일 크기는 20MB 이하로 제한됩니다.');
+                                                                   if (totalSize > 5 * 1024 * 1024) {
+                                                                       alert('전체 파일 크기는 5MB 이하로 제한됩니다.');
                                                                        return;
                                                                    }
                                                                    updateExpertProfile('portfolioFiles', files);
@@ -1400,7 +1399,7 @@
                                                     </label>
                                                     <p className="pl-1">또는 드래그 앤 드롭</p>
                                                 </div>
-                                                <p className="text-xs text-gray-500">JPG, PNG, PDF, DOC (전체 최대 20MB, 여러 파일 가능)</p>
+                                                <p className="text-xs text-gray-500">JPG, PNG, PDF, DOC (전체 최대 5MB, 여러 파일 가능)</p>
                                                 {expertProfile.portfolioFiles && expertProfile.portfolioFiles.length > 0 && (
                                                     <div className="mt-2 space-y-1">
                                                         {Array.from(expertProfile.portfolioFiles).map((file, index) => (
@@ -1425,7 +1424,7 @@
                                         />
                                         <p className="text-xs text-gray-500 mt-1">최소 200자 이상 상세 기술 권장</p>
                                     </div>
-                                </div>
+                                )}
                             </div>
 
                             <div className="bg-white border border-orange-200 rounded p-3">
@@ -3679,16 +3678,15 @@
                 experienceYears: '',
                 bio: '',
                 specialties: [],
-                credentials: [],
                 hourlyRate: '',
                 consultationDuration: 60,
                 phone: '',
                 businessLicense: '',
                 qualificationNumber: '',
+                verificationMethod: '', // 'business', 'license', 'experience'
                 availableTypes: ['phone']
             });
             const [specialtyInput, setSpecialtyInput] = useState('');
-            const [credentialInput, setCredentialInput] = useState('');
             const [currentStep, setCurrentStep] = useState(1); // 전문가 등록 단계
 
             useEffect(() => {
@@ -3719,13 +3717,6 @@
                 }
             };
 
-            // 자격증 추가
-            const addCredential = () => {
-                if (credentialInput.trim() && !expertProfile.credentials.includes(credentialInput.trim())) {
-                    updateExpertProfile('credentials', [...expertProfile.credentials, credentialInput.trim()]);
-                    setCredentialInput('');
-                }
-            };
 
             // 전문분야 제거
             const removeSpecialty = (index) => {
@@ -3733,11 +3724,6 @@
                 updateExpertProfile('specialties', newSpecialties);
             };
 
-            // 자격증 제거
-            const removeCredential = (index) => {
-                const newCredentials = expertProfile.credentials.filter((_, i) => i !== index);
-                updateExpertProfile('credentials', newCredentials);
-            };
 
             const handleSubmit = async (e) => {
                 e.preventDefault();
@@ -3858,8 +3844,8 @@
                         setError('전문분야를 선택해주세요');
                         return;
                     }
-                    if (expertProfile.credentials.length === 0) {
-                        setError('자격증/경력을 최소 1개 이상 입력해주세요');
+                    if (!expertProfile.verificationMethod) {
+                        setError('자격 검증 방법을 선택해주세요');
                         return;
                     }
                     
@@ -3928,7 +3914,6 @@
                                 specialties: expertProfile.specialties,
                                 bio: expertProfile.bio,
                                 experience_years: parseInt(expertProfile.experienceYears),
-                                credentials: expertProfile.credentials,
                                 qualification_number: expertProfile.qualificationNumber || null,
                                 available_consultation_types: expertProfile.availableTypes,
                                 verification_status: 'pending',
@@ -3964,12 +3949,12 @@
                     experienceYears: '',
                     bio: '',
                     specialties: [],
-                    credentials: [],
                     hourlyRate: '',
                     consultationDuration: 60,
                     phone: '',
                     businessLicense: '',
                     qualificationNumber: '',
+                    verificationMethod: '',
                     availableTypes: ['phone']
                 });
                 setEmail('');
@@ -4092,12 +4077,8 @@
                                             expertCategories={expertCategories}
                                             specialtyInput={specialtyInput}
                                             setSpecialtyInput={setSpecialtyInput}
-                                            credentialInput={credentialInput}
-                                            setCredentialInput={setCredentialInput}
                                             addSpecialty={addSpecialty}
-                                            addCredential={addCredential}
                                             removeSpecialty={removeSpecialty}
-                                            removeCredential={removeCredential}
                                         />
                                     )}
                                     
