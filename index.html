@@ -1062,6 +1062,7 @@
                 businessNumber: '',
                 licenseType: '',
                 organization: '',
+                experienceDescription: '',
                 uploadedFiles: []
             });
             
@@ -1099,7 +1100,7 @@
                             (formData.verificationType === 'business' && formData.businessNumber) ||
                             (formData.verificationType === 'license' && formData.licenseType) ||
                             (formData.verificationType === 'organization' && formData.organization) ||
-                            formData.verificationType === 'experience'
+                            (formData.verificationType === 'experience' && formData.experienceDescription)
                         );
                         
                         // 파일 업로드가 필요한 검증 방법의 경우 파일도 확인
@@ -1192,6 +1193,7 @@
                         business_number: formData.businessNumber || null,
                         license_type: formData.licenseType || null,
                         organization: formData.organization || null,
+                        experience_description: formData.experienceDescription || null,
                         status: 'pending', // 승인 대기 상태
                         created_at: new Date().toISOString(),
                         updated_at: new Date().toISOString()
@@ -1693,9 +1695,10 @@
                         id: 'experience',
                         icon: '👤',
                         title: '경력 기반',
-                        description: '별도 증빙 없이 경력만으로 검토 (7-10일 소요)',
-                        inputLabel: null,
-                        fieldName: null,
+                        description: '구체적인 경력 내용 작성 + 관리자 검토 (7-10일 소요)',
+                        inputLabel: '경력 상세 설명',
+                        inputPlaceholder: '예: OO여행사 시니어 여행 기획 5년, 해외 거주 경험 3년, 문화해설사 자격 보유 등',
+                        fieldName: 'experienceDescription',
                         needsFile: false
                     }
                 ];
@@ -1762,6 +1765,7 @@
                                     updateFormData('businessNumber', '');
                                     updateFormData('licenseType', '');
                                     updateFormData('organization', '');
+                                    updateFormData('experienceDescription', '');
                                 }
                             }, [
                                 React.createElement('input', {
@@ -1810,6 +1814,16 @@
                                         key: 'input-label',
                                         className: 'block text-sm font-medium text-gray-700 mb-2'
                                     }, `${option.inputLabel} *`),
+                                    // 경력 설명은 textarea, 나머지는 input
+                                    option.fieldName === 'experienceDescription' ? 
+                                    React.createElement('textarea', {
+                                        key: 'textarea',
+                                        value: formData[option.fieldName] || '',
+                                        onChange: (e) => updateFormData(option.fieldName, e.target.value),
+                                        className: 'w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500',
+                                        placeholder: option.inputPlaceholder,
+                                        rows: 4
+                                    }) :
                                     React.createElement('input', {
                                         key: 'input',
                                         type: 'text',

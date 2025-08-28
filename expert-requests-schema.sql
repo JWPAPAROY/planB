@@ -18,6 +18,7 @@ CREATE TABLE expert_requests (
     business_number TEXT,
     license_type TEXT,
     organization TEXT,
+    experience_description TEXT,
     
     -- 상태 관리
     status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
