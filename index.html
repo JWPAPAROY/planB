@@ -1161,7 +1161,7 @@
             };
             
             // 프로그레스 바 컴포넌트
-            const ProgressBar = () => {
+            const renderProgressBar = () => {
                 return React.createElement('div', {
                     key: 'progress',
                     className: 'mb-8'
@@ -1904,7 +1904,7 @@
                     }, '은퇴 준비하는 분들을 도와주는 전문가로 함께하세요')
                 ]),
                 
-                ProgressBar(),
+                renderProgressBar(),
                 
                 React.createElement('div', {
                     key: 'content',
