@@ -1475,8 +1475,9 @@
                     { id: 'activity', name: '활동 내역', icon: '📊' },
                     { id: 'chat', name: '채팅 내역', icon: '💬' }
                 ] : []),
-                // 관리자는 모든 탭 접근 가능, 전문가는 전문가 탭만
-                ...(userType === 'expert' || userType === 'admin' ? [{ id: 'expert', name: '전문가 관리', icon: '🎯' }] : []),
+                // 전문가는 내 서비스 관리 탭, 관리자는 전문가 관리 탭
+                ...(userType === 'expert' ? [{ id: 'my-services', name: '내 서비스 관리', icon: '📝' }] : []),
+                ...(userType === 'admin' ? [{ id: 'expert', name: '전문가 관리', icon: '🎯' }] : []),
                 ...(userType === 'admin' ? [{ id: 'admin', name: '관리자', icon: '👑' }] : [])
             ];
 
@@ -1560,7 +1561,10 @@
                         {activeTab === 'chat' && !isCurrentUserGuest && (
                             <ChatHistoryComponent currentUser={currentUser} />
                         )}
-                        {activeTab === 'expert' && userType === 'expert' && (
+                        {activeTab === 'my-services' && userType === 'expert' && (
+                            <MyServicesTab currentUser={currentUser} />
+                        )}
+                        {activeTab === 'expert' && userType === 'admin' && (
                             <ExpertTab currentUser={currentUser} />
                         )}
                         {activeTab === 'admin' && userType === 'admin' && (
@@ -2413,7 +2417,237 @@
             );
         };
 
-        // 전문가 관리 탭
+        // 내 서비스 관리 탭 - 전문가가 자신의 서비스를 관리
+        const MyServicesTab = ({ currentUser }) => {
+            const [myServices, setMyServices] = useState([]);
+            const [loading, setLoading] = useState(true);
+            const [showWriteModal, setShowWriteModal] = useState(false);
+            const [editingService, setEditingService] = useState(null);
+            const [stats, setStats] = useState({
+                totalServices: 0,
+                activeServices: 0,
+                totalBookings: 0,
+                avgRating: 0
+            });
+
+            // 내 서비스 목록 로드
+            const loadMyServices = async () => {
+                try {
+                    setLoading(true);
+                    const { data, error } = await supabase
+                        .from('expert_posts')
+                        .select('*')
+                        .eq('author_id', currentUser.id)
+                        .order('created_at', { ascending: false });
+                        
+                    if (error) throw error;
+                    setMyServices(data || []);
+                    
+                    // 통계 계산
+                    const total = data?.length || 0;
+                    const active = data?.filter(service => service.is_active)?.length || 0;
+                    
+                    setStats({
+                        totalServices: total,
+                        activeServices: active,
+                        totalBookings: 0, // TODO: 예약 데이터와 연결
+                        avgRating: 4.8 // TODO: 실제 평점 계산
+                    });
+                } catch (error) {
+                    console.error('Error loading my services:', error);
+                    // 데모 데이터
+                    setMyServices([]);
+                    setStats({
+                        totalServices: 0,
+                        activeServices: 0,
+                        totalBookings: 0,
+                        avgRating: 0
+                    });
+                }
+                setLoading(false);
+            };
+
+            useEffect(() => {
+                loadMyServices();
+            }, [currentUser]);
+
+            // 서비스 삭제
+            const deleteService = async (serviceId) => {
+                if (!confirm('정말 이 서비스를 삭제하시겠습니까?')) return;
+                
+                try {
+                    const { error } = await supabase
+                        .from('expert_posts')
+                        .delete()
+                        .eq('id', serviceId);
+                        
+                    if (error) throw error;
+                    loadMyServices(); // 새로고침
+                } catch (error) {
+                    console.error('Error deleting service:', error);
+                    alert('서비스 삭제 중 오류가 발생했습니다.');
+                }
+            };
+
+            // 서비스 활성화/비활성화
+            const toggleServiceStatus = async (serviceId, currentStatus) => {
+                try {
+                    const { error } = await supabase
+                        .from('expert_posts')
+                        .update({ is_active: !currentStatus })
+                        .eq('id', serviceId);
+                        
+                    if (error) throw error;
+                    loadMyServices(); // 새로고침
+                } catch (error) {
+                    console.error('Error toggling service status:', error);
+                    alert('서비스 상태 변경 중 오류가 발생했습니다.');
+                }
+            };
+
+            return (
+                <div className="space-y-6">
+                    {/* 헤더 및 통계 */}
+                    <div className="bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl p-6 text-white">
+                        <h2 className="text-2xl font-bold mb-4">📝 내 서비스 관리</h2>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            <div className="text-center">
+                                <div className="text-2xl font-bold">{stats.totalServices}</div>
+                                <div className="text-sm opacity-90">총 서비스</div>
+                            </div>
+                            <div className="text-center">
+                                <div className="text-2xl font-bold">{stats.activeServices}</div>
+                                <div className="text-sm opacity-90">활성 서비스</div>
+                            </div>
+                            <div className="text-center">
+                                <div className="text-2xl font-bold">{stats.totalBookings}</div>
+                                <div className="text-sm opacity-90">총 예약</div>
+                            </div>
+                            <div className="text-center">
+                                <div className="text-2xl font-bold">{stats.avgRating.toFixed(1)}</div>
+                                <div className="text-sm opacity-90">평균 평점</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* 새 서비스 등록 버튼 */}
+                    <div className="flex justify-between items-center">
+                        <h3 className="text-lg font-semibold">내 서비스 목록</h3>
+                        <button
+                            onClick={() => setShowWriteModal(true)}
+                            className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors flex items-center gap-2"
+                        >
+                            <span className="text-lg">+</span>
+                            새 서비스 등록
+                        </button>
+                    </div>
+
+                    {/* 서비스 목록 */}
+                    <div className="space-y-4">
+                        {loading ? (
+                            <div className="text-center py-8">
+                                <div className="text-gray-500">서비스 목록을 불러오는 중...</div>
+                            </div>
+                        ) : myServices.length === 0 ? (
+                            <div className="text-center py-12 bg-gray-50 rounded-lg">
+                                <div className="text-4xl mb-4">📝</div>
+                                <h3 className="text-lg font-semibold text-gray-700 mb-2">등록된 서비스가 없습니다</h3>
+                                <p className="text-gray-500 mb-6">첫 번째 서비스를 등록해보세요!</p>
+                                <button
+                                    onClick={() => setShowWriteModal(true)}
+                                    className="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                                >
+                                    서비스 등록하기
+                                </button>
+                            </div>
+                        ) : (
+                            myServices.map((service) => (
+                                <div key={service.id} className="bg-white rounded-lg p-6 border border-gray-200 shadow-sm">
+                                    <div className="flex justify-between items-start mb-4">
+                                        <div className="flex-1">
+                                            <div className="flex items-center gap-3 mb-2">
+                                                <h4 className="text-lg font-semibold">{service.title}</h4>
+                                                <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                                    service.is_active 
+                                                        ? 'bg-green-100 text-green-800' 
+                                                        : 'bg-gray-100 text-gray-500'
+                                                }`}>
+                                                    {service.is_active ? '활성' : '비활성'}
+                                                </span>
+                                            </div>
+                                            <p className="text-gray-600 text-sm mb-2">{service.content?.substring(0, 100)}...</p>
+                                            <div className="flex items-center gap-4 text-sm text-gray-500">
+                                                <span>💰 {service.price}원</span>
+                                                <span>⏱️ {service.duration}분</span>
+                                                <span>📞 {service.service_type}</span>
+                                            </div>
+                                        </div>
+                                        <div className="flex gap-2 ml-4">
+                                            <button
+                                                onClick={() => toggleServiceStatus(service.id, service.is_active)}
+                                                className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
+                                                    service.is_active
+                                                        ? 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200'
+                                                        : 'bg-green-100 text-green-800 hover:bg-green-200'
+                                                }`}
+                                            >
+                                                {service.is_active ? '비활성화' : '활성화'}
+                                            </button>
+                                            <button
+                                                onClick={() => setEditingService(service)}
+                                                className="px-3 py-1 bg-blue-100 text-blue-800 rounded text-sm font-medium hover:bg-blue-200 transition-colors"
+                                            >
+                                                수정
+                                            </button>
+                                            <button
+                                                onClick={() => deleteService(service.id)}
+                                                className="px-3 py-1 bg-red-100 text-red-800 rounded text-sm font-medium hover:bg-red-200 transition-colors"
+                                            >
+                                                삭제
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div className="text-xs text-gray-400">
+                                        등록일: {new Date(service.created_at).toLocaleDateString('ko-KR')}
+                                    </div>
+                                </div>
+                            ))
+                        )}
+                    </div>
+
+                    {/* 서비스 작성/수정 모달 */}
+                    {showWriteModal && (
+                        <ExpertPostWriteModal
+                            isOpen={showWriteModal}
+                            onClose={() => setShowWriteModal(false)}
+                            currentUser={currentUser}
+                            onSuccess={() => {
+                                setShowWriteModal(false);
+                                loadMyServices();
+                            }}
+                            isAdminUser={() => false} // 전문가 모드
+                        />
+                    )}
+
+                    {/* 서비스 수정 모달 */}
+                    {editingService && (
+                        <ExpertPostWriteModal
+                            isOpen={true}
+                            onClose={() => setEditingService(null)}
+                            currentUser={currentUser}
+                            editingPost={editingService}
+                            onSuccess={() => {
+                                setEditingService(null);
+                                loadMyServices();
+                            }}
+                            isAdminUser={() => false} // 전문가 모드
+                        />
+                    )}
+                </div>
+            );
+        };
+
+        // 전문가 관리 탭 (관리자 전용)
         const ExpertTab = ({ currentUser }) => {
             const [stats, setStats] = useState({
                 totalConsultations: 0,
