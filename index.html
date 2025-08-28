@@ -1036,37 +1036,105 @@
             };
         };
 
-        // 전문가 프로필 폼 컴포넌트
+        // 전문가 프로필 폼 컴포넌트 - 간소화 버전
         const ExpertProfileForm = ({ 
             expertProfile, updateExpertProfile, expertCategories,
             specialtyInput, setSpecialtyInput,
             addSpecialty, removeSpecialty, setCurrentView 
         }) => {
             
-            // 전문가 등록 제출 핸들러
-            const handleSubmit = async () => {
-                try {
-                    // 임시로 간소화된 등록 처리
-                    alert('전문가 등록이 완료되었습니다. 승인까지 1-2일 소요됩니다.');
-                    if (setCurrentView) {
-                        setCurrentView('main');
-                    }
-                } catch (error) {
-                    console.error('전문가 등록 오류:', error);
-                    alert('등록 중 오류가 발생했습니다. 다시 시도해주세요.');
-                }
+            const handleSubmit = () => {
+                console.log('전문가 등록 데이터:', expertProfile);
+                alert('전문가 등록이 완료되었습니다! (임시)');
+                setCurrentView('main');
             };
+
             return (
-                <div className="space-y-6">
-                    {/* 전문가 카테고리 */}
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-3">전문 분야 *</label>
-                        <div className="grid grid-cols-1 gap-3">
-                            {Object.entries(expertCategories).map(([key, category]) => (
-                                <div key={key} 
-                                     className="border-2 rounded-lg p-4 transition-all duration-200 hover:bg-gray-50"
-                                     style={{
-                                         borderColor: expertProfile.expertType === key ? '#ea580c' : '#d1d5db',
+                <div className="max-w-2xl mx-auto bg-white rounded-lg shadow-lg p-8">
+                    <div className="text-center mb-6">
+                        <h2 className="text-2xl font-bold text-gray-800">🎯 전문가 등록</h2>
+                        <p className="text-gray-600 mt-2">간단한 정보만 입력하세요</p>
+                    </div>
+                    
+                    <div className="space-y-6">
+                        {/* 이름 */}
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">이름 *</label>
+                            <input
+                                type="text"
+                                value={expertProfile.name || ''}
+                                onChange={(e) => updateExpertProfile('name', e.target.value)}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                                placeholder="실명을 입력하세요"
+                            />
+                        </div>
+                        
+                        {/* 전문분야 */}
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">전문분야 *</label>
+                            <select
+                                value={expertProfile.expertType || ''}
+                                onChange={(e) => updateExpertProfile('expertType', e.target.value)}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                            >
+                                <option value="">선택하세요</option>
+                                <option value="finance">재무/투자 상담</option>
+                                <option value="tax">세무 상담</option>
+                                <option value="law">법무 상담</option>
+                                <option value="real_estate">부동산 상담</option>
+                                <option value="insurance">보험 상담</option>
+                                <option value="life">생활설계 상담</option>
+                            </select>
+                        </div>
+                        
+                        {/* 연락처 */}
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">연락처 *</label>
+                            <input
+                                type="tel"
+                                value={expertProfile.phone || ''}
+                                onChange={(e) => updateExpertProfile('phone', e.target.value)}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                                placeholder="010-1234-5678"
+                            />
+                        </div>
+                        
+                        {/* 간소화 안내 */}
+                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                            <p className="text-blue-800 font-medium">📝 간소화된 등록</p>
+                            <p className="text-sm text-blue-600 mt-1">
+                                현재 기본 정보만으로 등록 가능합니다. 
+                                자격 증명 시스템은 추후 업데이트될 예정입니다.
+                            </p>
+                        </div>
+                        
+                        {/* 버튼들 */}
+                        <div className="flex gap-4 pt-4">
+                            <button
+                                type="button"
+                                onClick={() => setCurrentView('main')}
+                                className="flex-1 px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                            >
+                                취소
+                            </button>
+                            <button
+                                type="button"
+                                onClick={handleSubmit}
+                                className="flex-1 px-6 py-3 bg-orange-500 text-white rounded-lg hover:bg-orange-600"
+                            >
+                                등록하기
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // 마이페이지 컴포넌트
+        const MyPageComponent = ({ currentUser, onClose, getUserType, getUserTypeName, isAdminUser, isGuest, setCurrentView, setFormData, setCalculatorResult, setCalculatorStep, showNotification }) => {
+            const [userType, setUserType] = useState('member');
+            const [userTypeName, setUserTypeName] = useState('일반회원');
+            const [activeTab, setActiveTab] = useState('profile');
                                          backgroundColor: expertProfile.expertType === key ? '#fff7ed' : 'white'
                                      }}>
                                     <label className="flex items-center gap-4 cursor-pointer">
