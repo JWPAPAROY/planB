@@ -38,9 +38,10 @@ CREATE POLICY "Users can view own expert requests"
     ON expert_requests FOR SELECT
     USING (auth.uid() = user_id);
 
-CREATE POLICY "Users can create own expert requests"
+-- 게스트도 전문가 등록 요청 생성 가능
+CREATE POLICY "Anyone can create expert requests"
     ON expert_requests FOR INSERT
-    WITH CHECK (auth.uid() = user_id);
+    WITH CHECK (true);
 
 CREATE POLICY "Users can update own expert requests"
     ON expert_requests FOR UPDATE

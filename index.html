@@ -1155,12 +1155,31 @@
                         return;
                     }
 
-                    // 기존 전문가 등록 신청 확인
-                    const { data: existingRequest, error: checkError } = await supabase
-                        .from('expert_requests')
-                        .select('id, status, created_at')
-                        .eq('user_id', currentUser.id)
-                        .single();
+
+                    // 기존 전문가 등록 신청 확인 (게스트는 이메일로, 회원은 user_id로)
+                    let existingRequest = null;
+                    let checkError = null;
+                    
+                    if (currentUser.isGuest) {
+                        // 게스트는 이메일로 확인
+                        const { data, error } = await supabase
+                            .from('expert_requests')
+                            .select('id, status, created_at, email')
+                            .eq('email', formData.email)
+                            .eq('user_id', null)
+                            .single();
+                        existingRequest = data;
+                        checkError = error;
+                    } else {
+                        // 회원은 user_id로 확인
+                        const { data, error } = await supabase
+                            .from('expert_requests')
+                            .select('id, status, created_at')
+                            .eq('user_id', currentUser.id)
+                            .single();
+                        existingRequest = data;
+                        checkError = error;
+                    }
 
                     if (checkError && checkError.code !== 'PGRST116') {
                         // PGRST116 = No rows found (정상)
@@ -1182,7 +1201,7 @@
 
                     // Supabase에 전문가 등록 요청 저장
                     const expertRequestData = {
-                        user_id: currentUser.id,
+                        user_id: currentUser.isGuest ? null : currentUser.id,
                         name: formData.name,
                         phone: formData.phone,
                         email: formData.email,
